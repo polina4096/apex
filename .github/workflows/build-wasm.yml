@@ -1,0 +1,24 @@
+name: Build WASM
+
+on:
+  workflow_call:
+
+jobs:
+  build_android:
+    name: Build WASM
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+          components: rustfmt, clippy
+      - name: Install WASM
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Build WASM
+        run: wasm-pack build --release
+
+

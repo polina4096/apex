@@ -1,0 +1,14 @@
+name: Check pull request
+
+on:
+  pull_request:
+    types: [ opened, reopened ]
+    paths-ignore:
+      - '*.md'
+
+jobs:
+  analyze:
+    uses: ./.github/workflows/analyze.yml
+  lint:
+    needs: analyze
+    uses: ./.github/workflows/lint.yml

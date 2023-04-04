@@ -1,0 +1,26 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - 'master'
+    tags:
+      - '*'
+    paths-ignore:
+      - '*.md'
+
+jobs:
+  analyze:
+    uses: ./.github/workflows/analyze.yml
+  build_linux:
+    needs: analyze
+    uses: ./.github/workflows/build-linux.yml
+  build_macos:
+    needs: analyze
+    uses: ./.github/workflows/build-macos.yml
+  build_windows:
+    needs: analyze
+    uses: ./.github/workflows/build-windows.yml
+  build_wasm:
+    needs: analyze
+    uses: ./.github/workflows/build-wasm.yml
