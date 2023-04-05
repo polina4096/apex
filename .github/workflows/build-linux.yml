@@ -42,9 +42,9 @@ jobs:
       - name: Run cargo build
         uses: actions-rs/cargo@v1
         with:
-          use-cross: true
+          use-cross: false
           command: build
-          args: --package apex-client --release
+          args: --package apex-client --target ${{ matrix.target }} --release
       - name: DEBUG show artifacts
         run: |
           ls -la target

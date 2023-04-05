@@ -38,4 +38,4 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --package apex-client --release
+          args: --package apex-client --target ${{ matrix.target }} --release
