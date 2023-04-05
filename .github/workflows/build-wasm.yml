@@ -36,6 +36,9 @@ jobs:
       - name: Install WASM
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       - name: Build WASM
-        run: wasm-pack build --release
+        run: |
+          cd apex-client
+          wasm-pack build --release
+          
 
 
