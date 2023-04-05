@@ -11,7 +11,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y alsa-devel
+        run: sudo apt-get update && sudo apt-get install -y alsa-lib
       - name: Install latest nightly
         uses: actions-rs/toolchain@v1
         with:
