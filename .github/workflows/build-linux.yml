@@ -44,7 +44,7 @@ jobs:
         with:
           use-cross: true
           command: build
-          args: --release
+          args: --package apex-client --release
       - name: DEBUG show artifacts
         run: |
           ls -la target
