@@ -12,15 +12,18 @@ on:
 jobs:
   analyze:
     uses: ./.github/workflows/analyze.yml
-  build_linux:
+  lint:
     needs: analyze
+    uses: ./.github/workflows/lint.yml
+  build_linux:
+    needs: lint
     uses: ./.github/workflows/build-linux.yml
   build_macos:
-    needs: analyze
+    needs: lint
     uses: ./.github/workflows/build-macos.yml
   build_windows:
-    needs: analyze
+    needs: lint
     uses: ./.github/workflows/build-windows.yml
   build_wasm:
-    needs: analyze
+    needs: lint
     uses: ./.github/workflows/build-wasm.yml

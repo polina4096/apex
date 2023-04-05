@@ -7,6 +7,10 @@ jobs:
   linter:
     runs-on: ubuntu-latest
     name: Lint
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -19,6 +23,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
+          target: ${{ matrix.target }}
           override: true
           components: rustfmt, clippy
       - name: Set up cargo cache
@@ -31,10 +36,15 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-cargo-
-      - name: Run cargo clippy
+          key: ${{ runner.os }}-cargo-${{ matrix.target }}-${{ rustc_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-${{ matrix.target }}
+      - name: Run cargo fmt
         uses: actions-rs/cargo@v1
         with:
-          command: clippy
-          args: -- -D warnings
+          command: fmt
+          args: --all -- --check
+      - name: Run cargo clippy
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-features
