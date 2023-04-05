@@ -17,7 +17,7 @@ jobs:
       - name: Install dependencies
         uses: awalsh128/cache-apt-pkgs-action@latest
         with:
-          packages: libasound2-dev
+          packages: alsa-lib
           version: 1.0
       - name: Install latest nightly
         uses: actions-rs/toolchain@v1
