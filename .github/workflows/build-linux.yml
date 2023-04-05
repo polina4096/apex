@@ -36,9 +36,11 @@ jobs:
       - name: Run cargo build
         uses: actions-rs/cargo@v1
         with:
-          command: cargo build --release
+          command: build --release
       - name: DEBUG show artifacts
-        run: ls -la target
+        run: |
+          ls -la target
+          du .
 
 #      - name: Upload artifacts
 #        uses: actions/upload-artifact@v3
