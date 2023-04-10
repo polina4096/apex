@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          lfs: true
       - name: Install latest nightly
         uses: actions-rs/toolchain@v1
         with:
@@ -39,3 +41,9 @@ jobs:
         with:
           command: build
           args: --package apex-client --target ${{ matrix.target }} --release
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: artifact ${{ matrix.target }}
+          path: |
+            target/release/apex-client

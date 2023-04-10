@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          lfs: true
       - name: Install dependencies
         uses: awalsh128/cache-apt-pkgs-action@latest
         with:
@@ -49,10 +51,9 @@ jobs:
         run: |
           ls -la target
           du .
-
-#      - name: Upload artifacts
-#        uses: actions/upload-artifact@v3
-#        with:
-#          name: my-artifact
-#          path: |
-#            target
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: artifact ${{ matrix.target }}
+          path: |
+            target/release/apex-client
