@@ -19,6 +19,7 @@ jobs:
         run: git lfs checkout
       - name: Install Rust nightly
         uses: dtolnay/rust-toolchain@nightly
+        targets: ${{ env.target }}
       - name: Set up cargo cache
         uses: actions/cache@v3
         continue-on-error: false

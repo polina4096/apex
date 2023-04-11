@@ -19,6 +19,8 @@ jobs:
         run: git lfs checkout
       - name: Install Rust nightly
         uses: dtolnay/rust-toolchain@nightly
+        targets: ${{ env.target }}
+        components: clippy, rustfmt
       - name: Install dependencies
         uses: awalsh128/cache-apt-pkgs-action@latest
         with:
