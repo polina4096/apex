@@ -17,6 +17,8 @@ jobs:
           lfs: true
       - name: Checkout LFS objects
         run: git lfs checkout
+      - name: Install Rust nightly
+        uses: dtolnay/rust-toolchain@nightly
       - name: Install dependencies
         uses: awalsh128/cache-apt-pkgs-action@latest
         with:
