@@ -1,0 +1,63 @@
+name: Build Linux
+
+on:
+  workflow_call:
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}} ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+          - { target: x86_64-unknown-linux-gnu,   os: ubuntu-latest }
+          #- { target: aarch64-unknown-linux-gnu,  os: ubuntu-latest }
+          - { target: x86_64-apple-darwin,        os: macos-latest }
+          - { target: aarch64-apple-darwin,       os: macos-latest }
+          #- { target: x86_64-pc-windows-gnu,      os: windows-latest }
+          - { target: x86_64-pc-windows-msvc,     os: windows-latest }
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+      - name: Checkout LFS objects
+        run: git lfs checkout
+      - name: Install dependencies
+        if: runner.os == 'Linux'
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: libasound2-dev
+          version: 1.0
+      - name: Set up cargo cache
+        uses: actions/cache@v3
+        continue-on-error: false
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-${{ matrix.target }}
+      - uses: qRoC/cargo-actions@v1
+        with:
+          command: build
+          toolchain: nightly
+          args: --release --locked --verbose --target ${{ matrix.target }} --package apex-client
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload artifacts
+        if: runner.os != 'Windows'
+        uses: actions/upload-artifact@v3
+        with:
+          name: artifact ${{ matrix.target }}
+          path: |
+            target/${{ matrix.target }}/release/apex-client
+      - name: Upload artifacts (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v3
+        with:
+          name: artifact ${{ matrix.target }}
+          path: |
+            target/${{ matrix.target }}/release/apex-client.exe

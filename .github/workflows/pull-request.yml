@@ -7,8 +7,5 @@ on:
       - '*.md'
 
 jobs:
-  analyze:
-    uses: ./.github/workflows/analyze.yml
-  lint:
-    needs: analyze
-    uses: ./.github/workflows/lint.yml
+  check:
+    uses: ./.github/workflows/check.yml

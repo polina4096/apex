@@ -10,20 +10,11 @@ on:
       - '*.md'
 
 jobs:
-  analyze:
-    uses: ./.github/workflows/analyze.yml
-  lint:
-    needs: analyze
-    uses: ./.github/workflows/lint.yml
-  build_linux:
+  check:
+    uses: ./.github/workflows/check.yml
+  build:
     needs: lint
-    uses: ./.github/workflows/build-linux.yml
-  build_macos:
-    needs: lint
-    uses: ./.github/workflows/build-macos.yml
-  build_windows:
-    needs: lint
-    uses: ./.github/workflows/build-windows.yml
+    uses: ./.github/workflows/build.yml
   build_wasm:
     needs: lint
     uses: ./.github/workflows/build-wasm.yml
