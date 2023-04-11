@@ -13,8 +13,8 @@ jobs:
   check:
     uses: ./.github/workflows/check.yml
   build:
-    needs: lint
+    needs: check
     uses: ./.github/workflows/build.yml
   build_wasm:
-    needs: lint
+    needs: check
     uses: ./.github/workflows/build-wasm.yml

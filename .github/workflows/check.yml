@@ -39,6 +39,7 @@ jobs:
         with:
           command: check
           toolchain: nightly
+          args: --locked --verbose --target ${{ env.target }} --package apex-client
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Run cargo fmt code style
         uses: qRoC/cargo-actions@v1
