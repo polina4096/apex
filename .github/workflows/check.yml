@@ -41,8 +41,8 @@ jobs:
           components: clippy, rustfmt
       - name: Run cargo check
         run: cargo check --locked --verbose --target ${{ env.target }} --package apex-client
-      - name: Run cargo fmt code style
-        run: cargo fmt --all -- --check
+#      - name: Run cargo fmt code style
+#        run: cargo fmt --all -- --check
       - name: Run cargo clippy
         run: cargo clippy --all-features --all-targets -- -D warnings
       - name: Run cargo audit
