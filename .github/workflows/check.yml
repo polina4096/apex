@@ -17,11 +17,6 @@ jobs:
           lfs: true
       - name: Checkout LFS objects
         run: git lfs checkout
-      - name: Install Rust nightly
-        uses: dtolnay/rust-toolchain@nightly
-        with:
-          targets: ${{ env.target }}
-          components: clippy, rustfmt
       - name: Install dependencies
         uses: awalsh128/cache-apt-pkgs-action@latest
         with:
@@ -39,30 +34,16 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ env.target }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-${{ env.target }}
+      - name: Install Rust nightly
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          targets: ${{ env.target }}
+          components: clippy, rustfmt
       - name: Run cargo check
-        uses: qRoC/cargo-actions@v1
-        with:
-          command: check
-          toolchain: nightly
-          args: --locked --verbose --target ${{ env.target }} --package apex-client
-          token: ${{ secrets.GITHUB_TOKEN }}
+        run: cargo check --locked --verbose --target ${{ env.target }} --package apex-client
       - name: Run cargo fmt code style
-        uses: qRoC/cargo-actions@v1
-        with:
-          command: fmt
-          toolchain: nightly
-          args: --all -- --check
-          token: ${{ secrets.GITHUB_TOKEN }}
+        run: cargo fmt --all -- --check
       - name: Run cargo clippy
-        uses: qRoC/cargo-actions@v1
-        with:
-          command: clippy
-          toolchain: nightly
-          args: --all-features --all-targets -- -D warnings
-          token: ${{ secrets.GITHUB_TOKEN }}
+        run: cargo clippy --all-features --all-targets -- -D warnings
       - name: Run cargo audit
-        uses: qRoC/cargo-actions@v1
-        with:
-          command: audit
-          toolchain: nightly
-
+        run: cargo audit
