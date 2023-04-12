@@ -32,7 +32,8 @@ jobs:
         run: git lfs checkout
       - name: Install Rust nightly
         uses: dtolnay/rust-toolchain@nightly
-        targets: ${{ matrix.target }}
+        with:
+          targets: ${{ matrix.target }}
       - name: Install dependencies
         if: runner.os == 'Linux'
         uses: awalsh128/cache-apt-pkgs-action@latest
