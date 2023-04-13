@@ -18,7 +18,6 @@ jobs:
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-latest
             apt-deps: |
-              libasound2-dev
               gcc-aarch64-linux-gnu
           - target: x86_64-apple-darwin
             os: macos-latest
@@ -39,6 +38,11 @@ jobs:
         with:
           packages: ${{ matrix.apt-deps }}
           version: ${{ matrix.target }}
+      - uses: ryankurte/action-apt@v0.3.0
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        with:
+          arch: arm64
+          packages: "libasound2-dev:arm64"
       - name: Set up cargo cache
         uses: actions/cache@v3
         continue-on-error: false
