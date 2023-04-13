@@ -13,18 +13,17 @@ jobs:
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
+            apt-deps: |
+              libasound2-dev
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-latest
-          - target: x86_64-unknown-linux-musl
-            os: ubuntu-latest
-          - target: aarch64-unknown-linux-musl
-            os: ubuntu-latest
+            apt-deps: |
+              libasound2-dev
+              gcc-aarch64-linux-gnu
           - target: x86_64-apple-darwin
             os: macos-latest
           - target: aarch64-apple-darwin
             os: macos-latest
-#          - target: x86_64-pc-windows-gnu
-#            os: windows-latest
           - target: x86_64-pc-windows-msvc
             os: windows-latest
     steps:
@@ -38,14 +37,13 @@ jobs:
         if: runner.os == 'Linux'
         uses: awalsh128/cache-apt-pkgs-action@latest
         with:
-          packages: libasound2-dev
-          version: 1.0
+          packages: ${{ matrix.apt-deps }}
+          version: ${{ matrix.target }}
       - name: Set up cargo cache
         uses: actions/cache@v3
         continue-on-error: false
         with:
           path: |
-            ~/.cargo/bin/
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
@@ -58,6 +56,9 @@ jobs:
           targets: ${{ matrix.target }}
       - name: Build project
         run: cargo build --release --locked --verbose --target ${{ matrix.target }} --package apex-client
+      - name: Chmod binary
+        if: runner.os != 'Windows'
+        run: chmod +x target/${{ matrix.target }}/release/apex-client
       - name: Upload artifacts
         if: runner.os != 'Windows'
         uses: actions/upload-artifact@v3
