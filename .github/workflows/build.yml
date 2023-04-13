@@ -13,12 +13,6 @@ jobs:
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
-            apt-deps: |
-              libasound2-dev
-          - target: aarch64-unknown-linux-gnu
-            os: ubuntu-latest
-            apt-deps: |
-              gcc-aarch64-linux-gnu
           - target: x86_64-apple-darwin
             os: macos-latest
           - target: aarch64-apple-darwin
@@ -36,13 +30,8 @@ jobs:
         if: runner.os == 'Linux'
         uses: awalsh128/cache-apt-pkgs-action@latest
         with:
-          packages: ${{ matrix.apt-deps }}
+          packages: libasound2-dev
           version: ${{ matrix.target }}
-      - uses: ryankurte/action-apt@v0.3.0
-        if: matrix.target == 'aarch64-unknown-linux-gnu'
-        with:
-          arch: arm64
-          packages: "libasound2-dev:arm64"
       - name: Set up cargo cache
         uses: actions/cache@v3
         continue-on-error: false
