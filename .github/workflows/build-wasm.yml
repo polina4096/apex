@@ -1,4 +1,4 @@
-name: Build WASM
+name: Build and deploy WASM
 
 on:
   workflow_call:
@@ -8,7 +8,7 @@ env:
 
 jobs:
   build_wasm:
-    name: Build WASM
+    name: Build and deploy WASM
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -36,14 +36,22 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ env.target }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-${{ env.target }}
+      - name: Cache node modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.npm
+            ./apex-client/www/node_modules
+          key: ${{ runner.os }}-npm-${{ env.target }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-npm-${{ env.target }}
       - name: Install WASM
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       - name: Build WASM
         working-directory: ./apex-client
         run: wasm-pack build --release
       - name: Build npm
-        working-directory: ./apex-client/www
-        run: npm run build
+        working-directory: ./apex-client/www/
+        run: npm install && npm run build
       - name: Deploy WASM
         uses: peaceiris/actions-gh-pages@v3
         if: github.ref == 'refs/heads/main'
