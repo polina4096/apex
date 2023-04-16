@@ -17,6 +17,10 @@ jobs:
           lfs: true
       - name: Checkout LFS objects
         run: git lfs checkout
+      - name: Install node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
       - name: Install Rust nightly
         uses: dtolnay/rust-toolchain@nightly
         with:
@@ -37,9 +41,12 @@ jobs:
       - name: Build WASM
         working-directory: ./apex-client
         run: wasm-pack build --release
-#      - name: Deploy WASM
-#        uses: peaceiris/actions-gh-pages@v3
-#        if: github.ref == 'refs/heads/main'
-#        with:
-#          github_token: ${{ secrets.GITHUB_TOKEN }}
-#          publish_dir: ./language/documentation/book/book
+      - name: Build npm
+        working-directory: ./apex-client/www
+        run: npm run build
+      - name: Deploy WASM
+        uses: peaceiris/actions-gh-pages@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./apex-client/www/dist
