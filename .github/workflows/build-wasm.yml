@@ -3,6 +3,9 @@ name: Build and deploy WASM
 on:
   workflow_call:
 
+permissions:
+  contents: write
+
 env:
   target: "wasm32-unknown-unknown"
 
@@ -54,7 +57,7 @@ jobs:
         run: npm install && npm run build
       - name: Deploy WASM
         uses: peaceiris/actions-gh-pages@v3
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/master'
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./apex-client/www/dist
