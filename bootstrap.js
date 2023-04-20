@@ -1132,6 +1132,9 @@
 /******/ 					"__wbindgen_memory": function() {
 /******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_memory"]();
 /******/ 					},
+/******/ 					"__wbindgen_closure_wrapper648": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper648"](p0i32,p1i32,p2i32);
+/******/ 					},
 /******/ 					"__wbindgen_closure_wrapper650": function(p0i32,p1i32,p2i32) {
 /******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper650"](p0i32,p1i32,p2i32);
 /******/ 					},
@@ -1156,17 +1159,14 @@
 /******/ 					"__wbindgen_closure_wrapper664": function(p0i32,p1i32,p2i32) {
 /******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper664"](p0i32,p1i32,p2i32);
 /******/ 					},
-/******/ 					"__wbindgen_closure_wrapper666": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper666"](p0i32,p1i32,p2i32);
+/******/ 					"__wbindgen_closure_wrapper961": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper961"](p0i32,p1i32,p2i32);
 /******/ 					},
-/******/ 					"__wbindgen_closure_wrapper963": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper963"](p0i32,p1i32,p2i32);
+/******/ 					"__wbindgen_closure_wrapper1385": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper1385"](p0i32,p1i32,p2i32);
 /******/ 					},
-/******/ 					"__wbindgen_closure_wrapper1387": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper1387"](p0i32,p1i32,p2i32);
-/******/ 					},
-/******/ 					"__wbindgen_closure_wrapper7408": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper7408"](p0i32,p1i32,p2i32);
+/******/ 					"__wbindgen_closure_wrapper7406": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper7406"](p0i32,p1i32,p2i32);
 /******/ 					}
 /******/ 				}
 /******/ 			};
@@ -1269,7 +1269,7 @@
 /******/ 				promises.push(installedWasmModuleData);
 /******/ 			else {
 /******/ 				var importObject = wasmImportObjects[wasmModuleId]();
-/******/ 				var req = fetch(__webpack_require__.p + "" + {"../pkg/apex_client_bg.wasm":"383049adfce24ae105f0"}[wasmModuleId] + ".module.wasm");
+/******/ 				var req = fetch(__webpack_require__.p + "" + {"../pkg/apex_client_bg.wasm":"36e0bb6f31ea9f83cb66"}[wasmModuleId] + ".module.wasm");
 /******/ 				var promise;
 /******/ 				if(importObject instanceof Promise && typeof WebAssembly.compileStreaming === 'function') {
 /******/ 					promise = Promise.all([WebAssembly.compileStreaming(req), importObject]).then(function(items) {
