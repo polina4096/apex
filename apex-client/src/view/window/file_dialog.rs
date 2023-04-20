@@ -4,7 +4,7 @@ use async_zip::base::read::mem::ZipFileReader;
 use egui_file::FileDialog;
 use wcore::{graphics::{gui::{view::View, window::Window}, context::Graphics}, audio::{AudioData, Hint}, clock::Clock};
 
-use crate::{state::AppState, taiko::parser};
+use crate::{state::AppState, taiko::parser, layer::Layers};
 
 pub struct FileDialogWindow {
     open   : bool,
@@ -42,9 +42,9 @@ impl Window<()> for FileDialogWindow {
 }
 
 // Hand-rolling a window view impl 
-impl View<&mut AppState> for FileDialogWindow {
+impl View<(&mut AppState, &mut Layers)> for FileDialogWindow {
     #[allow(unused_variables)]
-    fn show(&mut self, state: &mut AppState, view: &wgpu::TextureView, graphics: &mut Graphics, ctx: &egui::Context) {
+    fn show(&mut self, (state, layers): (&mut AppState, &mut Layers), view: &wgpu::TextureView, graphics: &mut Graphics, ctx: &egui::Context) {
         if self.dialog.show(ctx).selected() {
             if let Some(path) = self.dialog.path() {
                 let mut files = HashMap::<String, Vec<u8>>::default();
@@ -69,19 +69,19 @@ impl View<&mut AppState> for FileDialogWindow {
                 let filename = files.keys().find(|x| *x == audio_filename).unwrap().clone();
                 let file = files.remove(&filename).unwrap();
                 let audio_file = Cursor::new(file);
-                state.taiko_layer.beatmap = Some(beatmap);
+                layers.taiko.beatmap = Some(beatmap);
 
                 let audio_data = AudioData::new(
                     Box::new(audio_file),
                     Hint::new().with_extension("mp3")
                 ).unwrap();
 
-                state.taiko_layer.audio.play(&audio_data).unwrap();
+                layers.taiko.audio.play(&audio_data).unwrap();
 
                 // Update clock data
-                state.taiko_layer.clock.set_time(0);
-                state.taiko_layer.clock.set_paused(true, 0);
-                state.taiko_layer.clock.set_length(state.taiko_layer.audio.length().as_millis() as u32);
+                layers.taiko.clock.set_time(0);
+                layers.taiko.clock.set_paused(true, 0);
+                layers.taiko.clock.set_length(layers.taiko.audio.length().as_millis() as u32);
 
                 // Build instances
                 state.taiko.rebuild_pending = true;

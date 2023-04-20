@@ -1,7 +1,7 @@
 use egui::{Align2, vec2, Button, Slider};
 use wcore::graphics::{gui::window::Window, context::Graphics};
 
-use crate::layer::taiko::TaikoLayer;
+use crate::{layer::Layers, state::AppState};
 
 const OFFSET: f32 = 12.0;
 
@@ -17,7 +17,7 @@ impl TimelineWindow {
     }
 }
 
-impl Window<&mut TaikoLayer> for TimelineWindow {
+impl Window<(&mut AppState, &mut Layers)> for TimelineWindow {
     type Title = &'static str;
     fn title() -> Self::Title {
         return "Timeline";
@@ -36,18 +36,18 @@ impl Window<&mut TaikoLayer> for TimelineWindow {
     }
 
     #[allow(unused_variables)]
-    fn show(&mut self, state: &mut TaikoLayer, view: &wgpu::TextureView, graphics: &mut Graphics, ui: &mut egui::Ui) {
-        let time = state.get_time().to_ms();
-        let length = state.get_length();
+    fn show(&mut self, (state, layers): (&mut AppState, &mut Layers), view: &wgpu::TextureView, graphics: &mut Graphics, ui: &mut egui::Ui) {
+        let time = layers.taiko.get_time().to_ms();
+        let length = layers.taiko.get_length();
         
         ui.horizontal(|ui| {
-            ui.set_enabled(state.beatmap.is_some());
+            ui.set_enabled(layers.taiko.beatmap.is_some());
 
             // Play button
-            let play_button_text = if state.is_paused() { "▶" } else { "⏸" };
+            let play_button_text = if layers.taiko.is_paused() { "▶" } else { "⏸" };
             let play_button = ui.add_sized(vec2(24.0, ui.available_height()), Button::new(play_button_text));
             if play_button.clicked() {
-                state.toggle_paused();
+                layers.taiko.toggle_paused();
             };
 
             // Time display
@@ -65,16 +65,16 @@ impl Window<&mut TaikoLayer> for TimelineWindow {
             let slider = ui.add(slider);               
 
             if slider.drag_started() {
-                self.was_playing = state.is_paused();
+                self.was_playing = layers.taiko.is_paused();
             }
 
             if slider.changed() {
-                state.set_paused(true);
-                state.set_time(time64 as u32);
+                layers.taiko.set_paused(true);
+                layers.taiko.set_time(time64 as u32);
             }
 
-            if slider.drag_released() && state.beatmap.is_some() {
-                state.set_paused(self.was_playing);
+            if slider.drag_released() && layers.taiko.beatmap.is_some() {
+                layers.taiko.set_paused(self.was_playing);
             }
         }); 
     }

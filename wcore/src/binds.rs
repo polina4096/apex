@@ -1,9 +1,9 @@
-use std::{fmt::Display, collections::HashMap};
+use std::{fmt::Display, collections::HashMap, hash::Hash};
 
 use ahash::RandomState;
 use winit::event::{VirtualKeyCode, ModifiersState};
 
-pub type Actions<State> = HashMap<KeyCombination, Action<State>, RandomState>;
+pub type Actions<T> = HashMap<KeyCombination, Action<T>, RandomState>;
 
 #[derive(Debug, Hash, Ord, PartialOrd, PartialEq, Eq, Clone, Copy)]
 pub struct KeyCode(VirtualKeyCode);
@@ -158,22 +158,8 @@ impl Display for KeyCombination {
     }
 }
 
-pub struct Action<State> {
-    pub name: String,
-    pub description: String,
-    function: Box<dyn FnMut(&mut State) + 'static>,
-}
-
-impl<State> Action<State> {
-    pub fn new(name: String, description: String, function: impl FnMut(&mut State) + 'static) -> Self {
-        return Self {
-            name,
-            description,
-            function: Box::new(function),
-        }
-    }
-
-    pub fn invoke(&mut self, state: &mut State) {
-        (*self.function)(state);
-    }
+pub struct Action<T: Clone + Copy + PartialEq + Eq + Hash> {
+    pub id          : T,
+    pub name        : String,
+    pub description : String,
 }

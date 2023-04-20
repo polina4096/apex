@@ -1,16 +1,15 @@
 use wcore::{graphics::{context::Graphics, gui::view::View, layer::Layer}, egui::Egui, binds::{KeyCombination, KeyCode, Actions, Action}};
 use winit::{window::Window, event::{WindowEvent, VirtualKeyCode, ElementState, ModifiersState}, event_loop::EventLoop};
 
-use crate::{config::Config, view::{window::{timeline::TimelineWindow, file_dialog::FileDialogWindow}, menu::MenuView, sidebar::SidebarView}, state::AppState, graphics::util::new_graphics};
+use crate::{config::Config, view::{window::{timeline::TimelineWindow, file_dialog::FileDialogWindow}, menu::MenuView, sidebar::SidebarView}, state::AppState, graphics::util::new_graphics, layer::{taiko::TaikoLayer, Layers}};
 
 pub struct App {
     // graphics
     pub window   : Window,
     pub graphics : Graphics,
-    pub actions  : Actions<AppState>,
 
     // egui
-    pub egui     : Egui,
+    pub egui : Egui,
     
     pub menu        : MenuView,
     pub sidebar     : SidebarView,
@@ -18,29 +17,33 @@ pub struct App {
 
     pub file_dialog : FileDialogWindow,
 
-    // layers
-    pub state : AppState,
+    // app
+    pub actions : Actions<AppActions>,
+    pub state   : AppState,
+    pub layers  : Layers,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub enum AppActions {
+    TogglePlayback,
+    ToggleSidebar,
 }
 
 impl App {
     pub async fn new(window: Window, event_loop: &EventLoop<()>, config: &Config) -> Self {
         let graphics = new_graphics(&window, config).await;
-        let mut actions = Actions::<AppState>::default();
+        let mut actions = Actions::default();
 
         actions.insert(
             KeyCombination { key: KeyCode::from(VirtualKeyCode::Space), modifier: ModifiersState::default() },
-            Action::new(String::from("play/pause"), String::from("starts or stops playback"), |state: &mut AppState| {
-                state.taiko_layer.toggle_paused();
-            })
+            Action { id: AppActions::TogglePlayback, name: String::from("play/pause"), description: String::from("starts or stops playback") }
         );
 
         actions.insert(
             KeyCombination { key: KeyCode::from(VirtualKeyCode::O), modifier: ModifiersState::CTRL },
-            Action::new(String::from("toggle sidebar"), String::from("shows or hides the sidebar"), |state: &mut AppState| {
-                state.sidebar.shown = !state.sidebar.shown;
-            })
+            Action { id: AppActions::ToggleSidebar, name: String::from("toggle sidebar"), description: String::from("shows or hides the sidebar") }
         );
-
+        
         // egui
         let scale = graphics.scale;
         let inner_size = graphics.size;
@@ -52,13 +55,17 @@ impl App {
         let timeline = TimelineWindow::new();
         let file_dialog = FileDialogWindow::new();
 
-        // common state
-        let state = AppState::new(&graphics);
+        // state
+        let state = AppState::new();
+
+        // layers
+        let layers = Layers {
+            taiko: TaikoLayer::new(&graphics),
+        };
 
         return Self {
             window,
             graphics,
-            actions,
 
             egui,
 
@@ -68,7 +75,9 @@ impl App {
     
             file_dialog,
 
+            actions,
             state,
+            layers,
         };
     }
 
@@ -84,10 +93,10 @@ impl App {
         });
         
         let (clipped_primitives, commands) = self.egui.prepare(&self.window, &mut self.graphics, &mut encoder, |graphics, ctx| {
-            View::show(&mut self.menu,       (&mut self.state, &mut self.file_dialog), &view, graphics, ctx);
-            View::show(&mut self.timeline,    &mut self.state.taiko_layer,             &view, graphics, ctx);
-            View::show(&mut self.sidebar,     &mut self.state,                         &view, graphics, ctx);
-            View::show(&mut self.file_dialog, &mut self.state,                         &view, graphics, ctx);
+            View::show(&mut self.menu,        (&mut self.state, &mut self.layers, &mut self.file_dialog), &view, graphics, ctx);
+            View::show(&mut self.timeline,    (&mut self.state, &mut self.layers), &view, graphics, ctx);
+            View::show(&mut self.sidebar,     (&mut self.state, &mut self.layers), &view, graphics, ctx);
+            View::show(&mut self.file_dialog, (&mut self.state, &mut self.layers), &view, graphics, ctx);
         });
 
         {
@@ -109,7 +118,7 @@ impl App {
                 depth_stencil_attachment: None,
             });
 
-            Layer::draw(&mut self.state.taiko_layer, &mut self.state.taiko, &mut render_pass, &mut self.graphics);
+            Layer::draw(&mut self.layers.taiko, &mut self.state.taiko, &mut render_pass, &mut self.graphics);
             self.egui.render(&self.graphics, &mut render_pass, &clipped_primitives, commands);
         }
     
@@ -128,7 +137,15 @@ impl App {
                     let mods = input.modifiers;
                     let combination = KeyCombination::from((key, mods));
                     if let Some(action) = self.actions.get_mut(&combination) {
-                        action.invoke(&mut self.state);
+                        match action.id {
+                            AppActions::TogglePlayback => {
+                                self.layers.taiko.toggle_paused();
+                            }
+
+                            AppActions::ToggleSidebar => {
+                                self.state.sidebar.shown = !self.state.sidebar.shown;
+                            }
+                        }
                     }
                 }
             }
@@ -148,13 +165,13 @@ impl App {
             self.graphics.surface.configure(&self.graphics.device, &self.graphics.config);
         }
         
-        self.state.taiko_layer.resize(new_size);
+        self.layers.taiko.resize(new_size);
     }
 
     pub fn scale(&mut self, scale: f64) {
         self.graphics.scale = scale;
         self.egui.scale(scale);
-        self.state.taiko_layer.scale(scale);
+        self.layers.taiko.scale(scale);
     } 
 
     pub fn get_window(&self) -> &Window {

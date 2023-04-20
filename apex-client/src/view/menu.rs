@@ -1,7 +1,7 @@
 use egui::{TopBottomPanel, menu};
 use wcore::{graphics::{gui::{view::View, window::Window}, context::Graphics}};
 
-use crate::state::AppState;
+use crate::{state::AppState, layer::Layers};
 
 use super::window::file_dialog::FileDialogWindow;
 
@@ -13,9 +13,9 @@ impl MenuView {
     }
 }
 
-impl View<(&mut AppState, &mut FileDialogWindow)> for MenuView {
+impl View<(&mut AppState, &mut Layers, &mut FileDialogWindow)> for MenuView {
     #[allow(unused_variables)]
-    fn show(&mut self, (state, file_dialog): (&mut AppState, &mut FileDialogWindow), view: &wgpu::TextureView, graphics: &mut Graphics, ctx: &egui::Context) {
+    fn show(&mut self, (state, layers, file_dialog): (&mut AppState, &mut Layers, &mut FileDialogWindow), view: &wgpu::TextureView, graphics: &mut Graphics, ctx: &egui::Context) {
         TopBottomPanel::top("menu").show(ctx, |ui| {
             menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
@@ -25,7 +25,7 @@ impl View<(&mut AppState, &mut FileDialogWindow)> for MenuView {
                     }
 
                     if ui.button("Close").clicked() {
-                        state.taiko_layer.close_beatmap();
+                        layers.taiko.close_beatmap();
                         ui.close_menu();
                     }
                 });

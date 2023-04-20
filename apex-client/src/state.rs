@@ -1,22 +1,18 @@
 use egui::{Ui, panel::Side};
-use wcore::{color::Color, graphics::context::Graphics};
+use wcore::color::Color;
 
-use crate::{view::sidebar::SidebarState, layer::taiko::{TaikoState, TaikoLayer}};
+use crate::{view::sidebar::SidebarState, layer::taiko::TaikoState};
 
 pub struct AppState {    
     pub sidebar : SidebarState,
     pub taiko   : TaikoState,
-
-    pub taiko_layer : TaikoLayer,
 }
 
 impl AppState {
-    pub fn new(graphics: &Graphics) -> Self {
+    pub fn new() -> Self {
         return Self {
             sidebar : SidebarState::new(),
             taiko   : TaikoState::new(),
-
-            taiko_layer : TaikoLayer::new(graphics),
         };
     }
 
