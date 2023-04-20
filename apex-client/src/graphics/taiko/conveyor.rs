@@ -269,10 +269,13 @@ impl Conveyor {
     fn rebuild_instances_beatmap(&mut self, state: &TaikoState, beatmap: &Beatmap, graphics: &Graphics) {
         self.circle_instances.clear();
         
-        let mut idx = beatmap.velocity.len() - 1;
+        let mut idx_t = beatmap.timing   . len() - 1;
+        let mut idx_v = beatmap.velocity . len() - 1;
         for obj in beatmap.objects.iter().rev() {
-            while beatmap.velocity[idx].time > obj.time && idx != 0 { idx -= 1; }
-            let velocity = beatmap.velocity[idx].velocity;
+            while beatmap.velocity[idx_t].time > obj.time && idx_t != 0 { idx_t -= 1; }
+            while beatmap.velocity[idx_v].time > obj.time && idx_v != 0 { idx_v -= 1; }
+            let beat_length = beatmap.timing[idx_t].bpm / 100.0;
+            let velocity = beat_length * beatmap.velocity[idx_v].velocity;
 
             self.circle_instances.push(TaikoHitObjectModel {
                 time: obj.time.to_ms() as f32 * state.zoom * beatmap.velocity_multiplier,
