@@ -1,5 +1,6 @@
 use std::{collections::HashMap, path::PathBuf};
 
+use intbits::Bits;
 use wcore::time::Time;
 
 use super::taiko_circle::{TaikoCircle, TaikoColor};
@@ -54,7 +55,7 @@ pub fn try_parse(data: &str) -> Result<Beatmap, ParseError> {
                 let Some(uninherited) = parts.nth(4).and_then(|x| Some(x == "1"))        else { continue };
                 
                 if uninherited {
-                    let bpm = 60.0 / (beat_length / 1000.0);
+                    let bpm = (60.0 * 1000.0) / beat_length;
                     timing_points.push(TimingPoint {
                         time : Time::from_ms(time_ms),
                         bpm  : bpm,
@@ -76,12 +77,12 @@ pub fn try_parse(data: &str) -> Result<Beatmap, ParseError> {
                     "1" => {
                         let Some(time_in_ms)  = parts.nth(2).and_then(|x| x.parse::<f64>().ok()) else { continue };
                         let Some(object_type) = parts.nth(1).and_then(|x| x.parse::<u8> ().ok()) else { continue };
-
+                        
                         objects_taiko.push(
                             TaikoCircle {
                                 time  : Time::from_ms(time_in_ms),
-                                big   : if let 4 | 6 = object_type { true            } else { false           },
-                                color : if let 0 | 4 = object_type { TaikoColor::DON } else { TaikoColor::KAT },
+                                color : if object_type.bit(1) || object_type.bit(3) { TaikoColor::KAT } else { TaikoColor::DON },
+                                big   : object_type.bit(2),
                             }
                         );
                     }
@@ -136,6 +137,10 @@ pub fn try_parse(data: &str) -> Result<Beatmap, ParseError> {
             }
         }
     }
+
+    if let Some(p) = timing_points   . get(0) && p.time != Time::zero() { timing_points   . insert(0, TimingPoint   { time: Time::zero(), bpm      : 60.0 }); }
+    if let Some(p) = velocity_points . get(0) && p.time != Time::zero() { velocity_points . insert(0, VelocityPoint { time: Time::zero(), velocity :  1.0 }); }
+    objects_taiko.sort_by(|a, b| a.time.to_seconds().total_cmp(&b.time.to_seconds()));
 
     return match table["[General]"]["Mode"] {
         // Taiko
