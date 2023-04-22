@@ -10,10 +10,11 @@
 #![feature(let_chains)]
 use clap::Parser;
 use log::{warn};
-use winit::{event_loop::{EventLoop, ControlFlow}, window::WindowBuilder, event::{Event, WindowEvent}};
+use winit::{event_loop::{EventLoop, ControlFlow}, window::{WindowBuilder}, event::{Event, WindowEvent}};
 #[cfg(not(target_arch = "wasm32"))] use winit::dpi::LogicalSize;
 
 #[cfg(target_arch = "wasm32")] use wasm_bindgen::prelude::*;
+#[cfg(target_arch = "wasm32")] use winit::window::Window;
 
 use crate::{config::Config, app::App};
 
@@ -55,21 +56,21 @@ pub async fn run() {
         .build(&event_loop)
         .unwrap();
 
-    // #[cfg(target_arch = "wasm32")] {
-    //     let window_ptr = std::ptr::addr_of!(window);
-    //     let closure = wasm_bindgen::closure::Closure::wrap(Box::new(move |_: web_sys::Event| {
-    //         let web_window = web_sys::window().expect("Failed to get web window object");
-    //         let size = winit::dpi::LogicalSize::new(
-    //             web_window.inner_width().unwrap().as_f64().unwrap(),
-    //             web_window.inner_height().unwrap().as_f64().unwrap(),
-    //         );
+    #[cfg(target_arch = "wasm32")] {
+        let window_ptr = std::ptr::addr_of!(window);
+        let closure = wasm_bindgen::closure::Closure::wrap(Box::new(move |_: web_sys::Event| {
+            let web_window = web_sys::window().expect("Failed to get web window object");
+            let size = winit::dpi::LogicalSize::new(
+                web_window.inner_width().unwrap().as_f64().unwrap(),
+                web_window.inner_height().unwrap().as_f64().unwrap(),
+            );
 
-    //         unsafe { window_ptr.cast::<Window>().as_ref().unwrap().set_inner_size(size) }
-    //     }) as Box<dyn FnMut(_)>);
+            unsafe { window_ptr.cast::<Window>().as_ref().unwrap().set_inner_size(size) }
+        }) as Box<dyn FnMut(_)>);
 
-    //     web_window.add_event_listener_with_callback("resize", closure.as_ref().unchecked_ref()).unwrap();
-    //     closure.forget(); // Here we leak memory, but it's ok since this closure should have 'static anyways
-    // }
+        web_window.add_event_listener_with_callback("resize", closure.as_ref().unchecked_ref()).unwrap();
+        closure.forget(); // Here we leak memory, but it's ok since this closure should have 'static anyways
+    }
 
     #[cfg(target_arch = "wasm32")] {
         use winit::platform::web::WindowExtWebSys;
