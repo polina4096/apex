@@ -29,10 +29,10 @@ pub struct TaikoState {
 impl TaikoState {
     pub fn new() -> Self {
         return Self {
-            scale        : 0.8,
-            audio_offset : 45, // osu audio engine (bass) is oof...
-            hit_position : vec2(256.0, 256.0),
-            zoom         : 1.0,
+            scale        : 0.85,
+            audio_offset : 65, // osu audio engine (bass) is oof...
+            hit_position : vec2(300.0, 300.0),
+            zoom         : 0.33, // default 16:9 zoom
             don_color    : Color::new(0.973, 0.596, 0.651, 1.0),
             kat_color    : Color::new(0.741, 0.698, 0.827, 1.0),
 

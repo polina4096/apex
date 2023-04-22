@@ -29,6 +29,7 @@ pub struct Conveyor {
     pub hitpos_instance_buffer : wgpu::Buffer,
     pub hitpos_instances       : Vec<Model>,
 
+    // TOOD: reset to 0 on map load to prevent crash
     pub cull_back : usize,
 }
 
@@ -231,12 +232,12 @@ impl Conveyor {
         // Update scene matrix
         let scale = graphics.scale as f32 * state.scale;
         self.scene.camera.set_scale(vec3(scale, scale, 1.0));
-        self.scene.camera.set_x(state.hit_position.x);
-        self.scene.camera.set_y(state.hit_position.y);
+        self.scene.camera.set_x(state.hit_position.x / scale);
+        self.scene.camera.set_y(state.hit_position.y / scale);
         self.scene.update(&graphics.queue);
         
         // Update time matrix
-        let time_offset = (- (time_ms as f32) + state.audio_offset as f32) * state.zoom * beatmap.velocity_multiplier;
+        let time_offset = (- (time_ms as f32) + state.audio_offset as f32) * state.zoom;
         self.time_uniform.update(&graphics.queue, &vec4(time_offset, 0.0, 0.0, 0.0));
         
         // Hit position
@@ -262,31 +263,39 @@ impl Conveyor {
 
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
         render_pass.set_vertex_buffer(1, self.circle_instance_buffer.slice(..));
-        render_pass.draw(0 ..  self.vertex_buffer_data  .len()                   as u32, 
-                         0 .. (self.circle_instances.len() - self.cull_back) as u32);
+        render_pass.draw(0 ..  self.vertex_buffer_data . len()                   as u32, 
+                         0 .. (self.circle_instances   . len() - self.cull_back) as u32);
     }
 
     fn rebuild_instances_beatmap(&mut self, state: &TaikoState, beatmap: &Beatmap, graphics: &Graphics) {
         self.circle_instances.clear();
         
-        let mut idx_t = beatmap.timing   . len() - 1;
-        let mut idx_v = beatmap.velocity . len() - 1;
+        let mut idx_t = beatmap.timing.len() - 1;
+        let mut idx_v = beatmap.velocity.len() - 1;
         for obj in beatmap.objects.iter().rev() {
-            while beatmap.velocity[idx_t].time > obj.time && idx_t != 0 { idx_t -= 1; }
+            while beatmap.timing[idx_t].time > obj.time && idx_t != 0 { idx_t -= 1; }
             while beatmap.velocity[idx_v].time > obj.time && idx_v != 0 { idx_v -= 1; }
-            let beat_length = beatmap.timing[idx_t].bpm / 100.0;
-            let velocity = beat_length * beatmap.velocity[idx_v].velocity;
+            
+            // Taiko
+            const OSU_TAIKO_VELOCITY_MULTIPLIER: f64 = 1.4;
+
+            // Timing            
+            let beat_length = 60.0 / beatmap.timing[idx_t].bpm * 1000.0; // we want ms...
+            let velocity = beatmap.velocity[idx_v].velocity;
+
+            let base_length = 1000.0;
+            let multiplier = OSU_TAIKO_VELOCITY_MULTIPLIER * velocity * base_length / beat_length * beatmap.velocity_multiplier as f64;
 
             self.circle_instances.push(TaikoHitObjectModel {
-                time: obj.time.to_ms() as f32 * state.zoom * beatmap.velocity_multiplier,
-                size: if obj.big { vec2(CIRCLE_SIZE * 1.55 / velocity as f32, CIRCLE_SIZE * 1.55) }
-                      else       { vec2(CIRCLE_SIZE        / velocity as f32, CIRCLE_SIZE       ) },
+                time: obj.time.to_ms() as f32 * state.zoom,
+                size: if obj.big { vec2(CIRCLE_SIZE * 1.55, CIRCLE_SIZE * 1.55) }
+                      else       { vec2(CIRCLE_SIZE       , CIRCLE_SIZE       ) },
 
                 color: if obj.color == TaikoColor::KAT { state.kat_color }  // vec4(0.0, 0.47, 0.67, 1.0)
                        else                            { state.don_color }, // vec4(0.92, 0.0, 0.27, 1.0)
                 
                 finisher: obj.big,
-                velocity: velocity as f32,
+                velocity: multiplier as f32,
             });
         }
 

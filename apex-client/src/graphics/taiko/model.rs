@@ -42,7 +42,7 @@ impl Instance for TaikoHitObjectModel {
 
     fn bake(&self) -> Self::Baked {
         return BakedTaikoHitObjectModel {
-            size_offset : vec3(self.size.x, self.size.y, self.time),
+            size_offset : vec3(self.size.x / self.velocity, self.size.y, self.time),
             velocity    : self.velocity,
             color       : self.color.into(),
             finisher    : if self.finisher { 1 } else { 0 },
