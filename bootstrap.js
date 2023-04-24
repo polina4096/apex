@@ -55,20 +55,20 @@
 /******/ 		"../pkg/apex_client_bg.wasm": function() {
 /******/ 			return {
 /******/ 				"./apex_client_bg.js": {
+/******/ 					"__wbindgen_object_clone_ref": function(p0i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_object_clone_ref"](p0i32);
+/******/ 					},
 /******/ 					"__wbindgen_object_drop_ref": function(p0i32) {
 /******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_object_drop_ref"](p0i32);
 /******/ 					},
 /******/ 					"__wbindgen_cb_drop": function(p0i32) {
 /******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_cb_drop"](p0i32);
 /******/ 					},
-/******/ 					"__wbindgen_object_clone_ref": function(p0i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_object_clone_ref"](p0i32);
+/******/ 					"__wbindgen_number_get": function(p0i32,p1i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_number_get"](p0i32,p1i32);
 /******/ 					},
 /******/ 					"__wbindgen_string_new": function(p0i32,p1i32) {
 /******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_string_new"](p0i32,p1i32);
-/******/ 					},
-/******/ 					"__wbindgen_number_get": function(p0i32,p1i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_number_get"](p0i32,p1i32);
 /******/ 					},
 /******/ 					"__wbg_new_abda76e883ba8a5f": function() {
 /******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbg_new_abda76e883ba8a5f"]();
@@ -544,15 +544,6 @@
 /******/ 					"__wbg_warn_e57696dbb3977030": function(p0i32) {
 /******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbg_warn_e57696dbb3977030"](p0i32);
 /******/ 					},
-/******/ 					"__wbg_bindVertexArrayOES_688eba003a98a0bb": function(p0i32,p1i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbg_bindVertexArrayOES_688eba003a98a0bb"](p0i32,p1i32);
-/******/ 					},
-/******/ 					"__wbg_createVertexArrayOES_02cfe655604046eb": function(p0i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbg_createVertexArrayOES_02cfe655604046eb"](p0i32);
-/******/ 					},
-/******/ 					"__wbg_deleteVertexArrayOES_ba22911f739464a7": function(p0i32,p1i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbg_deleteVertexArrayOES_ba22911f739464a7"](p0i32,p1i32);
-/******/ 					},
 /******/ 					"__wbg_now_c644db5194be8437": function(p0i32) {
 /******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbg_now_c644db5194be8437"](p0i32);
 /******/ 					},
@@ -588,12 +579,6 @@
 /******/ 					},
 /******/ 					"__wbg_getContext_89a318b610dc5fd4": function(p0i32,p1i32,p2i32,p3i32) {
 /******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbg_getContext_89a318b610dc5fd4"](p0i32,p1i32,p2i32,p3i32);
-/******/ 					},
-/******/ 					"__wbg_width_716d2242c9bd6c20": function(p0i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbg_width_716d2242c9bd6c20"](p0i32);
-/******/ 					},
-/******/ 					"__wbg_height_d45e4d57562f8ae0": function(p0i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbg_height_d45e4d57562f8ae0"](p0i32);
 /******/ 					},
 /******/ 					"__wbg_clientX_35f23f953e04ec0e": function(p0i32) {
 /******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbg_clientX_35f23f953e04ec0e"](p0i32);
@@ -631,6 +616,15 @@
 /******/ 					"__wbg_movementY_30276c1f90aec4fa": function(p0i32) {
 /******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbg_movementY_30276c1f90aec4fa"](p0i32);
 /******/ 					},
+/******/ 					"__wbg_bindVertexArrayOES_688eba003a98a0bb": function(p0i32,p1i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbg_bindVertexArrayOES_688eba003a98a0bb"](p0i32,p1i32);
+/******/ 					},
+/******/ 					"__wbg_createVertexArrayOES_02cfe655604046eb": function(p0i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbg_createVertexArrayOES_02cfe655604046eb"](p0i32);
+/******/ 					},
+/******/ 					"__wbg_deleteVertexArrayOES_ba22911f739464a7": function(p0i32,p1i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbg_deleteVertexArrayOES_ba22911f739464a7"](p0i32,p1i32);
+/******/ 					},
 /******/ 					"__wbg_deltaX_b7d127c94d6265c0": function(p0i32) {
 /******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbg_deltaX_b7d127c94d6265c0"](p0i32);
 /******/ 					},
@@ -643,8 +637,11 @@
 /******/ 					"__wbg_copyToChannel_9babe9bf308bffc3": function(p0i32,p1i32,p2i32,p3i32) {
 /******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbg_copyToChannel_9babe9bf308bffc3"](p0i32,p1i32,p2i32,p3i32);
 /******/ 					},
-/******/ 					"__wbg_matches_46e979ff3e4d0811": function(p0i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbg_matches_46e979ff3e4d0811"](p0i32);
+/******/ 					"__wbg_width_716d2242c9bd6c20": function(p0i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbg_width_716d2242c9bd6c20"](p0i32);
+/******/ 					},
+/******/ 					"__wbg_height_d45e4d57562f8ae0": function(p0i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbg_height_d45e4d57562f8ae0"](p0i32);
 /******/ 					},
 /******/ 					"__wbg_destination_5dfc354bcf2eb941": function(p0i32) {
 /******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbg_destination_5dfc354bcf2eb941"](p0i32);
@@ -708,6 +705,9 @@
 /******/ 					},
 /******/ 					"__wbg_getModifierState_03b72700dbe33ad6": function(p0i32,p1i32,p2i32) {
 /******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbg_getModifierState_03b72700dbe33ad6"](p0i32,p1i32,p2i32);
+/******/ 					},
+/******/ 					"__wbg_matches_46e979ff3e4d0811": function(p0i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbg_matches_46e979ff3e4d0811"](p0i32);
 /******/ 					},
 /******/ 					"__wbg_framebufferTextureMultiviewOVR_0ae55d2aa52fd2cb": function(p0i32,p1i32,p2i32,p3i32,p4i32,p5i32,p6i32) {
 /******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbg_framebufferTextureMultiviewOVR_0ae55d2aa52fd2cb"](p0i32,p1i32,p2i32,p3i32,p4i32,p5i32,p6i32);
@@ -1132,41 +1132,41 @@
 /******/ 					"__wbindgen_memory": function() {
 /******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_memory"]();
 /******/ 					},
-/******/ 					"__wbindgen_closure_wrapper681": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper681"](p0i32,p1i32,p2i32);
+/******/ 					"__wbindgen_closure_wrapper664": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper664"](p0i32,p1i32,p2i32);
 /******/ 					},
-/******/ 					"__wbindgen_closure_wrapper683": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper683"](p0i32,p1i32,p2i32);
+/******/ 					"__wbindgen_closure_wrapper666": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper666"](p0i32,p1i32,p2i32);
 /******/ 					},
-/******/ 					"__wbindgen_closure_wrapper685": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper685"](p0i32,p1i32,p2i32);
+/******/ 					"__wbindgen_closure_wrapper668": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper668"](p0i32,p1i32,p2i32);
 /******/ 					},
-/******/ 					"__wbindgen_closure_wrapper687": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper687"](p0i32,p1i32,p2i32);
+/******/ 					"__wbindgen_closure_wrapper670": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper670"](p0i32,p1i32,p2i32);
 /******/ 					},
-/******/ 					"__wbindgen_closure_wrapper689": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper689"](p0i32,p1i32,p2i32);
+/******/ 					"__wbindgen_closure_wrapper672": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper672"](p0i32,p1i32,p2i32);
 /******/ 					},
-/******/ 					"__wbindgen_closure_wrapper691": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper691"](p0i32,p1i32,p2i32);
+/******/ 					"__wbindgen_closure_wrapper674": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper674"](p0i32,p1i32,p2i32);
 /******/ 					},
-/******/ 					"__wbindgen_closure_wrapper693": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper693"](p0i32,p1i32,p2i32);
+/******/ 					"__wbindgen_closure_wrapper676": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper676"](p0i32,p1i32,p2i32);
 /******/ 					},
-/******/ 					"__wbindgen_closure_wrapper695": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper695"](p0i32,p1i32,p2i32);
+/******/ 					"__wbindgen_closure_wrapper678": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper678"](p0i32,p1i32,p2i32);
 /******/ 					},
-/******/ 					"__wbindgen_closure_wrapper697": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper697"](p0i32,p1i32,p2i32);
+/******/ 					"__wbindgen_closure_wrapper680": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper680"](p0i32,p1i32,p2i32);
 /******/ 					},
-/******/ 					"__wbindgen_closure_wrapper972": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper972"](p0i32,p1i32,p2i32);
+/******/ 					"__wbindgen_closure_wrapper971": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper971"](p0i32,p1i32,p2i32);
 /******/ 					},
-/******/ 					"__wbindgen_closure_wrapper1396": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper1396"](p0i32,p1i32,p2i32);
+/******/ 					"__wbindgen_closure_wrapper1519": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper1519"](p0i32,p1i32,p2i32);
 /******/ 					},
-/******/ 					"__wbindgen_closure_wrapper7409": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper7409"](p0i32,p1i32,p2i32);
+/******/ 					"__wbindgen_closure_wrapper7470": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper7470"](p0i32,p1i32,p2i32);
 /******/ 					}
 /******/ 				}
 /******/ 			};
@@ -1269,7 +1269,7 @@
 /******/ 				promises.push(installedWasmModuleData);
 /******/ 			else {
 /******/ 				var importObject = wasmImportObjects[wasmModuleId]();
-/******/ 				var req = fetch(__webpack_require__.p + "" + {"../pkg/apex_client_bg.wasm":"814e91205411e1b70da1"}[wasmModuleId] + ".module.wasm");
+/******/ 				var req = fetch(__webpack_require__.p + "" + {"../pkg/apex_client_bg.wasm":"9cd0e57af4980bd77eb5"}[wasmModuleId] + ".module.wasm");
 /******/ 				var promise;
 /******/ 				if(importObject instanceof Promise && typeof WebAssembly.compileStreaming === 'function') {
 /******/ 					promise = Promise.all([WebAssembly.compileStreaming(req), importObject]).then(function(items) {
