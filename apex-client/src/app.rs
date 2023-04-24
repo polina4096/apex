@@ -158,6 +158,10 @@ impl<T> App<T> {
                 }
             }
 
+            WindowEvent::DroppedFile(path) => {
+                self.layers.taiko.open_beatmap(path.as_path(), &mut self.state.taiko);
+            }
+
             _ => {}
         }
 

@@ -1,10 +1,11 @@
-use std::time::Duration;
+use std::{time::Duration, path::Path, collections::HashMap, io::Cursor};
 
+use async_zip::base::read::mem::ZipFileReader;
 use cgmath::{vec3, vec2, Vector2};
-use wcore::{audio::Audio, clock::{SyncClock, Clock}, time::Time, graphics::{context::Graphics, camera::{Projection, Camera}, layer::Layer}, color::Color};
+use wcore::{audio::{Audio, AudioData, Hint}, clock::{SyncClock, Clock}, time::Time, graphics::{context::Graphics, camera::{Projection, Camera}, layer::Layer}, color::Color};
 use winit::dpi::PhysicalSize;
 
-use crate::{taiko::{parser::Beatmap}, graphics::{taiko::{conveyor::Conveyor, skin::Skin}}};
+use crate::{taiko::{parser::Beatmap, self}, graphics::{taiko::{conveyor::Conveyor, skin::Skin}}};
 
 
 pub struct TaikoState {
@@ -93,6 +94,47 @@ impl<'b> Layer<'b, &'b mut TaikoState> for TaikoLayer {
 }
 
 impl TaikoLayer {
+    pub fn open_beatmap(&mut self, path: &Path, state: &mut TaikoState) {
+        let mut files = HashMap::<String, Vec<u8>>::default();
+        pollster::block_on(async {
+            let archive = std::fs::read(path).unwrap();
+            let archive = ZipFileReader::new(archive).await.unwrap();
+            for i in 0 .. archive.file().entries().len() {
+                let mut file = archive.entry(i).await.unwrap();
+                let mut buffer = vec![];
+                file.read_to_end_checked(&mut buffer, archive.file().entries()[i].entry()).await.unwrap();
+                files.insert(archive.file().entries()[i].entry().filename().to_owned(), buffer);
+            }
+        });
+
+        let filename = files.keys().find(|x| x.ends_with(".osu")).unwrap().clone();
+        let data = String::from_utf8(files.remove(&filename).unwrap()).unwrap();
+        
+        // Beatmap
+        let beatmap = taiko::parser::try_parse(&data).unwrap();
+        
+        let audio_filename = beatmap.audio.file_name().unwrap().to_str().unwrap();
+        let filename = files.keys().find(|x| *x == audio_filename).unwrap().clone();
+        let file = files.remove(&filename).unwrap();
+        let audio_file = Cursor::new(file);
+        self.beatmap = Some(beatmap);
+
+        let audio_data = AudioData::new(
+            Box::new(audio_file),
+            Hint::new().with_extension("mp3")
+        ).unwrap();
+
+        self.audio.play(&audio_data).unwrap();
+
+        // Update clock data
+        self.clock.set_time(0);
+        self.clock.set_paused(true, 0);
+        self.clock.set_length(self.audio.length().as_millis() as u32);
+
+        // Build instances
+        state.rebuild_pending = true;
+    }
+
     pub fn close_beatmap(&mut self) {
         // Reset clock
         self.clock.set_time(0);
