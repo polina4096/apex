@@ -65,7 +65,7 @@ pub async fn run() {
                 web_window.inner_height().unwrap().as_f64().unwrap(),
             );
 
-            unsafe { window_ptr.cast::<Window>().as_ref().unwrap().set_inner_size(size) }
+            unsafe { window_ptr.as_ref().unwrap().set_inner_size(size) }
         }) as Box<dyn FnMut(_)>);
 
         web_window.add_event_listener_with_callback("resize", closure.as_ref().unchecked_ref()).unwrap();
