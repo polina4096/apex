@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
 use log::info;
-use wcore::graphics::context::Graphics;
+use wcore::graphics::context::{Graphics, Layout};
 use winit::window::Window;
 
 use crate::config::Config;
@@ -124,6 +124,8 @@ pub async fn new_graphics(window: &Window, config: &Config) -> Graphics {
         { scale                 } else
         { window.scale_factor() };
 
+    let layout = Layout::new(&device);
+
     return Graphics {
         device,
         surface,
@@ -132,5 +134,7 @@ pub async fn new_graphics(window: &Window, config: &Config) -> Graphics {
         config: surface_config,
         size,
         scale,
+
+        layout,
     };
 }

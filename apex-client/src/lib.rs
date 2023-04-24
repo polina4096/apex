@@ -10,7 +10,7 @@
 #![feature(let_chains)]
 use clap::Parser;
 use log::{warn};
-use winit::{event_loop::{EventLoop, ControlFlow}, window::{WindowBuilder}, event::{Event, WindowEvent}};
+use winit::{event_loop::{ControlFlow, EventLoopBuilder}, window::{WindowBuilder}, event::{Event, WindowEvent}};
 #[cfg(not(target_arch = "wasm32"))] use winit::dpi::LogicalSize;
 
 #[cfg(target_arch = "wasm32")] use wasm_bindgen::prelude::*;
@@ -49,7 +49,7 @@ pub async fn run() {
         }
     }
 
-    let event_loop = EventLoop::new();
+    let event_loop = EventLoopBuilder::<()>::with_user_event().build();
     let window = WindowBuilder::new()
         .with_title("Apex")
         .with_inner_size(size)
@@ -80,12 +80,14 @@ pub async fn run() {
         dst.append_child(&canvas).expect("Failed to append canvas to the parent");
     }
 
-    let mut app = App::new(window, &event_loop, &config).await;
+    let proxy = event_loop.create_proxy();
+    let mut app = App::new(window, &event_loop, proxy, &config).await;
 
     event_loop.run(move |event, _, control_flow| {
+        app.update();
+
         match event {
             Event::RedrawRequested(window_id) if window_id == app.get_window().id() => {
-                app.update();
                 match app.render() {
                     Ok(_) => { }
                     // Reconfigure the surface if lost
@@ -120,6 +122,10 @@ pub async fn run() {
                         _ => {}
                     }
                 }
+            }
+
+            Event::UserEvent(_event) => {
+
             }
             
             _ => {}

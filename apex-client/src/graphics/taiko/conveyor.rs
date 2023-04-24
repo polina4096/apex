@@ -1,5 +1,5 @@
 use cgmath::{Quaternion, vec3, Zero, vec2, Vector4, vec4};
-use wcore::graphics::{texture::Texture, scene::Scene, camera::{ProjectionOrthographic, Camera2D, Camera}, uniform::Uniform, common::{vertex::Vertex, model::Model}, context::Graphics, instance::Instance, bindable::Bindable};
+use wcore::graphics::{scene::Scene, camera::{ProjectionOrthographic, Camera2D, Camera}, uniform::Uniform, common::{vertex::Vertex, model::Model}, context::Graphics, instance::Instance, bindable::Bindable, layout::Layout};
 use wgpu::util::DeviceExt;
 
 use crate::{layer::taiko::TaikoState, taiko::{parser::Beatmap, taiko_circle::TaikoColor}};
@@ -9,12 +9,6 @@ use super::model::TaikoHitObjectModel;
 const CIRCLE_SIZE: f32 = 128.0;
 
 pub struct Conveyor {
-    pub t_hitcircle  : Texture,
-    pub t_bigcircle  : Texture,
-    pub t_hitoverlay : Texture,
-    pub t_bigoverlay : Texture,
-    pub t_hitposition : Texture,
-
     pub scene           : Scene<ProjectionOrthographic, Camera2D>,
     pub time_uniform    : Uniform<Vector4<f32>>,
     pub circle_pipeline : wgpu::RenderPipeline,
@@ -35,13 +29,6 @@ pub struct Conveyor {
 
 impl Conveyor {
     pub fn new(graphics: &Graphics) -> Self {
-        // Texture
-        let hitcircle = Texture::from_memory(include_bytes!("../../../res/taikohitcircle.png"), graphics).expect("Failed to load texture");
-        let bigcircle = Texture::from_memory(include_bytes!("../../../res/taikobigcircle.png"), graphics).expect("Failed to load texture");
-        let hitoverlay = Texture::from_memory(include_bytes!("../../../res/taikohitcircleoverlay.png"), graphics).expect("Failed to load texture");
-        let bigoverlay = Texture::from_memory(include_bytes!("../../../res/taikobigcircleoverlay.png"), graphics).expect("Failed to load texture");
-        let hitposition = Texture::from_memory(include_bytes!("../../../res/approachcircle.png"), graphics).expect("Failed to load texture");
-
         // Vertices
         let vertex_buffer_data = Vertex::vertices_quad(-0.5, 0.5);
         let vertex_buffer = graphics.device.create_buffer_init(
@@ -89,8 +76,8 @@ impl Conveyor {
         let render_pipeline_layout = graphics.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Render Pipeline Layout"),
             bind_group_layouts: &[
-                scene       . layout(),
-                hitposition . layout(),
+                scene.layout(),
+                &graphics.layout.texture,
             ],
             push_constant_ranges: &[],
         });
@@ -141,12 +128,12 @@ impl Conveyor {
         let render_pipeline_layout = graphics.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Render Pipeline Layout"),
             bind_group_layouts: &[
-                scene       . layout(),
-                time_uniform. layout(),
-                hitcircle   . layout(),
-                hitoverlay  . layout(),
-                bigcircle   . layout(),
-                bigoverlay  . layout(),
+                scene        . layout(),
+                time_uniform . layout(),
+                &graphics.layout.texture,
+                &graphics.layout.texture,
+                &graphics.layout.texture,
+                &graphics.layout.texture,
             ],
             push_constant_ranges: &[],
         });
@@ -194,12 +181,6 @@ impl Conveyor {
         });
 
         return Self {
-            t_hitcircle   : hitcircle,
-            t_bigcircle   : bigcircle,
-            t_hitoverlay  : hitoverlay,
-            t_bigoverlay  : bigoverlay,
-            t_hitposition : hitposition,
-
             scene,
             time_uniform,
             circle_pipeline,
@@ -217,7 +198,7 @@ impl Conveyor {
         };
     }
 
-    pub fn draw<'a: 'b, 'b>(&'a mut self, rebuild_instances: bool, state: &TaikoState, beatmap: &Beatmap, time_ms: u32, render_pass: &mut wgpu::RenderPass<'b>, graphics: &mut Graphics) {
+    pub fn draw<'a: 'b, 'b, 'c: 'b>(&'a mut self, rebuild_instances: bool, state: &'c TaikoState, beatmap: &Beatmap, time_ms: u32, render_pass: &mut wgpu::RenderPass<'b>, graphics: &mut Graphics) {
         if rebuild_instances { self.rebuild_instances_beatmap(state, beatmap, graphics); }
 
         // Circle culling
@@ -244,7 +225,7 @@ impl Conveyor {
         render_pass.set_pipeline(&self.hitpos_pipeline);
 
         self.scene.bind(render_pass, 0);
-        render_pass.set_bind_group(1, &self.t_hitposition.bind_group, &[]);
+        render_pass.set_bind_group(1, &state.skin.hit_position.bind_group, &[]);
 
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
         render_pass.set_vertex_buffer(1, self.hitpos_instance_buffer.slice(..));
@@ -256,10 +237,10 @@ impl Conveyor {
         
         self.scene.bind(render_pass, 0);
         self.time_uniform.bind(render_pass, 1);
-        render_pass.set_bind_group(2, &self.t_hitcircle.bind_group, &[]);
-        render_pass.set_bind_group(3, &self.t_hitoverlay.bind_group, &[]);
-        render_pass.set_bind_group(4, &self.t_bigcircle.bind_group, &[]);
-        render_pass.set_bind_group(5, &self.t_bigoverlay.bind_group, &[]);
+        render_pass.set_bind_group(2, &state.skin.circle      . bind_group, &[]);
+        render_pass.set_bind_group(3, &state.skin.overlay     . bind_group, &[]);
+        render_pass.set_bind_group(4, &state.skin.big_circle  . bind_group, &[]);
+        render_pass.set_bind_group(5, &state.skin.big_overlay . bind_group, &[]);
 
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
         render_pass.set_vertex_buffer(1, self.circle_instance_buffer.slice(..));

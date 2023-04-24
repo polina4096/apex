@@ -181,6 +181,7 @@ dependencies = [
  "console_error_panic_hook",
  "console_log",
  "egui",
+ "egui-notify",
  "egui_file",
  "intbits",
  "log",
@@ -1002,6 +1003,14 @@ dependencies = [
  "epaint",
  "nohash-hasher",
  "tracing",
+]
+
+[[package]]
+name = "egui-notify"
+version = "0.6.0"
+source = "git+https://github.com/ItsEthra/egui-notify.git#3d93d7c2e3851717bcb7eeb29389f0c1487d4b93"
+dependencies = [
+ "egui",
 ]
 
 [[package]]

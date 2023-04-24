@@ -1,5 +1,5 @@
 use egui::{Ui, panel::Side};
-use wcore::color::Color;
+use wcore::{color::Color, graphics::context::Graphics};
 
 use crate::{view::sidebar::SidebarState, layer::taiko::TaikoState};
 
@@ -9,10 +9,10 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new() -> Self {
+    pub fn new(graphics: &Graphics) -> Self {
         return Self {
             sidebar : SidebarState::new(),
-            taiko   : TaikoState::new(),
+            taiko   : TaikoState::new(graphics),
         };
     }
 

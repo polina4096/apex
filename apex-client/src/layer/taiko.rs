@@ -4,30 +4,32 @@ use cgmath::{vec3, vec2, Vector2};
 use wcore::{audio::Audio, clock::{SyncClock, Clock}, time::Time, graphics::{context::Graphics, camera::{Projection, Camera}, layer::Layer}, color::Color};
 use winit::dpi::PhysicalSize;
 
-use crate::{taiko::{parser::Beatmap}, graphics::taiko::{conveyor::Conveyor}};
+use crate::{taiko::{parser::Beatmap}, graphics::{taiko::{conveyor::Conveyor, skin::Skin}}};
 
 
 pub struct TaikoState {
-    // Settings
+    /* Settings */
     pub scale        : f32,
     pub audio_offset : i64, // ms
     pub hit_position : Vector2<f32>,
     pub zoom         : f32,
     pub don_color    : Color,
     pub kat_color    : Color,
-    
+
+    pub skin         : Skin,
+
     // Debug
     pub force_rebuild : bool,
 
     // Temporary
     pub hit_circles : bool,
 
-    // Internal
+    /* Internal */
     pub rebuild_pending : bool,
 }
 
 impl TaikoState {
-    pub fn new() -> Self {
+    pub fn new(graphics: &Graphics) -> Self {
         return Self {
             scale        : 0.85,
             audio_offset : 65, // osu audio engine (bass) is oof...
@@ -36,9 +38,11 @@ impl TaikoState {
             don_color    : Color::new(0.973, 0.596, 0.651, 1.0),
             kat_color    : Color::new(0.741, 0.698, 0.827, 1.0),
 
-            force_rebuild: false,
+            skin : Skin::default(graphics),
 
-            hit_circles : true,
+            force_rebuild   : false,
+
+            hit_circles     : true,
 
             rebuild_pending : false,
         };
@@ -67,8 +71,8 @@ impl TaikoLayer {
     }
 }
 
-impl Layer<&mut TaikoState> for TaikoLayer {
-    fn draw<'a: 'b, 'b>(&'a mut self, state: &mut TaikoState, render_pass: &mut wgpu::RenderPass<'b>, graphics: &mut Graphics) {
+impl<'b> Layer<'b, &'b mut TaikoState> for TaikoLayer {
+    fn draw<'a: 'b>(&'a mut self, state: &'b mut TaikoState, render_pass: &mut wgpu::RenderPass<'b>, graphics: &mut Graphics) {
         let rebuild_instances = state.rebuild_pending || state.force_rebuild;
         if state.rebuild_pending { state.rebuild_pending = false; }
         

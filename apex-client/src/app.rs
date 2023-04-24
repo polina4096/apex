@@ -1,9 +1,12 @@
 use wcore::{graphics::{context::Graphics, gui::view::View, layer::Layer}, egui::Egui, binds::{KeyCombination, KeyCode, Actions, Action}};
-use winit::{window::Window, event::{WindowEvent, VirtualKeyCode, ElementState, ModifiersState}, event_loop::EventLoop};
+use winit::{window::Window, event::{WindowEvent, VirtualKeyCode, ElementState, ModifiersState}, event_loop::{EventLoop, EventLoopProxy}};
 
 use crate::{config::Config, view::{window::{timeline::TimelineWindow, file_dialog::FileDialogWindow}, menu::MenuView, sidebar::SidebarView}, state::AppState, graphics::util::new_graphics, layer::{taiko::TaikoLayer, Layers}};
 
-pub struct App {
+pub struct App<T: 'static> {
+    // events
+    pub proxy : EventLoopProxy<T>,
+
     // graphics
     pub window   : Window,
     pub graphics : Graphics,
@@ -23,14 +26,17 @@ pub struct App {
     pub layers  : Layers,
 }
 
+pub enum AppEvents {
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AppActions {
     TogglePlayback,
     ToggleSidebar,
 }
 
-impl App {
-    pub async fn new(window: Window, event_loop: &EventLoop<()>, config: &Config) -> Self {
+impl<T> App<T> {
+    pub async fn new(window: Window, event_loop: &EventLoop<T>, proxy: EventLoopProxy<T>, config: &Config) -> Self {
         let graphics = new_graphics(&window, config).await;
         let mut actions = Actions::default();
 
@@ -56,7 +62,7 @@ impl App {
         let file_dialog = FileDialogWindow::new();
 
         // state
-        let state = AppState::new();
+        let state = AppState::new(&graphics);
 
         // layers
         let layers = Layers {
@@ -64,6 +70,8 @@ impl App {
         };
 
         return Self {
+            proxy,
+
             window,
             graphics,
 

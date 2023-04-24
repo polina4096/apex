@@ -8,3 +8,4 @@ pub mod uniform;
 pub mod instance;
 pub mod gui;
 pub mod layer;
+pub mod layout;

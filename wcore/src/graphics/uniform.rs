@@ -5,6 +5,8 @@ use wgpu::util::DeviceExt;
 
 use crate::graphics::bindable::Bindable;
 
+use super::layout::Layout;
+
 pub struct Uniform<T: Clone + Pod + Zeroable> {
     buffer            : wgpu::Buffer,
     bind_group        : wgpu::BindGroup,
@@ -69,11 +71,13 @@ impl<T: Clone + Pod + Zeroable> Bindable for Uniform<T> {
         render_pass.set_bind_group(index, &self.bind_group, &[]);
     }
 
-    fn layout(&self) -> &wgpu::BindGroupLayout {
-        return &self.bind_group_layout;
-    }
-
     fn group(&self) -> &wgpu::BindGroup {
         return &self.bind_group;
+    }
+}
+
+impl<T: Clone + Pod + Zeroable> Layout for Uniform<T> {
+    fn layout(&self) -> &wgpu::BindGroupLayout {
+        return &self.bind_group_layout;
     }
 }

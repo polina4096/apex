@@ -21,6 +21,7 @@ async_zip = { version = "0.0.13", features = ["full-wasm"] }
 cgmath = { git = "https://github.com/rustgd/cgmath.git", features = ["bytemuck"] }
 wcore = { path = "../wcore" }
 intbits = "0.2.0"
+egui-notify = { git = "https://github.com/ItsEthra/egui-notify.git" }
 
 # WASM
 [lib]

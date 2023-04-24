@@ -2,6 +2,8 @@ use cgmath::Matrix4;
 
 use crate::graphics::{camera::{Projection, Camera, Transformation}, uniform::Uniform, bindable::Bindable};
 
+use super::layout::Layout;
+
 pub struct Scene<P: Projection, C: Camera> {
     pub projection : P,
     pub camera     : C,
@@ -19,12 +21,14 @@ impl<P: Projection, C: Camera> Bindable for Scene<P, C> {
         self.uniform.bind(render_pass, index);
     }
 
-    fn layout(&self) -> &wgpu::BindGroupLayout {
-        return self.uniform.layout();
-    }
-
     fn group(&self) -> &wgpu::BindGroup {
         return self.uniform.group();
+    }
+}
+
+impl<P: Projection, C: Camera> Layout for Scene<P, C> {
+    fn layout(&self) -> &wgpu::BindGroupLayout {
+        return self.uniform.layout();
     }
 }
 
