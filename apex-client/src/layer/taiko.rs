@@ -185,6 +185,8 @@ impl TaikoLayer {
 
         // Beatmap
         self.beatmap = None;
+        self.beatmap_path = None;
+        self.audio_hash = Default::default();
     }
 
     // Timeline
