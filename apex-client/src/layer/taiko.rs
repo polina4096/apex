@@ -1,9 +1,10 @@
-use std::{time::Duration, path::Path, collections::HashMap, io::Cursor};
+use std::{time::Duration, path::{Path, PathBuf}, collections::HashMap, io::Cursor};
 
 use async_zip::base::read::mem::ZipFileReader;
 use cgmath::{vec3, vec2, Vector2};
 use wcore::{audio::{Audio, AudioData, Hint}, clock::{SyncClock, Clock}, time::Time, graphics::{context::Graphics, camera::{Projection, Camera}, layer::Layer}, color::Color};
 use winit::dpi::PhysicalSize;
+use xxhash_rust::xxh3;
 
 use crate::{taiko::{parser::Beatmap, self}, graphics::{taiko::{conveyor::Conveyor, skin::Skin}}};
 
@@ -51,10 +52,12 @@ impl TaikoState {
 }
 
 pub struct TaikoLayer {
-    pub audio : Audio,
-    pub clock : SyncClock,
+    pub audio  : Audio,
+    pub clock  : SyncClock,
+    audio_hash : u128,
 
-    pub beatmap : Option<Beatmap>,
+    pub beatmap      : Option<Beatmap>,
+    pub beatmap_path : Option<PathBuf>,
 
     pub conveyor : Conveyor,
 }
@@ -64,10 +67,13 @@ impl TaikoLayer {
         return Self {
             audio : Audio::new().unwrap(),
             clock : SyncClock::new(),
+            audio_hash : Default::default(),
 
-            beatmap : None,
+            beatmap      : None,
+            beatmap_path : None,
 
             conveyor : Conveyor::new(graphics),
+            
         };
     }
 }
@@ -86,7 +92,6 @@ impl<'b> Layer<'b, &'b mut TaikoState> for TaikoLayer {
         let PhysicalSize::<u32> { width, height } = new_size;
         self.conveyor.scene.projection.resize(width, height);
     }
-
     fn scale(&mut self, scale: f64) {
         let scale = scale as f32;
         self.conveyor.scene.camera.set_scale(vec3(scale, scale, 1.0));
@@ -95,6 +100,24 @@ impl<'b> Layer<'b, &'b mut TaikoState> for TaikoLayer {
 
 impl TaikoLayer {
     pub fn open_beatmap(&mut self, path: &Path, state: &mut TaikoState) {
+        let Some(Some(ext)) = path.extension().map(|x| x.to_str()) else { return };
+        match ext {
+            "osu" => self.open_beatmap_osu(path, state),
+            "osz" => self.open_beatmap_osz(path, state),
+
+            _ => {}
+        }
+    }
+    pub fn open_beatmap_osu(&mut self, path: &Path, state: &mut TaikoState) {
+        let Ok(data) = std::fs::read_to_string(path) else { return };
+
+        // Beatmap
+        let beatmap = taiko::parser::try_parse(&data).unwrap();
+        self.load_beatmap(beatmap, path, state);
+
+        self.beatmap_path = Some(path.to_owned());
+    }
+    pub fn open_beatmap_osz(&mut self, path: &Path, state: &mut TaikoState) {
         let mut files = HashMap::<String, Vec<u8>>::default();
         pollster::block_on(async {
             let archive = std::fs::read(path).unwrap();
@@ -112,30 +135,45 @@ impl TaikoLayer {
         
         // Beatmap
         let beatmap = taiko::parser::try_parse(&data).unwrap();
-        
+        self.load_beatmap(beatmap, path, state);
+
+        self.beatmap_path = None;
+    }
+
+    pub fn load_beatmap(&mut self, beatmap: Beatmap, path: &Path, state: &mut TaikoState) {
         let audio_filename = beatmap.audio.file_name().unwrap().to_str().unwrap();
-        let filename = files.keys().find(|x| *x == audio_filename).unwrap().clone();
-        let file = files.remove(&filename).unwrap();
-        let audio_file = Cursor::new(file);
+        let audio_path = path.parent().unwrap().join(audio_filename);
+        let audio_file = std::fs::read(audio_path).unwrap();
         self.beatmap = Some(beatmap);
 
-        let audio_data = AudioData::new(
-            Box::new(audio_file),
-            Hint::new().with_extension("mp3")
-        ).unwrap();
+        // Audio
+        let hash = xxh3::xxh3_128(&audio_file);
+        if hash != self.audio_hash {
+            self.audio_hash = hash;
 
-        self.audio.play(&audio_data).unwrap();
-
-        // Update clock data
-        self.clock.set_time(0);
-        self.clock.set_paused(true, 0);
-        self.clock.set_length(self.audio.length().as_millis() as u32);
+            let audio_data = AudioData::new(
+                Box::new(Cursor::new(audio_file)),
+                Hint::new().with_extension("mp3")
+            ).unwrap();
+    
+            self.audio.play(&audio_data).unwrap();
+        
+            self.audio.set_paused(true);
+            self.audio.set_time(Duration::ZERO);
+    
+            // Update clock data
+            self.clock.set_time(0);
+            self.clock.set_paused(true, 0);
+            self.clock.set_length(self.audio.length().as_millis() as u32);
+        }
 
         // Build instances
         state.rebuild_pending = true;
-    }
 
-    pub fn close_beatmap(&mut self) {
+        // Reset culling
+        self.conveyor.cull_back = 0;
+    }
+    pub fn unload_beatmap(&mut self) {
         // Reset clock
         self.clock.set_time(0);
         self.clock.set_paused(true, 0);
@@ -152,7 +190,6 @@ impl TaikoLayer {
     // Timeline
     pub fn timeline_move_forward(&mut self, _state: &mut TaikoState, _value: f32) {
     }
-
     pub fn timeline_move_back(&mut self, _state: &mut TaikoState, _value: f32) {
     }
 

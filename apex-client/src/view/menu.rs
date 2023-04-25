@@ -25,7 +25,7 @@ impl View<(&mut AppState, &mut Layers, &mut FileDialogWindow)> for MenuView {
                     }
 
                     if ui.button("Close").clicked() {
-                        layers.taiko.close_beatmap();
+                        layers.taiko.unload_beatmap();
                         ui.close_menu();
                     }
                 });

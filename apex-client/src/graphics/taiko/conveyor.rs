@@ -23,7 +23,6 @@ pub struct Conveyor {
     pub hitpos_instance_buffer : wgpu::Buffer,
     pub hitpos_instances       : Vec<Model>,
 
-    // TOOD: reset to 0 on map load to prevent crash
     pub cull_back : usize,
 }
 
