@@ -1,5 +1,5 @@
 use egui::{Align2, vec2, Button, Slider};
-use wcore::graphics::{gui::window::Window, context::Graphics};
+use wcore::{graphics::{gui::window::Window, context::Graphics}, time::Time};
 
 use crate::{layer::Layers, state::AppState};
 
@@ -37,7 +37,7 @@ impl Window<(&mut AppState, &mut Layers)> for TimelineWindow {
 
     #[allow(unused_variables)]
     fn show(&mut self, (state, layers): (&mut AppState, &mut Layers), view: &wgpu::TextureView, graphics: &mut Graphics, ui: &mut egui::Ui) {
-        let time = layers.taiko.get_time().to_ms();
+        let time = layers.taiko.get_time();
         let length = layers.taiko.get_length();
         
         ui.horizontal(|ui| {
@@ -51,17 +51,19 @@ impl Window<(&mut AppState, &mut Layers)> for TimelineWindow {
             };
 
             // Time display
+            let time_ms   = time.to_seconds()   * 1000.0;
+            let length_ms = length.to_seconds() * 1000.0;
             ui.label(&format!("{:02}:{:02}:{:03} / {:02}:{:02}:{:03}",
-                  time / (60 * 1000),   time / 1000 % 60,   time % 1000,
-                length / (60 * 1000), length / 1000 % 60, length % 1000));
+                (  time_ms / (60.0 * 1000.0)).round() as u32, (  time_ms / 1000.0 % 60.0).round() as u32, (  time_ms % 1000.0).round() as u32,
+                (length_ms / (60.0 * 1000.0)).round() as u32, (length_ms / 1000.0 % 60.0).round() as u32, (length_ms % 1000.0).round() as u32));
 
             // Time slider
             let slider_width = ui.available_width();
             let style = ui.style_mut();
             style.spacing.slider_width = slider_width;
 
-            let mut time64 = time;
-            let slider = Slider::new(&mut time64, 0 ..= (length as u64)).show_value(false);
+            let mut time_seconds = time.to_seconds();
+            let slider = Slider::new(&mut time_seconds, 0.0 ..= (length.to_seconds())).show_value(false);
             let slider = ui.add(slider);               
 
             if slider.drag_started() {
@@ -70,7 +72,7 @@ impl Window<(&mut AppState, &mut Layers)> for TimelineWindow {
 
             if slider.changed() {
                 layers.taiko.set_paused(true);
-                layers.taiko.set_time(time64 as u32);
+                layers.taiko.set_time(Time::from_seconds(time_seconds));
             }
 
             if slider.drag_released() && layers.taiko.beatmap.is_some() {

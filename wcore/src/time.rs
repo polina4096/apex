@@ -1,3 +1,7 @@
+use std::fmt::{Display, Debug};
+
+use instant::Duration;
+
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, Default, PartialEq, PartialOrd)]
 pub struct Time(f64);
@@ -53,5 +57,33 @@ impl std::ops::Div for Time {
 
     fn div(self, rhs: Self) -> Self::Output {
         return Time(self.0 / rhs.0);
+    }
+}
+
+impl std::ops::Rem for Time {
+    type Output = Time;
+
+    fn rem(self, rhs: Self) -> Self::Output {
+        return Time(self.0 % rhs.0);
+    }
+}
+
+impl From<Duration> for Time {
+    fn from(value: Duration) -> Self {
+        return Time(value.as_secs_f64());
+    }
+}
+
+// Temporary
+impl From<Time> for Duration {
+    fn from(value: Time) -> Self {
+        return Duration::from_secs_f64(value.0);
+    }
+}
+
+impl Display for Time {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let duration: Duration = (*self).into();
+        return duration.fmt(f);
     }
 }

@@ -11,10 +11,10 @@ use crate::{taiko::{parser::Beatmap, self}, graphics::{taiko::{conveyor::Conveyo
 
 pub struct TaikoState {
     /* Settings */
-    pub scale        : f32,
-    pub audio_offset : i64, // ms
-    pub hit_position : Vector2<f32>,
-    pub zoom         : f32,
+    pub scale        : f64,
+    pub audio_offset : f64, // ms
+    pub hit_position : Vector2<f64>,
+    pub zoom         : f64,
     pub don_color    : Color,
     pub kat_color    : Color,
 
@@ -34,7 +34,7 @@ impl TaikoState {
     pub fn new(graphics: &Graphics) -> Self {
         return Self {
             scale        : 0.85,
-            audio_offset : 65, // osu audio engine (bass) is oof...
+            audio_offset : 57.0, // osu audio engine (bass) is oof...
             hit_position : vec2(300.0, 300.0),
             zoom         : 0.33, // default 16:9 zoom
             don_color    : Color::new(0.973, 0.596, 0.651, 1.0),
@@ -60,6 +60,8 @@ pub struct TaikoLayer {
     pub beatmap_path : Option<PathBuf>,
 
     pub conveyor : Conveyor,
+
+    pub snapping : u8,
 }
 
 impl TaikoLayer {
@@ -74,6 +76,7 @@ impl TaikoLayer {
 
             conveyor : Conveyor::new(graphics),
             
+            snapping : 4,
         };
     }
 }
@@ -83,9 +86,9 @@ impl<'b> Layer<'b, &'b mut TaikoState> for TaikoLayer {
         let rebuild_instances = state.rebuild_pending || state.force_rebuild;
         if state.rebuild_pending { state.rebuild_pending = false; }
         
+        let time = self.clock.get_time();
         let Some(beatmap) = &self.beatmap else { return };
-        let time_ms = self.clock.get_time();
-        self.conveyor.draw(rebuild_instances, state, beatmap, time_ms, render_pass, graphics);
+        self.conveyor.draw(rebuild_instances, state, beatmap, time, render_pass, graphics);
     }
 
     fn resize(&mut self, new_size: PhysicalSize<u32>) {
@@ -162,9 +165,9 @@ impl TaikoLayer {
             self.audio.set_time(Duration::ZERO);
     
             // Update clock data
-            self.clock.set_time(0);
-            self.clock.set_paused(true, 0);
-            self.clock.set_length(self.audio.length().as_millis() as u32);
+            self.clock.set_time(Time::zero());
+            self.clock.set_paused(true, Time::zero());
+            self.clock.set_length(self.audio.length().into());
         }
 
         // Build instances
@@ -175,9 +178,9 @@ impl TaikoLayer {
     }
     pub fn unload_beatmap(&mut self) {
         // Reset clock
-        self.clock.set_time(0);
-        self.clock.set_paused(true, 0);
-        self.clock.set_length(0);
+        self.clock.set_time(Time::zero());
+        self.clock.set_paused(true, Time::zero());
+        self.clock.set_length(Time::zero());
 
         // Unload audio, reset position
         self.audio.stop();
@@ -191,42 +194,71 @@ impl TaikoLayer {
 
     // Timeline
     pub fn timeline_move_forward(&mut self, _state: &mut TaikoState, _value: f32) {
+        let time = self.get_time();
+
+        let Some(beatmap) = &self.beatmap else { return };
+
+        let mut idx_t = beatmap.timing.len() - 1;
+        while beatmap.timing[idx_t].time > time && idx_t != 0 { idx_t -= 1; }
+        let timing_point = &beatmap.timing[idx_t];
+
+        let beat_length = Time::from_seconds(60.0 / timing_point.bpm / self.snapping as f64);
+        let new_time = Time::from_seconds(((time - timing_point.time) / beat_length).to_seconds().ceil() * beat_length.to_seconds() + timing_point.time.to_seconds());
+        if time - new_time < Time::from_seconds(0.005) { // tick snap distance
+            self.set_time(time + beat_length);
+        } else {
+            self.set_time(new_time);
+        }
     }
     pub fn timeline_move_back(&mut self, _state: &mut TaikoState, _value: f32) {
+        let time = self.get_time();
+
+        let Some(beatmap) = &self.beatmap else { return };
+
+        let mut idx_t = beatmap.timing.len() - 1;
+        while beatmap.timing[idx_t].time > time && idx_t != 0 { idx_t -= 1; }
+        let timing_point = &beatmap.timing[idx_t];
+
+        let beat_length = Time::from_seconds(60.0 / timing_point.bpm / self.snapping as f64);
+        let new_time = Time::from_seconds(((time - timing_point.time) / beat_length).to_seconds().floor() * beat_length.to_seconds() + timing_point.time.to_seconds());
+        if time - new_time < Time::from_seconds(0.005) { // tick snap distance
+            self.set_time(time + beat_length);
+        } else {
+            self.set_time(new_time);
+        }
     }
 
     // Time
     pub fn toggle_paused(&mut self) {
         let time = self.audio.get_time();
-        self.clock.toggle_paused(time.as_millis() as u32);
+        self.clock.toggle_paused(time.into());
         self.audio.pause();
 
-        if time.as_millis() as u32 >= self.clock.get_length() {
-            self.set_time(0);
+        if time >= self.clock.get_length().into() {
+            self.set_time(Time::zero());
         }
     }
     pub fn set_paused(&mut self, value: bool) {
         let time = self.audio.get_time();
-        self.clock.set_paused(value, time.as_millis() as u32);
+        self.clock.set_paused(value, time.into());
         self.audio.set_paused(value);
     }
     pub fn is_paused(&self) -> bool {
         return self.clock.is_paused();
     }
 
-    pub fn set_time(&mut self, time: u32) {
-        let time = Duration::from_millis(time as u64);
-        self.clock.set_time(time.as_millis() as u32);
-        self.audio.set_time(time);
+    pub fn set_time(&mut self, time: Time) {
+        self.clock.set_time(time);
+        self.audio.set_time(time.into());
 
         // In case of rewind
         self.conveyor.cull_back = 0;
     }
     pub fn get_time(&mut self) -> Time {
-        return Time::from_ms(self.clock.get_time());
+        return self.clock.get_time();
     }
 
-    pub fn get_length(&self) -> u32 {
+    pub fn get_length(&self) -> Time {
         return self.clock.get_length();
     }
 }

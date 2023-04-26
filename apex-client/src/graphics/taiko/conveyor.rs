@@ -1,5 +1,5 @@
 use cgmath::{Quaternion, vec3, Zero, vec2, Vector4, vec4};
-use wcore::graphics::{scene::Scene, camera::{ProjectionOrthographic, Camera2D, Camera}, uniform::Uniform, common::{vertex::Vertex, model::Model}, context::Graphics, instance::Instance, bindable::Bindable, layout::Layout};
+use wcore::{graphics::{scene::Scene, camera::{ProjectionOrthographic, Camera2D, Camera}, uniform::Uniform, common::{vertex::Vertex, model::Model}, context::Graphics, instance::Instance, bindable::Bindable, layout::Layout}, time::Time};
 use wgpu::util::DeviceExt;
 
 use crate::{layer::taiko::TaikoState, taiko::{parser::Beatmap, taiko_circle::TaikoColor}};
@@ -197,28 +197,30 @@ impl Conveyor {
         };
     }
 
-    pub fn draw<'a: 'b, 'b, 'c: 'b>(&'a mut self, rebuild_instances: bool, state: &'c TaikoState, beatmap: &Beatmap, time_ms: u32, render_pass: &mut wgpu::RenderPass<'b>, graphics: &mut Graphics) {
+    pub fn draw<'a: 'b, 'b, 'c: 'b>(&'a mut self, rebuild_instances: bool, state: &'c TaikoState, beatmap: &Beatmap, time: Time, render_pass: &mut wgpu::RenderPass<'b>, graphics: &mut Graphics) {
         if rebuild_instances { self.rebuild_instances_beatmap(state, beatmap, graphics); }
+        // It's in ms(f64), but we need `Time`
+        let audio_offset = Time::from_seconds(state.audio_offset / 1000.0);
 
         // Circle culling
         if state.hit_circles {
             while let Some(circle) = beatmap.objects.get(self.cull_back) {
-                if circle.time.to_ms() as i64 + state.audio_offset <= time_ms as i64 {
+                if circle.time + audio_offset <= time {
                     self.cull_back += 1;
                 } else { break }
             }
         }
 
         // Update scene matrix
-        let scale = graphics.scale as f32 * state.scale;
-        self.scene.camera.set_scale(vec3(scale, scale, 1.0));
-        self.scene.camera.set_x(state.hit_position.x / scale);
-        self.scene.camera.set_y(state.hit_position.y / scale);
+        let scale = graphics.scale * state.scale;
+        self.scene.camera.set_scale(vec3(scale as f32, scale as f32, 1.0));
+        self.scene.camera.set_x((state.hit_position.x / scale) as f32);
+        self.scene.camera.set_y((state.hit_position.y / scale) as f32);
         self.scene.update(&graphics.queue);
         
         // Update time matrix
-        let time_offset = (- (time_ms as f32) + state.audio_offset as f32) * state.zoom;
-        self.time_uniform.update(&graphics.queue, &vec4(time_offset, 0.0, 0.0, 0.0));
+        let time_offset = (audio_offset - time).to_seconds() * 1000.0 * state.zoom;
+        self.time_uniform.update(&graphics.queue, &vec4(time_offset as f32, 0.0, 0.0, 0.0));
         
         // Hit position
         render_pass.set_pipeline(&self.hitpos_pipeline);
@@ -267,7 +269,7 @@ impl Conveyor {
             let multiplier = OSU_TAIKO_VELOCITY_MULTIPLIER * velocity * base_length / beat_length * beatmap.velocity_multiplier as f64;
 
             self.circle_instances.push(TaikoHitObjectModel {
-                time: obj.time.to_ms() as f32 * state.zoom,
+                time: (obj.time.to_seconds() * 1000.0 * state.zoom) as f32,
                 size: if obj.big { vec2(CIRCLE_SIZE * 1.55, CIRCLE_SIZE * 1.55) }
                       else       { vec2(CIRCLE_SIZE       , CIRCLE_SIZE       ) },
 

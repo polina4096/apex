@@ -33,6 +33,9 @@ pub enum AppEvents {
 pub enum AppActions {
     TogglePlayback,
     ToggleSidebar,
+
+    TimelineMoveForward,
+    TimelineMoveBack,
 }
 
 impl<T> App<T> {
@@ -41,13 +44,23 @@ impl<T> App<T> {
         let mut actions = Actions::default();
 
         actions.insert(
-            KeyCombination { key: KeyCode::from(VirtualKeyCode::Space), modifier: ModifiersState::default() },
+            KeyCombination { key: KeyCode::from(VirtualKeyCode::Space), modifier: ModifiersState::empty() },
             Action { id: AppActions::TogglePlayback, name: String::from("play/pause"), description: String::from("starts or stops playback") }
         );
 
         actions.insert(
             KeyCombination { key: KeyCode::from(VirtualKeyCode::O), modifier: ModifiersState::CTRL },
             Action { id: AppActions::ToggleSidebar, name: String::from("toggle sidebar"), description: String::from("shows or hides the sidebar") }
+        );
+
+        actions.insert(
+            KeyCombination { key: KeyCode::from(VirtualKeyCode::Right), modifier: ModifiersState::empty() },
+            Action { id: AppActions::TimelineMoveForward, name: String::from("Timeline forward"), description: String::from("Move 1/n of a beat forward on a timeline in the song") }
+        );
+
+        actions.insert(
+            KeyCombination { key: KeyCode::from(VirtualKeyCode::Left), modifier: ModifiersState::empty() },
+            Action { id: AppActions::TimelineMoveBack, name: String::from("Timeline back"), description: String::from("Move 1/n of a beat back on a timeline in the song") }
         );
         
         // egui
@@ -152,6 +165,14 @@ impl<T> App<T> {
 
                             AppActions::ToggleSidebar => {
                                 self.state.sidebar.shown = !self.state.sidebar.shown;
+                            }
+
+                            AppActions::TimelineMoveForward => {
+                                self.layers.taiko.timeline_move_forward(&mut self.state.taiko, 1.0);
+                            }
+
+                            AppActions::TimelineMoveBack => {
+                                self.layers.taiko.timeline_move_back(&mut self.state.taiko, 1.0);
                             }
                         }
                     }
