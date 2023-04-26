@@ -203,9 +203,14 @@ impl Conveyor {
         let audio_offset = Time::from_seconds(state.audio_offset / 1000.0);
 
         // Circle culling
-        if state.hit_circles {
+        if state.hide_circles {
             while let Some(circle) = beatmap.objects.get(self.cull_back) {
-                if circle.time + audio_offset <= time {
+                // When you snap to a certain object on a timeline, this thing counts it as being hit
+                // In order to render the object if (obj.time == current_time), we offset it by a bit
+                // TODO: this is most certainly not the best way to handle this, but whatever
+
+                let tolerance = Time::from_ms(2);
+                if circle.time + audio_offset + tolerance <= time {
                     self.cull_back += 1;
                 } else { break }
             }

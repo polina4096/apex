@@ -31,8 +31,8 @@ impl View<(&mut AppState, &mut Layers, &mut FileDialogWindow)> for MenuView {
                 });
                 
                 ui.menu_button("View", |ui| {
-                    if ui.button(format!("{} Hit circles", if state.taiko.hit_circles { "✔" } else { "❌" })).clicked() {
-                        state.taiko.hit_circles = !state.taiko.hit_circles;
+                    if ui.button(format!("{} Hit circles", if state.taiko.hide_circles { "✔" } else { "❌" })).clicked() {
+                        state.taiko.hide_circles = !state.taiko.hide_circles;
                         ui.close_menu();
                     }
                 });

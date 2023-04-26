@@ -140,6 +140,9 @@ pub fn try_parse(data: &str) -> Result<Beatmap, ParseError> {
 
     if let Some(p) = timing_points   . get(0) && p.time != Time::zero() { timing_points   . insert(0, TimingPoint   { time: Time::zero(), bpm      : 60.0 }); }
     if let Some(p) = velocity_points . get(0) && p.time != Time::zero() { velocity_points . insert(0, VelocityPoint { time: Time::zero(), velocity :  1.0 }); }
+    if timing_points   . is_empty() { timing_points   . insert(0, TimingPoint   { time: Time::zero(), bpm      : 60.0 }); }
+    if velocity_points . is_empty() { velocity_points . insert(0, VelocityPoint { time: Time::zero(), velocity :  1.0 }); }
+    
     objects_taiko.sort_by(|a, b| a.time.to_seconds().total_cmp(&b.time.to_seconds()));
 
     return match table["[General]"]["Mode"] {
@@ -149,7 +152,7 @@ pub fn try_parse(data: &str) -> Result<Beatmap, ParseError> {
             timing   : timing_points,
             velocity : velocity_points,
 
-            velocity_multiplier : 1.0, //table["[Difficulty]"]["SliderMultiplier"].parse().unwrap(),
+            velocity_multiplier : table["[Difficulty]"]["SliderMultiplier"].parse().unwrap(),
             
             audio : PathBuf::from(table["[General]"]["AudioFilename"]),
         }),

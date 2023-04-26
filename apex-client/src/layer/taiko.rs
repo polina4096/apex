@@ -24,7 +24,7 @@ pub struct TaikoState {
     pub force_rebuild : bool,
 
     // Temporary
-    pub hit_circles : bool,
+    pub hide_circles : bool,
 
     /* Internal */
     pub rebuild_pending : bool,
@@ -34,9 +34,9 @@ impl TaikoState {
     pub fn new(graphics: &Graphics) -> Self {
         return Self {
             scale        : 0.85,
-            audio_offset : 57.0, // osu audio engine (bass) is oof...
+            audio_offset : 0.0,
             hit_position : vec2(300.0, 300.0),
-            zoom         : 0.33, // default 16:9 zoom
+            zoom         : 0.235, // default 16:9 zoom
             don_color    : Color::new(0.973, 0.596, 0.651, 1.0),
             kat_color    : Color::new(0.741, 0.698, 0.827, 1.0),
 
@@ -44,7 +44,7 @@ impl TaikoState {
 
             force_rebuild   : false,
 
-            hit_circles     : true,
+            hide_circles    : false,
 
             rebuild_pending : false,
         };
@@ -116,7 +116,12 @@ impl TaikoLayer {
 
         // Beatmap
         let beatmap = taiko::parser::try_parse(&data).unwrap();
-        self.load_beatmap(beatmap, path, state);
+
+        let audio_filename = beatmap.audio.file_name().unwrap().to_str().unwrap();
+        let audio_path = path.parent().unwrap().join(audio_filename);
+        let audio_data = std::fs::read(audio_path).unwrap();
+
+        self.load_beatmap(beatmap, audio_data, state);
 
         self.beatmap_path = Some(path.to_owned());
     }
@@ -138,24 +143,25 @@ impl TaikoLayer {
         
         // Beatmap
         let beatmap = taiko::parser::try_parse(&data).unwrap();
-        self.load_beatmap(beatmap, path, state);
 
+        let audio_filename = beatmap.audio.file_name().unwrap().to_str().unwrap();
+        let audio_data = files.remove(audio_filename).unwrap();
+
+        self.load_beatmap(beatmap, audio_data, state);
+        
         self.beatmap_path = None;
     }
 
-    pub fn load_beatmap(&mut self, beatmap: Beatmap, path: &Path, state: &mut TaikoState) {
-        let audio_filename = beatmap.audio.file_name().unwrap().to_str().unwrap();
-        let audio_path = path.parent().unwrap().join(audio_filename);
-        let audio_file = std::fs::read(audio_path).unwrap();
+    pub fn load_beatmap(&mut self, beatmap: Beatmap, audio_data: Vec<u8>, state: &mut TaikoState) {
         self.beatmap = Some(beatmap);
 
         // Audio
-        let hash = xxh3::xxh3_128(&audio_file);
+        let hash = xxh3::xxh3_128(&audio_data);
         if hash != self.audio_hash {
             self.audio_hash = hash;
 
             let audio_data = AudioData::new(
-                Box::new(Cursor::new(audio_file)),
+                Box::new(Cursor::new(audio_data)),
                 Hint::new().with_extension("mp3")
             ).unwrap();
     
@@ -194,6 +200,7 @@ impl TaikoLayer {
 
     // Timeline
     pub fn timeline_move_forward(&mut self, _state: &mut TaikoState, _value: f32) {
+        self.set_paused(true);
         let time = self.get_time();
 
         let Some(beatmap) = &self.beatmap else { return };
@@ -204,13 +211,14 @@ impl TaikoLayer {
 
         let beat_length = Time::from_seconds(60.0 / timing_point.bpm / self.snapping as f64);
         let new_time = Time::from_seconds(((time - timing_point.time) / beat_length).to_seconds().ceil() * beat_length.to_seconds() + timing_point.time.to_seconds());
-        if time - new_time < Time::from_seconds(0.005) { // tick snap distance
+        if new_time - time < Time::from_seconds(0.005) { // tick snap distance
             self.set_time(time + beat_length);
         } else {
             self.set_time(new_time);
         }
     }
     pub fn timeline_move_back(&mut self, _state: &mut TaikoState, _value: f32) {
+        self.set_paused(true);
         let time = self.get_time();
 
         let Some(beatmap) = &self.beatmap else { return };
@@ -222,7 +230,7 @@ impl TaikoLayer {
         let beat_length = Time::from_seconds(60.0 / timing_point.bpm / self.snapping as f64);
         let new_time = Time::from_seconds(((time - timing_point.time) / beat_length).to_seconds().floor() * beat_length.to_seconds() + timing_point.time.to_seconds());
         if time - new_time < Time::from_seconds(0.005) { // tick snap distance
-            self.set_time(time + beat_length);
+            self.set_time(time - beat_length);
         } else {
             self.set_time(new_time);
         }
@@ -247,7 +255,16 @@ impl TaikoLayer {
         return self.clock.is_paused();
     }
 
-    pub fn set_time(&mut self, time: Time) {
+    pub fn set_time(&mut self, mut time: Time) {
+        if time < Time::zero() {
+            time = Time::zero()
+        } else {
+            let length = self.get_length();
+            if time > length {
+                time = length
+            }
+        }
+
         self.clock.set_time(time);
         self.audio.set_time(time.into());
 
