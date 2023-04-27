@@ -1,9 +1,9 @@
 use egui::{TopBottomPanel, menu};
-use wcore::{graphics::{gui::{view::View, window::Window}, context::Graphics}};
+use log::error;
+use wcore::{graphics::{gui::view::View, context::Graphics}};
+use winit::event_loop::EventLoopProxy;
 
-use crate::{state::AppState, layer::Layers};
-
-use super::window::file_dialog::FileDialogWindow;
+use crate::{state::{AppState, AppEvents}, layer::Layers};
 
 pub struct MenuView {}
 
@@ -13,14 +13,16 @@ impl MenuView {
     }
 }
 
-impl View<(&mut AppState, &mut Layers, &mut FileDialogWindow)> for MenuView {
+impl View<(&mut AppState, &mut Layers, &EventLoopProxy<AppEvents>)> for MenuView {
     #[allow(unused_variables)]
-    fn show(&mut self, (state, layers, file_dialog): (&mut AppState, &mut Layers, &mut FileDialogWindow), view: &wgpu::TextureView, graphics: &mut Graphics, ctx: &egui::Context) {
+    fn show(&mut self, (state, layers, proxy): (&mut AppState, &mut Layers, &EventLoopProxy<AppEvents>), view: &wgpu::TextureView, graphics: &mut Graphics, ctx: &egui::Context) {
         TopBottomPanel::top("menu").show(ctx, |ui| {
             menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("Open").clicked() {
-                        file_dialog.set_visible(true);
+                        proxy.send_event(AppEvents::OpenFilePicker)
+                            .unwrap_or_else(|err| error!("{}", err));
+                        
                         ui.close_menu();
                     }
 
@@ -30,6 +32,15 @@ impl View<(&mut AppState, &mut Layers, &mut FileDialogWindow)> for MenuView {
                     }
                 });
                 
+                ui.menu_button("Edit", |ui| {
+                    if ui.button("Controls").clicked() {
+                        proxy.send_event(AppEvents::OpenControls)
+                            .unwrap_or_else(|err| error!("{}", err));
+
+                        ui.close_menu();
+                    }
+                });
+
                 ui.menu_button("View", |ui| {
                     if ui.button(format!("{} Hit circles", if state.taiko.hide_circles { "✔" } else { "❌" })).clicked() {
                         state.taiko.hide_circles = !state.taiko.hide_circles;

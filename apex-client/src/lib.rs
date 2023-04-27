@@ -16,7 +16,7 @@ use winit::{event_loop::{ControlFlow, EventLoopBuilder}, window::{WindowBuilder}
 #[cfg(target_arch = "wasm32")] use wasm_bindgen::prelude::*;
 #[cfg(target_arch = "wasm32")] use winit::window::Window;
 
-use crate::{config::Config, app::App};
+use crate::{config::Config, app::App, state::AppEvents};
 
 pub mod app;
 pub mod state;
@@ -25,6 +25,7 @@ pub mod config;
 pub mod view;
 pub mod taiko;
 pub mod layer;
+pub mod input;
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub async fn run() {
@@ -49,7 +50,7 @@ pub async fn run() {
         }
     }
 
-    let event_loop = EventLoopBuilder::<()>::with_user_event().build();
+    let event_loop = EventLoopBuilder::<AppEvents>::with_user_event().build();
     let window = WindowBuilder::new()
         .with_title("Apex")
         .with_inner_size(size)
@@ -124,8 +125,8 @@ pub async fn run() {
                 }
             }
 
-            Event::UserEvent(_event) => {
-
+            Event::UserEvent(event) => {
+                app.event(event);
             }
             
             _ => {}

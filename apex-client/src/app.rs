@@ -1,11 +1,12 @@
-use wcore::{graphics::{context::Graphics, gui::view::View, layer::Layer}, egui::Egui, binds::{KeyCombination, KeyCode, Keybinds, Keybind}};
-use winit::{window::Window, event::{WindowEvent, VirtualKeyCode, ElementState, ModifiersState, MouseScrollDelta}, event_loop::{EventLoop, EventLoopProxy}};
+use log::error;
+use wcore::{graphics::{context::Graphics, gui::{view::View, window::Window as _}, layer::Layer}, egui::Egui, binds::KeyCombination};
+use winit::{window::Window, event::{WindowEvent, ElementState, MouseScrollDelta, VirtualKeyCode}, event_loop::{EventLoop, EventLoopProxy}};
 
-use crate::{config::Config, view::{window::{timeline::TimelineWindow, file_dialog::FileDialogWindow}, menu::MenuView, sidebar::SidebarView}, state::AppState, graphics::util::new_graphics, layer::{taiko::TaikoLayer, Layers}};
+use crate::{config::Config, view::{window::{timeline::TimelineWindow, file_dialog::FileDialogWindow, controls::ControlsWindow}, menu::MenuView, sidebar::SidebarView}, state::{AppState, AppKeybinds, AppEvents}, graphics::util::new_graphics, layer::{taiko::TaikoLayer, Layers}, input::Input};
 
-pub struct App<T: 'static> {
+pub struct App {
     // events
-    pub proxy : EventLoopProxy<T>,
+    pub proxy : EventLoopProxy<AppEvents>,
 
     // graphics
     pub window   : Window,
@@ -19,50 +20,18 @@ pub struct App<T: 'static> {
     pub timeline    : TimelineWindow,
 
     pub file_dialog : FileDialogWindow,
+    pub controls    : ControlsWindow,
 
     // app
-    pub actions : Keybinds<AppKeyActions>,
     pub state   : AppState,
     pub layers  : Layers,
 }
 
-pub enum AppEvents {
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub enum AppKeyActions {
-    TogglePlayback,
-    ToggleSidebar,
-
-    TimelineMoveForward,
-    TimelineMoveBack,
-}
-
-impl<T> App<T> {
-    pub async fn new(window: Window, event_loop: &EventLoop<T>, proxy: EventLoopProxy<T>, config: &Config) -> Self {
+impl App {
+    pub async fn new(window: Window, event_loop: &EventLoop<AppEvents>, proxy: EventLoopProxy<AppEvents>, config: &Config) -> Self {
         let graphics = new_graphics(&window, config).await;
-        let mut keybinds = Keybinds::default();
+        let (input, tx) = Input::new();
 
-        keybinds.insert(
-            KeyCombination { key: KeyCode::from(VirtualKeyCode::Space), modifier: ModifiersState::empty() },
-            Keybind { id: AppKeyActions::TogglePlayback, name: String::from("play/pause"), description: String::from("starts or stops playback") }
-        );
-
-        keybinds.insert(
-            KeyCombination { key: KeyCode::from(VirtualKeyCode::O), modifier: ModifiersState::CTRL },
-            Keybind { id: AppKeyActions::ToggleSidebar, name: String::from("toggle sidebar"), description: String::from("shows or hides the sidebar") }
-        );
-
-        keybinds.insert(
-            KeyCombination { key: KeyCode::from(VirtualKeyCode::Right), modifier: ModifiersState::empty() },
-            Keybind { id: AppKeyActions::TimelineMoveForward, name: String::from("Timeline forward"), description: String::from("Move 1/n of a beat forward on a timeline in the song") }
-        );
-
-        keybinds.insert(
-            KeyCombination { key: KeyCode::from(VirtualKeyCode::Left), modifier: ModifiersState::empty() },
-            Keybind { id: AppKeyActions::TimelineMoveBack, name: String::from("Timeline back"), description: String::from("Move 1/n of a beat back on a timeline in the song") }
-        );
-        
         // egui
         let scale = graphics.scale;
         let inner_size = graphics.size;
@@ -73,9 +42,10 @@ impl<T> App<T> {
         let sidebar = SidebarView::new();
         let timeline = TimelineWindow::new();
         let file_dialog = FileDialogWindow::new();
+        let controls = ControlsWindow::new(tx);
 
         // state
-        let state = AppState::new(&graphics);
+        let state = AppState::new(&graphics, input);
 
         // layers
         let layers = Layers {
@@ -95,8 +65,8 @@ impl<T> App<T> {
             timeline,
     
             file_dialog,
+            controls,
 
-            actions: keybinds,
             state,
             layers,
         };
@@ -114,10 +84,11 @@ impl<T> App<T> {
         });
         
         let (clipped_primitives, commands) = self.egui.prepare(&self.window, &mut self.graphics, &mut encoder, |graphics, ctx| {
-            View::show(&mut self.menu,        (&mut self.state, &mut self.layers, &mut self.file_dialog), &view, graphics, ctx);
+            View::show(&mut self.menu,        (&mut self.state, &mut self.layers, &self.proxy), &view, graphics, ctx);
             View::show(&mut self.timeline,    (&mut self.state, &mut self.layers), &view, graphics, ctx);
-            View::show(&mut self.sidebar,     (&mut self.state, &mut self.layers), &view, graphics, ctx);
             View::show(&mut self.file_dialog, (&mut self.state, &mut self.layers), &view, graphics, ctx);
+            View::show(&mut self.controls,    (&mut self.state, &mut self.layers), &view, graphics, ctx);
+            View::show(&mut self.sidebar,     (&mut self.state, &mut self.layers), &view, graphics, ctx);
         });
 
         {
@@ -157,18 +128,41 @@ impl<T> App<T> {
                 if let Some(key) = input.virtual_keycode && input.state == ElementState::Pressed {
                     let mods = input.modifiers;
                     let combination = KeyCombination::from((key, mods));
-                    if let Some(action) = self.actions.get_mut(&combination) {
-                        match action.id {
-                            AppKeyActions::TogglePlayback => {
+
+                    self.state.input.key = combination.key;
+                    self.state.input.modifiers = mods;
+
+                    #[allow(clippy::collapsible_if)]
+                    'a: { if self.state.input.requests_input {
+                        if key == VirtualKeyCode::Escape {
+                            self.state.input.requests_input = false;
+                            break 'a;
+                        }
+
+                        if key != VirtualKeyCode::LControl && key != VirtualKeyCode::RControl
+                        && key != VirtualKeyCode::LShift   && key != VirtualKeyCode::RShift
+                        && key != VirtualKeyCode::LAlt     && key != VirtualKeyCode::RAlt
+                        && key != VirtualKeyCode::LWin     && key != VirtualKeyCode::RWin {
+                            self.state.input.requests_input = false;
+                            self.state.input.input_sender.send(())
+                                .unwrap_or_else(|err| error!("{}", err));
+
+                            return true;
+                        }
+                    } }
+
+                    if let Some(keybind) = self.state.keybinds.get(&combination) {
+                        match keybind.id {
+                            AppKeybinds::TogglePlayback => {
                                 self.layers.taiko.toggle_paused();
                             }
 
-                            AppKeyActions::ToggleSidebar => {
+                            AppKeybinds::ToggleSidebar => {
                                 self.state.sidebar.shown = !self.state.sidebar.shown;
                             }
 
-                            AppKeyActions::TimelineMoveForward => self.layers.taiko.timeline_move(&mut self.state.taiko,  1.0, self.layers.taiko.snapping),
-                            AppKeyActions::TimelineMoveBack    => self.layers.taiko.timeline_move(&mut self.state.taiko, -1.0, self.layers.taiko.snapping),
+                            AppKeybinds::TimelineMoveForward => self.layers.taiko.timeline_move(&mut self.state.taiko,  1.0, self.layers.taiko.snapping),
+                            AppKeybinds::TimelineMoveBack    => self.layers.taiko.timeline_move(&mut self.state.taiko, -1.0, self.layers.taiko.snapping),
                         }
                     }
                 }
@@ -187,6 +181,13 @@ impl<T> App<T> {
         }
 
         return self.egui.winit_state.on_event(&self.egui.context, event).consumed;
+    }
+
+    pub fn event(&mut self, event: AppEvents) {
+        match event {
+            AppEvents::OpenFilePicker => self.file_dialog.set_visible(true),
+            AppEvents::OpenControls => self.controls.set_visible(true),
+        }
     }
 
     pub fn resize(&mut self, new_size: winit::dpi::PhysicalSize<u32>) {

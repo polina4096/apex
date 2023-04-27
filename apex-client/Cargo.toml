@@ -14,6 +14,7 @@ log = "0.4.17"
 pretty_env_logger = "0.4.0"
 clap = { version = "4.2.4", features = ["derive"] }
 egui = "0.21.0"
+egui_extras = "0.21.0"
 egui_file = "0.8.1"
 bytemuck = { version = "1.13.1", features = ["derive"] }
 async_zip = { version = "0.0.13", features = ["full-wasm"] }

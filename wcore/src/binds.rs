@@ -1,12 +1,80 @@
-use std::{fmt::Display, collections::HashMap, hash::Hash};
+use std::{fmt::Display, collections::HashMap, hash::Hash, slice};
 
 use ahash::RandomState;
+use log::warn;
 use winit::event::{VirtualKeyCode, ModifiersState};
 
-pub type Keybinds<T> = HashMap<KeyCombination, Keybind<T>, RandomState>;
+pub struct Keybinds<T: Copy + Eq + Hash> {
+    sorted : Vec<(KeyCombination, Bind<T>)>,
+    binds  : HashMap<KeyCombination, Bind<T>, RandomState>,
+}
+
+impl<T: Copy + Eq + Hash> Default for Keybinds<T> {
+    fn default() -> Self {
+        Self {
+            sorted : Default::default(),
+            binds  : Default::default()
+        }
+    }
+}
+
+impl<T: Copy + Eq + Hash> Keybinds<T> {
+    pub fn add(&mut self, key: KeyCombination, bind: Bind<T>) {
+        self.binds.insert(key, bind);
+        self.rebuild_sorted();
+    }
+
+    pub fn remove(&mut self, key: &KeyCombination) -> Option<Bind<T>> {
+        let bind = self.binds.remove(key);
+        self.rebuild_sorted();
+
+        return bind;
+    }
+
+    pub fn get(&mut self, key: &KeyCombination) -> Option<&Bind<T>> {
+        return self.binds.get(key);
+    }
+
+    pub fn iter(&self) -> slice::Iter<'_, (KeyCombination, Bind<T>)> {
+        return self.sorted.iter();
+    }
+
+    pub fn rebind(&mut self, old_key: KeyCombination, new_key: KeyCombination) {
+        if old_key != new_key {
+            #[allow(clippy::collapsible_else_if)]
+            if self.binds.contains_key(&new_key) {
+                if let Some([a, b]) = self.binds.get_many_mut([&new_key, &old_key]) {
+                    std::mem::swap(a, b);
+                    self.rebuild_sorted();
+                    return;
+                }
+            } else {
+                if let Some(keybind) = self.binds.remove(&old_key) {
+                    self.binds.insert(new_key, keybind);
+                    self.rebuild_sorted();
+                    return;
+                }
+            }
+
+            // Sanity check: keybinds can't change from any other thread
+            warn!("Failed to find to rebind keys: {}", old_key);
+        } else { return }
+    }
+
+    pub fn rebuild_sorted(&mut self) {
+        self.sorted = self.binds.iter().map(|x|(*x.0, x.1.clone())).collect();
+        self.sorted.sort_by(|a, b| a.1.name.cmp(&b.1.name));
+    } 
+}
 
 #[derive(Debug, Hash, Ord, PartialOrd, PartialEq, Eq, Clone, Copy)]
 pub struct KeyCode(VirtualKeyCode);
+
+impl Default for KeyCode {
+    fn default() -> Self {
+        return Self(VirtualKeyCode::Unlabeled);
+    }
+}
 
 impl From<VirtualKeyCode> for KeyCode {
     fn from(value: VirtualKeyCode) -> Self {
@@ -133,21 +201,21 @@ impl Display for KeyCode {
     }
 }
 
-#[derive(Debug, Hash, Ord, PartialOrd, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Hash, Ord, PartialOrd, PartialEq, Eq, Clone, Copy, Default)]
 pub struct KeyCombination {
-    pub key: KeyCode,
-    pub modifier: ModifiersState,
+    pub key       : KeyCode,
+    pub modifiers : ModifiersState,
 }
 
 impl From<(VirtualKeyCode, ModifiersState)> for KeyCombination {
     fn from((key, modifier): (VirtualKeyCode, ModifiersState)) -> Self {
-        return Self { key: KeyCode(key), modifier };
+        return Self { key: KeyCode(key), modifiers: modifier };
     }
 }
 
 impl Display for KeyCombination {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.modifier {
+        match self.modifiers {
             ModifiersState::CTRL => write!(f, "Ctrl + ")?,
             ModifiersState::SHIFT => write!(f, "Shift + ")?,
             ModifiersState::ALT => write!(f, "Alt + ")?,
@@ -158,7 +226,8 @@ impl Display for KeyCombination {
     }
 }
 
-pub struct Keybind<T: Clone + Copy + PartialEq + Eq + Hash> {
+#[derive(Clone)]
+pub struct Bind<T: Clone + Copy + PartialEq + Eq + Hash> {
     pub id          : T,
     pub name        : String,
     pub description : String,

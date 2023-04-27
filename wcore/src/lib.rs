@@ -4,6 +4,7 @@
 #![allow(clippy::needless_return)]
 #![allow(clippy::identity_op)]
 #![feature(min_specialization)]
+#![feature(map_many_mut)]
 pub mod graphics;
 pub mod audio;
 pub mod clock;
