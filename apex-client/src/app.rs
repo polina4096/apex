@@ -1,5 +1,5 @@
-use wcore::{graphics::{context::Graphics, gui::view::View, layer::Layer}, egui::Egui, binds::{KeyCombination, KeyCode, Actions, Action}};
-use winit::{window::Window, event::{WindowEvent, VirtualKeyCode, ElementState, ModifiersState}, event_loop::{EventLoop, EventLoopProxy}};
+use wcore::{graphics::{context::Graphics, gui::view::View, layer::Layer}, egui::Egui, binds::{KeyCombination, KeyCode, Keybinds, Keybind}};
+use winit::{window::Window, event::{WindowEvent, VirtualKeyCode, ElementState, ModifiersState, MouseScrollDelta}, event_loop::{EventLoop, EventLoopProxy}};
 
 use crate::{config::Config, view::{window::{timeline::TimelineWindow, file_dialog::FileDialogWindow}, menu::MenuView, sidebar::SidebarView}, state::AppState, graphics::util::new_graphics, layer::{taiko::TaikoLayer, Layers}};
 
@@ -21,7 +21,7 @@ pub struct App<T: 'static> {
     pub file_dialog : FileDialogWindow,
 
     // app
-    pub actions : Actions<AppActions>,
+    pub actions : Keybinds<AppKeyActions>,
     pub state   : AppState,
     pub layers  : Layers,
 }
@@ -30,7 +30,7 @@ pub enum AppEvents {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub enum AppActions {
+pub enum AppKeyActions {
     TogglePlayback,
     ToggleSidebar,
 
@@ -41,26 +41,26 @@ pub enum AppActions {
 impl<T> App<T> {
     pub async fn new(window: Window, event_loop: &EventLoop<T>, proxy: EventLoopProxy<T>, config: &Config) -> Self {
         let graphics = new_graphics(&window, config).await;
-        let mut actions = Actions::default();
+        let mut keybinds = Keybinds::default();
 
-        actions.insert(
+        keybinds.insert(
             KeyCombination { key: KeyCode::from(VirtualKeyCode::Space), modifier: ModifiersState::empty() },
-            Action { id: AppActions::TogglePlayback, name: String::from("play/pause"), description: String::from("starts or stops playback") }
+            Keybind { id: AppKeyActions::TogglePlayback, name: String::from("play/pause"), description: String::from("starts or stops playback") }
         );
 
-        actions.insert(
+        keybinds.insert(
             KeyCombination { key: KeyCode::from(VirtualKeyCode::O), modifier: ModifiersState::CTRL },
-            Action { id: AppActions::ToggleSidebar, name: String::from("toggle sidebar"), description: String::from("shows or hides the sidebar") }
+            Keybind { id: AppKeyActions::ToggleSidebar, name: String::from("toggle sidebar"), description: String::from("shows or hides the sidebar") }
         );
 
-        actions.insert(
+        keybinds.insert(
             KeyCombination { key: KeyCode::from(VirtualKeyCode::Right), modifier: ModifiersState::empty() },
-            Action { id: AppActions::TimelineMoveForward, name: String::from("Timeline forward"), description: String::from("Move 1/n of a beat forward on a timeline in the song") }
+            Keybind { id: AppKeyActions::TimelineMoveForward, name: String::from("Timeline forward"), description: String::from("Move 1/n of a beat forward on a timeline in the song") }
         );
 
-        actions.insert(
+        keybinds.insert(
             KeyCombination { key: KeyCode::from(VirtualKeyCode::Left), modifier: ModifiersState::empty() },
-            Action { id: AppActions::TimelineMoveBack, name: String::from("Timeline back"), description: String::from("Move 1/n of a beat back on a timeline in the song") }
+            Keybind { id: AppKeyActions::TimelineMoveBack, name: String::from("Timeline back"), description: String::from("Move 1/n of a beat back on a timeline in the song") }
         );
         
         // egui
@@ -96,7 +96,7 @@ impl<T> App<T> {
     
             file_dialog,
 
-            actions,
+            actions: keybinds,
             state,
             layers,
         };
@@ -159,24 +159,24 @@ impl<T> App<T> {
                     let combination = KeyCombination::from((key, mods));
                     if let Some(action) = self.actions.get_mut(&combination) {
                         match action.id {
-                            AppActions::TogglePlayback => {
+                            AppKeyActions::TogglePlayback => {
                                 self.layers.taiko.toggle_paused();
                             }
 
-                            AppActions::ToggleSidebar => {
+                            AppKeyActions::ToggleSidebar => {
                                 self.state.sidebar.shown = !self.state.sidebar.shown;
                             }
 
-                            AppActions::TimelineMoveForward => {
-                                self.layers.taiko.timeline_move_forward(&mut self.state.taiko, 1.0);
-                            }
-
-                            AppActions::TimelineMoveBack => {
-                                self.layers.taiko.timeline_move_back(&mut self.state.taiko, 1.0);
-                            }
+                            AppKeyActions::TimelineMoveForward => self.layers.taiko.timeline_move(&mut self.state.taiko,  1.0, self.layers.taiko.snapping),
+                            AppKeyActions::TimelineMoveBack    => self.layers.taiko.timeline_move(&mut self.state.taiko, -1.0, self.layers.taiko.snapping),
                         }
                     }
                 }
+            }
+
+            WindowEvent::MouseWheel { delta, .. } => 'a: {
+                let MouseScrollDelta::LineDelta(_, y) = *delta else { break 'a };
+                self.layers.taiko.timeline_move(&mut self.state.taiko, y, self.layers.taiko.snapping);
             }
 
             WindowEvent::DroppedFile(path) => {

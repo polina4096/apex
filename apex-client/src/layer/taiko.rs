@@ -1,7 +1,7 @@
 use std::{time::Duration, path::{Path, PathBuf}, collections::HashMap, io::Cursor};
 
 use async_zip::base::read::mem::ZipFileReader;
-use cgmath::{vec3, vec2, Vector2};
+use cgmath::{vec3, vec2, Vector2, Zero};
 use wcore::{audio::{Audio, AudioData, Hint}, clock::{SyncClock, Clock}, time::Time, graphics::{context::Graphics, camera::{Projection, Camera}, layer::Layer}, color::Color};
 use winit::dpi::PhysicalSize;
 use xxhash_rust::xxh3;
@@ -199,40 +199,53 @@ impl TaikoLayer {
     }
 
     // Timeline
-    pub fn timeline_move_forward(&mut self, _state: &mut TaikoState, _value: f32) {
-        self.set_paused(true);
+    pub fn timeline_move(&mut self, _state: &mut TaikoState, value: f32, snapping: u8) {
+        if value.is_zero() { return }
+        
         let time = self.get_time();
 
+        // Find current timing point
         let Some(beatmap) = &self.beatmap else { return };
 
         let mut idx_t = beatmap.timing.len() - 1;
         while beatmap.timing[idx_t].time > time && idx_t != 0 { idx_t -= 1; }
         let timing_point = &beatmap.timing[idx_t];
 
-        let beat_length = Time::from_seconds(60.0 / timing_point.bpm / self.snapping as f64);
-        let new_time = Time::from_seconds(((time - timing_point.time) / beat_length).to_seconds().ceil() * beat_length.to_seconds() + timing_point.time.to_seconds());
-        if new_time - time < Time::from_seconds(0.005) { // tick snap distance
-            self.set_time(time + beat_length);
-        } else {
-            self.set_time(new_time);
+        // Beat length divided by current beat snapping
+        let snap_length = Time::from_seconds(60.0 / timing_point.bpm / snapping as f64);
+
+        if !self.is_paused() {
+            if value > 0.0
+                 { self.set_time(time + snap_length); }
+            else { self.set_time(time - snap_length); }
+            return;
         }
-    }
-    pub fn timeline_move_back(&mut self, _state: &mut TaikoState, _value: f32) {
-        self.set_paused(true);
-        let time = self.get_time();
+        
+        // Amount of snaps from the timing point
+        let snap_count = ((time - timing_point.time) / snap_length).to_seconds();
 
-        let Some(beatmap) = &self.beatmap else { return };
+        const SNAP_DISTANCE: f64 = 0.005;
 
-        let mut idx_t = beatmap.timing.len() - 1;
-        while beatmap.timing[idx_t].time > time && idx_t != 0 { idx_t -= 1; }
-        let timing_point = &beatmap.timing[idx_t];
+        if value > 0.0 {
+            let new_time = Time::from_seconds(
+                snap_count.ceil()
+              * snap_length.to_seconds()
+              + timing_point.time.to_seconds()
+            );
 
-        let beat_length = Time::from_seconds(60.0 / timing_point.bpm / self.snapping as f64);
-        let new_time = Time::from_seconds(((time - timing_point.time) / beat_length).to_seconds().floor() * beat_length.to_seconds() + timing_point.time.to_seconds());
-        if time - new_time < Time::from_seconds(0.005) { // tick snap distance
-            self.set_time(time - beat_length);
+            if new_time - time < Time::from_seconds(SNAP_DISTANCE)
+                 { self.set_time(time + snap_length); }
+            else { self.set_time(new_time); }
         } else {
-            self.set_time(new_time);
+            let new_time = Time::from_seconds(
+                snap_count.floor()
+              * snap_length.to_seconds()
+              + timing_point.time.to_seconds()
+            );
+
+            if time - new_time < Time::from_seconds(SNAP_DISTANCE)
+                 { self.set_time(time - snap_length); }
+            else { self.set_time(new_time); }
         }
     }
 
