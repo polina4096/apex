@@ -48,9 +48,9 @@ pub fn try_parse(data: &str) -> Result<Beatmap, ParseError> {
         match category {
             Some("[TimingPoints]") => {
                 if line.trim().is_empty() { continue }
-                
-                let mut parts = line.split(',');
-                let Some(time_ms)     = parts.next().and_then(|x| x.parse::<i32>().ok()) else { continue };
+
+                let mut parts = line.split(','); // TODO: add proper error handling
+                let Some(time_ms)     = parts.next().and_then(|x| x.parse::<f64>().ok()) else { continue };
                 let Some(beat_length) = parts.next().and_then(|x| x.parse::<f64>().ok()) else { continue };
                 let Some(uninherited) = parts.nth(4).and_then(|x| Some(x == "1"))        else { continue };
                 
