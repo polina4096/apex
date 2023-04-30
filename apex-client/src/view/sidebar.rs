@@ -31,7 +31,7 @@ impl View<(&mut AppState, &mut Layers)> for SidebarView {
         egui::SidePanel::new(state.sidebar.side, "sidebar")
           .show_animated(ctx, state.sidebar.shown, |ui| {
             egui::ScrollArea::new([false, true]).show(ui, |ui| {
-                state.render_settings(ui);
+                state.render_settings(ui, layers);
             });
         });
     }

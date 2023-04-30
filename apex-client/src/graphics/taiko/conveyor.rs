@@ -4,7 +4,7 @@ use wgpu::util::DeviceExt;
 
 use crate::{layer::taiko::TaikoState, taiko::{parser::Beatmap, taiko_circle::TaikoColor}};
 
-use super::model::TaikoHitObjectModel;
+use super::{model::TaikoHitObjectModel, skin::Skin};
 
 const CIRCLE_SIZE: f32 = 128.0;
 
@@ -197,7 +197,8 @@ impl Conveyor {
         };
     }
 
-    pub fn draw<'a: 'b, 'b, 'c: 'b>(&'a mut self, rebuild_instances: bool, state: &'c TaikoState, beatmap: &Beatmap, time: Time, render_pass: &mut wgpu::RenderPass<'b>, graphics: &mut Graphics) {
+    #[allow(clippy::too_many_arguments)]
+    pub fn draw<'a: 'b, 'b, 'c: 'b>(&'a mut self, rebuild_instances: bool, state: &'c TaikoState, beatmap: &Beatmap, time: Time, skin: &'c Skin, render_pass: &mut wgpu::RenderPass<'b>, graphics: &mut Graphics) {
         if rebuild_instances { self.rebuild_instances_beatmap(state, beatmap, graphics); }
         // It's in ms(f64), but we need `Time`
         let audio_offset = Time::from_seconds(state.audio_offset / 1000.0);
@@ -231,7 +232,7 @@ impl Conveyor {
         render_pass.set_pipeline(&self.hitpos_pipeline);
 
         self.scene.bind(render_pass, 0);
-        render_pass.set_bind_group(1, &state.skin.hit_position.bind_group, &[]);
+        render_pass.set_bind_group(1, &skin.hit_position.bind_group, &[]);
 
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
         render_pass.set_vertex_buffer(1, self.hitpos_instance_buffer.slice(..));
@@ -243,10 +244,10 @@ impl Conveyor {
         
         self.scene.bind(render_pass, 0);
         self.time_uniform.bind(render_pass, 1);
-        render_pass.set_bind_group(2, &state.skin.circle      . bind_group, &[]);
-        render_pass.set_bind_group(3, &state.skin.overlay     . bind_group, &[]);
-        render_pass.set_bind_group(4, &state.skin.big_circle  . bind_group, &[]);
-        render_pass.set_bind_group(5, &state.skin.big_overlay . bind_group, &[]);
+        render_pass.set_bind_group(2, &skin.circle      . bind_group, &[]);
+        render_pass.set_bind_group(3, &skin.overlay     . bind_group, &[]);
+        render_pass.set_bind_group(4, &skin.big_circle  . bind_group, &[]);
+        render_pass.set_bind_group(5, &skin.big_overlay . bind_group, &[]);
 
         render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
         render_pass.set_vertex_buffer(1, self.circle_instance_buffer.slice(..));

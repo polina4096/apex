@@ -1,8 +1,8 @@
 use egui::{Ui, panel::Side};
-use wcore::{color::Color, graphics::context::Graphics, binds::{Bind, Keybinds, KeyCombination, KeyCode}};
+use wcore::{color::Color, binds::{Bind, Keybinds, KeyCombination, KeyCode}};
 use winit::event::{VirtualKeyCode, ModifiersState};
 
-use crate::{view::sidebar::SidebarState, layer::taiko::TaikoState, input::Input};
+use crate::{view::sidebar::SidebarState, layer::{taiko::TaikoState, Layers}, input::Input};
 
 pub enum AppEvents {
     OpenFilePicker,
@@ -27,7 +27,7 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(graphics: &Graphics, input: Input) -> Self {
+    pub fn new(input: Input) -> Self {
         let mut keybinds = Keybinds::default();
 
         keybinds.add(
@@ -55,11 +55,11 @@ impl AppState {
             input,
 
             sidebar : SidebarState::new(),
-            taiko   : TaikoState::new(graphics),
+            taiko   : TaikoState::new(),
         };
     }
 
-    pub fn render_settings(&mut self, ui: &mut Ui) {
+    pub fn render_settings(&mut self, ui: &mut Ui, layers: &mut Layers) {
         egui::Grid::new("settings")
           .num_columns(2)
           .spacing([40.0, 4.0])
@@ -101,7 +101,7 @@ impl AppState {
             
             ui.label("Zoom");
             if ui.add(egui::DragValue::new(&mut self.taiko.zoom).speed(0.01).min_decimals(2)).changed() {
-                self.taiko.rebuild_pending = true;
+                layers.taiko.rebuild_pending = true;
             };
             ui.end_row();
 
@@ -114,7 +114,7 @@ impl AppState {
             ui.label("Don color");
             if egui::color_picker::color_edit_button_srgb(ui, &mut color).changed() {
                 self.taiko.don_color = Color::from_rgb(color[0], color[1], color[2]);
-                self.taiko.rebuild_pending = true;
+                layers.taiko.rebuild_pending = true;
             };
             ui.end_row();
 
@@ -127,7 +127,7 @@ impl AppState {
             ui.label("Kat color");
             if egui::color_picker::color_edit_button_srgb(ui, &mut color).changed() {
                 self.taiko.kat_color = Color::from_rgb(color[0], color[1], color[2]);
-                self.taiko.rebuild_pending = true;
+                layers.taiko.rebuild_pending = true;
             };
             ui.end_row();
 

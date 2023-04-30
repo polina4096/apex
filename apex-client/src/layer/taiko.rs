@@ -18,20 +18,15 @@ pub struct TaikoState {
     pub don_color    : Color,
     pub kat_color    : Color,
 
-    pub skin         : Skin,
-
     // Debug
     pub force_rebuild : bool,
 
     // Temporary
     pub hide_circles : bool,
-
-    /* Internal */
-    pub rebuild_pending : bool,
 }
 
 impl TaikoState {
-    pub fn new(graphics: &Graphics) -> Self {
+    pub fn new() -> Self {
         return Self {
             scale        : 0.85,
             audio_offset : 0.0,
@@ -40,55 +35,55 @@ impl TaikoState {
             don_color    : Color::new(0.973, 0.596, 0.651, 1.0),
             kat_color    : Color::new(0.741, 0.698, 0.827, 1.0),
 
-            skin : Skin::default(graphics),
-
             force_rebuild   : false,
 
             hide_circles    : false,
+        };
+    }
+}
+
+pub struct TaikoLayer {
+    audio_hash          : u128,
+    pub audio           : Audio,
+    pub clock           : SyncClock,
+    pub beatmap         : Option<Beatmap>,
+    pub beatmap_path    : Option<PathBuf>,
+    
+    pub conveyor        : Conveyor,
+    
+    pub skin            : Skin,
+    pub snapping        : u8,
+
+    pub rebuild_pending : bool,
+}
+
+impl TaikoLayer {
+    pub fn new(graphics: &Graphics) -> Self {
+        return Self {
+            audio_hash      : Default::default(),
+            audio           : Audio::new().unwrap(),
+            clock           : SyncClock::new(),
+            beatmap         : None,
+            beatmap_path    : None,
+            
+            conveyor        : Conveyor::new(graphics),
+            
+            skin            : Skin::default(graphics),
+            snapping        : 4,
 
             rebuild_pending : false,
         };
     }
 }
 
-pub struct TaikoLayer {
-    pub audio  : Audio,
-    pub clock  : SyncClock,
-    audio_hash : u128,
-
-    pub beatmap      : Option<Beatmap>,
-    pub beatmap_path : Option<PathBuf>,
-
-    pub conveyor : Conveyor,
-
-    pub snapping : u8,
-}
-
-impl TaikoLayer {
-    pub fn new(graphics: &Graphics) -> Self {
-        return Self {
-            audio : Audio::new().unwrap(),
-            clock : SyncClock::new(),
-            audio_hash : Default::default(),
-
-            beatmap      : None,
-            beatmap_path : None,
-
-            conveyor : Conveyor::new(graphics),
-            
-            snapping : 4,
-        };
-    }
-}
-
 impl<'b> Layer<'b, &'b mut TaikoState> for TaikoLayer {
     fn draw<'a: 'b>(&'a mut self, state: &'b mut TaikoState, render_pass: &mut wgpu::RenderPass<'b>, graphics: &mut Graphics) {
-        let rebuild_instances = state.rebuild_pending || state.force_rebuild;
-        if state.rebuild_pending { state.rebuild_pending = false; }
+        let rebuild_instances = self.rebuild_pending || state.force_rebuild;
+        if self.rebuild_pending { self.rebuild_pending = false; }
         
         let time = self.clock.get_time();
         let Some(beatmap) = &self.beatmap else { return };
-        self.conveyor.draw(rebuild_instances, state, beatmap, time, render_pass, graphics);
+        self.conveyor.draw(rebuild_instances, state, beatmap, time, &self.skin, render_pass, graphics);
     }
 
     fn resize(&mut self, new_size: PhysicalSize<u32>) {
@@ -102,16 +97,16 @@ impl<'b> Layer<'b, &'b mut TaikoState> for TaikoLayer {
 }
 
 impl TaikoLayer {
-    pub fn open_beatmap(&mut self, path: &Path, state: &mut TaikoState) {
+    pub fn open_beatmap(&mut self, path: &Path) {
         let Some(Some(ext)) = path.extension().map(|x| x.to_str()) else { return };
         match ext {
-            "osu" => self.open_beatmap_osu(path, state),
-            "osz" => self.open_beatmap_osz(path, state),
+            "osu" => self.open_beatmap_osu(path),
+            "osz" => self.open_beatmap_osz(path),
 
             _ => {}
         }
     }
-    pub fn open_beatmap_osu(&mut self, path: &Path, state: &mut TaikoState) {
+    pub fn open_beatmap_osu(&mut self, path: &Path) {
         let Ok(data) = std::fs::read_to_string(path) else { return };
 
         // Beatmap
@@ -121,11 +116,11 @@ impl TaikoLayer {
         let audio_path = path.parent().unwrap().join(audio_filename);
         let audio_data = std::fs::read(audio_path).unwrap();
 
-        self.load_beatmap(beatmap, audio_data, state);
+        self.load_beatmap(beatmap, audio_data);
 
         self.beatmap_path = Some(path.to_owned());
     }
-    pub fn open_beatmap_osz(&mut self, path: &Path, state: &mut TaikoState) {
+    pub fn open_beatmap_osz(&mut self, path: &Path) {
         let mut files = HashMap::<String, Vec<u8>>::default();
         pollster::block_on(async {
             let archive = std::fs::read(path).unwrap();
@@ -147,12 +142,12 @@ impl TaikoLayer {
         let audio_filename = beatmap.audio.file_name().unwrap().to_str().unwrap();
         let audio_data = files.remove(audio_filename).unwrap();
 
-        self.load_beatmap(beatmap, audio_data, state);
+        self.load_beatmap(beatmap, audio_data);
         
         self.beatmap_path = None;
     }
 
-    pub fn load_beatmap(&mut self, beatmap: Beatmap, audio_data: Vec<u8>, state: &mut TaikoState) {
+    pub fn load_beatmap(&mut self, beatmap: Beatmap, audio_data: Vec<u8>) {
         self.beatmap = Some(beatmap);
 
         // Audio
@@ -177,7 +172,7 @@ impl TaikoLayer {
         }
 
         // Build instances
-        state.rebuild_pending = true;
+        self.rebuild_pending = true;
 
         // Reset culling
         self.conveyor.cull_back = 0;

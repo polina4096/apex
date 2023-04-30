@@ -44,7 +44,7 @@ impl View<(&mut AppState, &mut Layers)> for FileDialogWindow {
     fn show(&mut self, (state, layers): (&mut AppState, &mut Layers), view: &wgpu::TextureView, graphics: &mut Graphics, ctx: &egui::Context) {
         if self.dialog.show(ctx).selected() {
             if let Some(path) = self.dialog.path() {
-                layers.taiko.open_beatmap(path.as_path(), &mut state.taiko);
+                layers.taiko.open_beatmap(path.as_path());
             }
         }
     }

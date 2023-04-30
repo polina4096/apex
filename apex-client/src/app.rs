@@ -45,7 +45,7 @@ impl App {
         let controls = ControlsWindow::new(tx);
 
         // state
-        let state = AppState::new(&graphics, input);
+        let state = AppState::new(input);
 
         // layers
         let layers = Layers {
@@ -174,7 +174,7 @@ impl App {
             }
 
             WindowEvent::DroppedFile(path) => {
-                self.layers.taiko.open_beatmap(path.as_path(), &mut self.state.taiko);
+                self.layers.taiko.open_beatmap(path.as_path());
             }
 
             _ => {}
