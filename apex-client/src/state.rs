@@ -11,11 +11,7 @@ pub enum AppEvents {
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AppKeybinds {
-    TogglePlayback,
     ToggleSidebar,
-
-    TimelineMoveForward,
-    TimelineMoveBack,
 }
 
 pub struct AppState {
@@ -31,23 +27,8 @@ impl AppState {
         let mut keybinds = Keybinds::default();
 
         keybinds.add(
-            KeyCombination { key: KeyCode::from(VirtualKeyCode::Space), modifiers: ModifiersState::empty() },
-            Bind { id: AppKeybinds::TogglePlayback, name: String::from("play/pause"), description: String::from("starts or stops playback") }
-        );
-
-        keybinds.add(
             KeyCombination { key: KeyCode::from(VirtualKeyCode::O), modifiers: ModifiersState::CTRL },
             Bind { id: AppKeybinds::ToggleSidebar, name: String::from("toggle sidebar"), description: String::from("shows or hides the sidebar") }
-        );
-
-        keybinds.add(
-            KeyCombination { key: KeyCode::from(VirtualKeyCode::Right), modifiers: ModifiersState::empty() },
-            Bind { id: AppKeybinds::TimelineMoveForward, name: String::from("Timeline forward"), description: String::from("Move 1/n of a beat forward on a timeline in the song") }
-        );
-
-        keybinds.add(
-            KeyCombination { key: KeyCode::from(VirtualKeyCode::Left), modifiers: ModifiersState::empty() },
-            Bind { id: AppKeybinds::TimelineMoveBack, name: String::from("Timeline back"), description: String::from("Move 1/n of a beat back on a timeline in the song") }
         );
 
         return Self {

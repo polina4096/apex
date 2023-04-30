@@ -105,6 +105,7 @@ pub async fn run() {
             }
 
             Event::WindowEvent { event, window_id } if window_id == app.get_window().id() => {
+                // If not consumed
                 if !app.input(&event) {
                     match event {
                         WindowEvent::CloseRequested => {

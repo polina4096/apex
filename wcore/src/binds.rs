@@ -56,7 +56,6 @@ impl<T: Copy + Eq + Hash> Keybinds<T> {
                 }
             }
 
-            // Sanity check: keybinds can't change from any other thread
             warn!("Failed to find to rebind keys: {}", old_key);
         } else { return }
     }

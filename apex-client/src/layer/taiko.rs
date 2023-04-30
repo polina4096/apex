@@ -2,14 +2,23 @@ use std::{time::Duration, path::{Path, PathBuf}, collections::HashMap, io::Curso
 
 use async_zip::base::read::mem::ZipFileReader;
 use cgmath::{vec3, vec2, Vector2, Zero};
-use wcore::{audio::{Audio, AudioData, Hint}, clock::{SyncClock, Clock}, time::Time, graphics::{context::Graphics, camera::{Projection, Camera}, layer::Layer}, color::Color};
-use winit::dpi::PhysicalSize;
+use wcore::{audio::{Audio, AudioData, Hint}, clock::{SyncClock, Clock}, time::Time, graphics::{context::Graphics, camera::{Projection, Camera}, layer::Layer}, color::Color, binds::{KeyCombination, Keybinds, KeyCode, Bind}};
+use winit::{dpi::PhysicalSize, event::{VirtualKeyCode, ModifiersState}};
 use xxhash_rust::xxh3;
 
 use crate::{taiko::{parser::Beatmap, self}, graphics::{taiko::{conveyor::Conveyor, skin::Skin}}};
 
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub enum TaikoKeybinds {
+    TogglePlayback,
+
+    TimelineMoveForward,
+    TimelineMoveBack,
+}
 
 pub struct TaikoState {
+    pub keybinds : Keybinds<TaikoKeybinds>,
+    
     /* Settings */
     pub scale        : f64,
     pub audio_offset : f64, // ms
@@ -27,7 +36,26 @@ pub struct TaikoState {
 
 impl TaikoState {
     pub fn new() -> Self {
+        let mut keybinds = Keybinds::default();
+
+        keybinds.add(
+            KeyCombination { key: KeyCode::from(VirtualKeyCode::Space), modifiers: ModifiersState::empty() },
+            Bind { id: TaikoKeybinds::TogglePlayback, name: String::from("play/pause"), description: String::from("starts or stops playback") }
+        );
+
+        keybinds.add(
+            KeyCombination { key: KeyCode::from(VirtualKeyCode::Right), modifiers: ModifiersState::empty() },
+            Bind { id: TaikoKeybinds::TimelineMoveForward, name: String::from("Timeline forward"), description: String::from("Move 1/n of a beat forward on a timeline in the song") }
+        );
+
+        keybinds.add(
+            KeyCombination { key: KeyCode::from(VirtualKeyCode::Left), modifiers: ModifiersState::empty() },
+            Bind { id: TaikoKeybinds::TimelineMoveBack, name: String::from("Timeline back"), description: String::from("Move 1/n of a beat back on a timeline in the song") }
+        );
+
         return Self {
+            keybinds,
+            
             scale        : 0.85,
             audio_offset : 0.0,
             hit_position : vec2(300.0, 300.0),
@@ -52,6 +80,8 @@ pub struct TaikoLayer {
     pub conveyor        : Conveyor,
     
     pub skin            : Skin,
+    pub is_kat          : bool,
+    pub is_big          : bool,
     pub snapping        : u8,
 
     pub rebuild_pending : bool,
@@ -69,6 +99,8 @@ impl TaikoLayer {
             conveyor        : Conveyor::new(graphics),
             
             skin            : Skin::default(graphics),
+            is_kat          : false,
+            is_big          : false,
             snapping        : 4,
 
             rebuild_pending : false,
@@ -84,6 +116,21 @@ impl<'b> Layer<'b, &'b mut TaikoState> for TaikoLayer {
         let time = self.clock.get_time();
         let Some(beatmap) = &self.beatmap else { return };
         self.conveyor.draw(rebuild_instances, state, beatmap, time, &self.skin, render_pass, graphics);
+    }
+
+    fn action(&mut self, keys: KeyCombination, state: &'b mut TaikoState) -> bool {
+        if let Some(keybind) = state.keybinds.get(&keys) {
+            match keybind.id {
+                TaikoKeybinds::TogglePlayback => {
+                    self.toggle_paused();
+                }
+
+                TaikoKeybinds::TimelineMoveForward => self.timeline_move(state,  1.0, self.snapping),
+                TaikoKeybinds::TimelineMoveBack    => self.timeline_move(state, -1.0, self.snapping),
+            }
+        }
+        
+        return false;
     }
 
     fn resize(&mut self, new_size: PhysicalSize<u32>) {

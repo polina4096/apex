@@ -121,7 +121,7 @@ impl App {
         return Ok(());
     }
 
-    #[allow(clippy::single_match, deprecated)]
+    #[allow(deprecated)]
     pub fn input(&mut self, event: &WindowEvent) -> bool {
         match event {
             WindowEvent::KeyboardInput { input, .. } => {
@@ -129,9 +129,11 @@ impl App {
                     let mods = input.modifiers;
                     let combination = KeyCombination::from((key, mods));
 
+                    // Collect input
                     self.state.input.key = combination.key;
                     self.state.input.modifiers = mods;
 
+                    // Respond to input request
                     #[allow(clippy::collapsible_if)]
                     'a: { if self.state.input.requests_input {
                         if key == VirtualKeyCode::Escape {
@@ -151,19 +153,20 @@ impl App {
                         }
                     } }
 
+                    // Layer keybinds
+                    if self.layers.action(combination, &mut self.state) {
+                        return true; // Consumed
+                    }
+
+                    // Global keybinds
                     if let Some(keybind) = self.state.keybinds.get(&combination) {
                         match keybind.id {
-                            AppKeybinds::TogglePlayback => {
-                                self.layers.taiko.toggle_paused();
-                            }
-
                             AppKeybinds::ToggleSidebar => {
                                 self.state.sidebar.shown = !self.state.sidebar.shown;
                             }
-
-                            AppKeybinds::TimelineMoveForward => self.layers.taiko.timeline_move(&mut self.state.taiko,  1.0, self.layers.taiko.snapping),
-                            AppKeybinds::TimelineMoveBack    => self.layers.taiko.timeline_move(&mut self.state.taiko, -1.0, self.layers.taiko.snapping),
                         }
+
+                        return true;
                     }
                 }
             }
