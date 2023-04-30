@@ -170,7 +170,7 @@ impl App {
 
             WindowEvent::MouseWheel { delta, .. } => 'a: {
                 let MouseScrollDelta::LineDelta(_, y) = *delta else { break 'a };
-                self.layers.taiko.timeline_move(&mut self.state.taiko, y, self.layers.taiko.snapping);
+                self.layers.taiko.timeline_move(&mut self.state.taiko, -y, self.layers.taiko.snapping);
             }
 
             WindowEvent::DroppedFile(path) => {

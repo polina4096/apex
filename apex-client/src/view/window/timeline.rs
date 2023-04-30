@@ -54,8 +54,8 @@ impl Window<(&mut AppState, &mut Layers)> for TimelineWindow {
             let time_ms   = time.to_seconds()   * 1000.0;
             let length_ms = length.to_seconds() * 1000.0;
             ui.label(&format!("{:02}:{:02}:{:03} / {:02}:{:02}:{:03}",
-                (  time_ms / (60.0 * 1000.0)).round() as u32, (  time_ms / 1000.0 % 60.0).round() as u32, (  time_ms % 1000.0).round() as u32,
-                (length_ms / (60.0 * 1000.0)).round() as u32, (length_ms / 1000.0 % 60.0).round() as u32, (length_ms % 1000.0).round() as u32));
+                (  time_ms / (60.0 * 1000.0)).floor() as u32, (  time_ms / 1000.0 % 60.0).floor() as u32, (  time_ms % 1000.0).floor() as u32,
+                (length_ms / (60.0 * 1000.0)).floor() as u32, (length_ms / 1000.0 % 60.0).floor() as u32, (length_ms % 1000.0).floor() as u32));
 
             // Time slider
             let slider_width = ui.available_width();
