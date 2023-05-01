@@ -68,6 +68,22 @@ impl std::ops::Rem for Time {
     }
 }
 
+impl std::ops::Mul<f64> for Time {
+    type Output = Time;
+
+    fn mul(self, rhs: f64) -> Self::Output {
+        return Time(self.0 * rhs);
+    }
+}
+
+impl std::ops::Div<f64> for Time {
+    type Output = Time;
+
+    fn div(self, rhs: f64) -> Self::Output {
+        return Time(self.0 / rhs);
+    }
+}
+
 impl From<Duration> for Time {
     fn from(value: Duration) -> Self {
         return Time(value.as_secs_f64());

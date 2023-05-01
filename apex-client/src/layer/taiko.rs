@@ -6,7 +6,7 @@ use wcore::{audio::{Audio, AudioData, Hint}, clock::{SyncClock, Clock}, time::Ti
 use winit::{dpi::PhysicalSize, event::{VirtualKeyCode, ModifiersState}};
 use xxhash_rust::xxh3;
 
-use crate::{taiko::{parser::Beatmap, self}, graphics::{taiko::{conveyor::Conveyor, skin::Skin}}};
+use crate::{taiko::{parser::Beatmap, self, taiko_circle::{TaikoColor, TaikoCircle}}, graphics::{taiko::{conveyor::Conveyor, skin::Skin}}};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TaikoKeybinds {
@@ -16,6 +16,11 @@ pub enum TaikoKeybinds {
     TimelineMoveBack,
     TimelineJumpBeatmapStart,
     TimelineJumpBeatmapEnd,
+
+    ObjectPlaceKat,
+    ObjectPlaceDon,
+    ObjectToggleSize,
+    ObjectRemove,
 }
 
 pub struct TaikoState {
@@ -63,6 +68,21 @@ impl TaikoState {
         keybinds.add(
             KeyCombination { key: KeyCode::from(VirtualKeyCode::V), modifiers: ModifiersState::empty() },
             Bind { id: TaikoKeybinds::TimelineJumpBeatmapEnd, name: String::from("Beatmap end"), description: String::from("Jumps to the end of the beatmap") }
+        );
+
+        keybinds.add(
+            KeyCombination { key: KeyCode::from(VirtualKeyCode::A), modifiers: ModifiersState::empty() },
+            Bind { id: TaikoKeybinds::ObjectPlaceKat, name: String::from("Place kat"), description: String::from("Places a kat at the current position") }
+        );
+
+        keybinds.add(
+            KeyCombination { key: KeyCode::from(VirtualKeyCode::S), modifiers: ModifiersState::empty() },
+            Bind { id: TaikoKeybinds::ObjectPlaceDon, name: String::from("Place don"), description: String::from("Places a don at the current position") }
+        );
+
+        keybinds.add(
+            KeyCombination { key: KeyCode::from(VirtualKeyCode::D), modifiers: ModifiersState::empty() },
+            Bind { id: TaikoKeybinds::ObjectRemove, name: String::from("Remove circle"), description: String::from("Removes object the current position") }
         );
 
         return Self {
@@ -141,6 +161,11 @@ impl<'b> Layer<'b, &'b mut TaikoState> for TaikoLayer {
                 TaikoKeybinds::TimelineMoveBack         => self.timeline_move(state, -1.0, self.snapping),
                 TaikoKeybinds::TimelineJumpBeatmapStart => self.timeline_jump_beatmap_start(),
                 TaikoKeybinds::TimelineJumpBeatmapEnd   => self.timeline_jump_beatmap_end(),
+                
+                TaikoKeybinds::ObjectPlaceKat => self.object_place(TaikoColor::KAT),
+                TaikoKeybinds::ObjectPlaceDon => self.object_place(TaikoColor::DON),
+                TaikoKeybinds::ObjectToggleSize => todo!(),
+                TaikoKeybinds::ObjectRemove => self.object_remove(),
             }
         }
         
@@ -254,6 +279,69 @@ impl TaikoLayer {
         self.audio_hash = Default::default();
     }
 
+    // Object
+    pub fn object_place(&mut self, color: TaikoColor) {
+        let time = self.get_time();
+        let Some(beatmap) = &mut self.beatmap else { return };
+
+        let mut idx_t = beatmap.timing.len() - 1;
+        while beatmap.timing[idx_t].time > time && idx_t != 0 { idx_t -= 1; }
+        let timing_point = &beatmap.timing[idx_t];
+
+        // Beat length divided by current beat snapping
+        let snap_length = Time::from_seconds(60.0 / timing_point.bpm / self.snapping as f64);
+        let snap_count = ((time - timing_point.time) / snap_length).to_seconds();
+
+        let closest_time = Time::from_seconds(
+            snap_count.round()
+          * snap_length.to_seconds()
+          + timing_point.time.to_seconds()
+        );
+
+        let snap_distance = Time::from_ms(5.0 / 2.0);
+        if let Some(obj) = beatmap.objects.iter_mut().find(|x|
+                x.time < (closest_time + snap_distance) &&
+                x.time > (closest_time - snap_distance)) {
+            obj.color = color;
+        } else {
+            beatmap.objects.push(TaikoCircle {
+                time  : closest_time,
+                big   : false,
+                color : color,
+            })
+        }
+
+        self.rebuild_pending = true;
+    }
+
+    pub fn object_remove(&mut self) {
+        let time = self.get_time();
+        let Some(beatmap) = &mut self.beatmap else { return };
+
+        let mut idx_t = beatmap.timing.len() - 1;
+        while beatmap.timing[idx_t].time > time && idx_t != 0 { idx_t -= 1; }
+        let timing_point = &beatmap.timing[idx_t];
+
+        // Beat length divided by current beat snapping
+        let snap_length = Time::from_seconds(60.0 / timing_point.bpm / self.snapping as f64);
+        let snap_count = ((time - timing_point.time) / snap_length).to_seconds();
+
+        let closest_time = Time::from_seconds(
+            snap_count.round()
+          * snap_length.to_seconds()
+          + timing_point.time.to_seconds()
+        );
+
+        let snap_distance = Time::from_ms(5.0 / 2.0);
+        if let Some(idx) = beatmap.objects.iter().position(|x|
+                x.time < (closest_time + snap_distance) &&
+                x.time > (closest_time - snap_distance)) {
+            beatmap.objects.remove(idx);
+        }
+
+        self.rebuild_pending = true;
+    }
+
     // Timeline
     pub fn timeline_jump_beatmap_start(&mut self) {
         let Some(beatmap) = &self.beatmap else { return };
@@ -267,7 +355,6 @@ impl TaikoLayer {
 
         self.set_time(Time::zero());
     }
-
     pub fn timeline_jump_beatmap_end(&mut self) {
         let Some(beatmap) = &self.beatmap else { return };
         if let Some(obj) = beatmap.objects.last() {
@@ -298,8 +385,8 @@ impl TaikoLayer {
 
         if !self.is_paused() {
             if value > 0.0
-                 { self.set_time(time + snap_length); }
-            else { self.set_time(time - snap_length); }
+                 { self.set_time(time + snap_length * 6.0); }
+            else { self.set_time(time - snap_length * 6.0); }
             return;
         }
         
