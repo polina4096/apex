@@ -17,7 +17,7 @@ egui = "0.21.0"
 egui_extras = "0.21.0"
 egui_file = "0.8.1"
 bytemuck = { version = "1.13.1", features = ["derive"] }
-async_zip = { version = "0.0.13", features = ["full-wasm"] }
+async_zip = { version = "0.0.15", features = ["full-wasm"] }
 cgmath = { git = "https://github.com/rustgd/cgmath.git", features = ["bytemuck"] }
 wcore = { path = "../wcore" }
 intbits = "0.2.0"
