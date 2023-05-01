@@ -173,10 +173,10 @@ impl TaikoLayer {
             let archive = std::fs::read(path).unwrap();
             let archive = ZipFileReader::new(archive).await.unwrap();
             for i in 0 .. archive.file().entries().len() {
-                let mut file = archive.entry(i).await.unwrap();
+                let mut file = archive.reader_with_entry(i).await.unwrap();
                 let mut buffer = vec![];
-                file.read_to_end_checked(&mut buffer, archive.file().entries()[i].entry()).await.unwrap();
-                files.insert(archive.file().entries()[i].entry().filename().to_owned(), buffer);
+                file.read_to_end_checked(&mut buffer).await.unwrap();
+                files.insert(archive.file().entries()[i].entry().filename().as_str().unwrap().to_owned(), buffer);
             }
         });
 
