@@ -1159,14 +1159,14 @@
 /******/ 					"__wbindgen_closure_wrapper443": function(p0i32,p1i32,p2i32) {
 /******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper443"](p0i32,p1i32,p2i32);
 /******/ 					},
-/******/ 					"__wbindgen_closure_wrapper1024": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper1024"](p0i32,p1i32,p2i32);
+/******/ 					"__wbindgen_closure_wrapper1035": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper1035"](p0i32,p1i32,p2i32);
 /******/ 					},
-/******/ 					"__wbindgen_closure_wrapper1670": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper1670"](p0i32,p1i32,p2i32);
+/******/ 					"__wbindgen_closure_wrapper1687": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper1687"](p0i32,p1i32,p2i32);
 /******/ 					},
-/******/ 					"__wbindgen_closure_wrapper7610": function(p0i32,p1i32,p2i32) {
-/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper7610"](p0i32,p1i32,p2i32);
+/******/ 					"__wbindgen_closure_wrapper7627": function(p0i32,p1i32,p2i32) {
+/******/ 						return installedModules["../pkg/apex_client_bg.js"].exports["__wbindgen_closure_wrapper7627"](p0i32,p1i32,p2i32);
 /******/ 					}
 /******/ 				}
 /******/ 			};
@@ -1269,7 +1269,7 @@
 /******/ 				promises.push(installedWasmModuleData);
 /******/ 			else {
 /******/ 				var importObject = wasmImportObjects[wasmModuleId]();
-/******/ 				var req = fetch(__webpack_require__.p + "" + {"../pkg/apex_client_bg.wasm":"d2ff8b5e98596d278a8b"}[wasmModuleId] + ".module.wasm");
+/******/ 				var req = fetch(__webpack_require__.p + "" + {"../pkg/apex_client_bg.wasm":"7797c15c8e9f30b3f22b"}[wasmModuleId] + ".module.wasm");
 /******/ 				var promise;
 /******/ 				if(importObject instanceof Promise && typeof WebAssembly.compileStreaming === 'function') {
 /******/ 					promise = Promise.all([WebAssembly.compileStreaming(req), importObject]).then(function(items) {
