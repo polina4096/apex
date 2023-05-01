@@ -14,6 +14,8 @@ pub enum TaikoKeybinds {
 
     TimelineMoveForward,
     TimelineMoveBack,
+    TimelineJumpBeatmapStart,
+    TimelineJumpBeatmapEnd,
 }
 
 pub struct TaikoState {
@@ -51,6 +53,16 @@ impl TaikoState {
         keybinds.add(
             KeyCombination { key: KeyCode::from(VirtualKeyCode::Left), modifiers: ModifiersState::empty() },
             Bind { id: TaikoKeybinds::TimelineMoveBack, name: String::from("Timeline back"), description: String::from("Move 1/n of a beat back on a timeline in the song") }
+        );
+
+        keybinds.add(
+            KeyCombination { key: KeyCode::from(VirtualKeyCode::Z), modifiers: ModifiersState::empty() },
+            Bind { id: TaikoKeybinds::TimelineJumpBeatmapStart, name: String::from("Beatmap start"), description: String::from("Jumps to the start of the beatmap") }
+        );
+
+        keybinds.add(
+            KeyCombination { key: KeyCode::from(VirtualKeyCode::V), modifiers: ModifiersState::empty() },
+            Bind { id: TaikoKeybinds::TimelineJumpBeatmapEnd, name: String::from("Beatmap end"), description: String::from("Jumps to the end of the beatmap") }
         );
 
         return Self {
@@ -125,8 +137,10 @@ impl<'b> Layer<'b, &'b mut TaikoState> for TaikoLayer {
                     self.toggle_paused();
                 }
 
-                TaikoKeybinds::TimelineMoveForward => self.timeline_move(state,  1.0, self.snapping),
-                TaikoKeybinds::TimelineMoveBack    => self.timeline_move(state, -1.0, self.snapping),
+                TaikoKeybinds::TimelineMoveForward      => self.timeline_move(state,  1.0, self.snapping),
+                TaikoKeybinds::TimelineMoveBack         => self.timeline_move(state, -1.0, self.snapping),
+                TaikoKeybinds::TimelineJumpBeatmapStart => self.timeline_jump_beatmap_start(),
+                TaikoKeybinds::TimelineJumpBeatmapEnd   => self.timeline_jump_beatmap_end(),
             }
         }
         
@@ -241,6 +255,32 @@ impl TaikoLayer {
     }
 
     // Timeline
+    pub fn timeline_jump_beatmap_start(&mut self) {
+        let Some(beatmap) = &self.beatmap else { return };
+        if let Some(obj) = beatmap.objects.first() {
+            let time = self.clock.get_time();
+            if obj.time != time {
+                self.set_time(obj.time);
+                return;
+            }
+        }
+
+        self.set_time(Time::zero());
+    }
+
+    pub fn timeline_jump_beatmap_end(&mut self) {
+        let Some(beatmap) = &self.beatmap else { return };
+        if let Some(obj) = beatmap.objects.last() {
+            let time = self.clock.get_time();
+            if obj.time != time {
+                self.set_time(obj.time);
+                return;
+            }
+        }
+
+        self.set_time(self.get_length());
+    }
+
     pub fn timeline_move(&mut self, _state: &mut TaikoState, value: f32, snapping: u8) {
         if value.is_zero() { return }
         
