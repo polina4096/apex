@@ -2,6 +2,7 @@ use std::{time::Duration, path::{Path, PathBuf}, collections::HashMap, io::Curso
 
 use async_zip::base::read::mem::ZipFileReader;
 use cgmath::{vec3, vec2, Vector2, Zero};
+use log::warn;
 use wcore::{audio::{Audio, AudioData, Hint}, clock::{SyncClock, Clock}, time::Time, graphics::{context::Graphics, camera::{Projection, Camera}, layer::Layer}, color::Color, binds::{KeyCombination, Keybinds, KeyCode, Bind}};
 use winit::{dpi::PhysicalSize, event::{VirtualKeyCode, ModifiersState}};
 use xxhash_rust::xxh3;
@@ -310,6 +311,13 @@ impl TaikoLayer {
                 color : color,
             })
         }
+
+        // TODO: this can be further optimized by inserting the circle into the correct position
+        beatmap.objects.sort_by(|a, b| a.time
+            .partial_cmp(&b.time)
+            .unwrap_or_else(|| {
+                warn!("Failed to compare object times, ");
+                std::cmp::Ordering::Equal }));
 
         self.rebuild_pending = true;
     }
