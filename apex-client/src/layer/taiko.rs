@@ -72,7 +72,7 @@ impl TaikoState {
         );
 
         keybinds.add(
-            KeyCombination { key: KeyCode::from(VirtualKeyCode::A), modifiers: ModifiersState::empty() },
+            KeyCombination { key: KeyCode::from(VirtualKeyCode::D), modifiers: ModifiersState::empty() },
             Bind { id: TaikoKeybinds::ObjectPlaceKat, name: String::from("Place kat"), description: String::from("Places a kat at the current position") }
         );
 
@@ -82,8 +82,13 @@ impl TaikoState {
         );
 
         keybinds.add(
-            KeyCombination { key: KeyCode::from(VirtualKeyCode::D), modifiers: ModifiersState::empty() },
+            KeyCombination { key: KeyCode::from(VirtualKeyCode::A), modifiers: ModifiersState::empty() },
             Bind { id: TaikoKeybinds::ObjectRemove, name: String::from("Remove circle"), description: String::from("Removes object the current position") }
+        );
+
+        keybinds.add(
+            KeyCombination { key: KeyCode::from(VirtualKeyCode::F), modifiers: ModifiersState::empty() },
+            Bind { id: TaikoKeybinds::ObjectToggleSize, name: String::from("Toggle circle siez"), description: String::from("Changes object size") }
         );
 
         return Self {
@@ -165,7 +170,7 @@ impl<'b> Layer<'b, &'b mut TaikoState> for TaikoLayer {
                 
                 TaikoKeybinds::ObjectPlaceKat => self.object_place(TaikoColor::KAT),
                 TaikoKeybinds::ObjectPlaceDon => self.object_place(TaikoColor::DON),
-                TaikoKeybinds::ObjectToggleSize => todo!(),
+                TaikoKeybinds::ObjectToggleSize => self.object_toggle_size(),
                 TaikoKeybinds::ObjectRemove => self.object_remove(),
             }
         }
@@ -345,6 +350,34 @@ impl TaikoLayer {
                 x.time < (closest_time + snap_distance) &&
                 x.time > (closest_time - snap_distance)) {
             beatmap.objects.remove(idx);
+        }
+
+        self.rebuild_pending = true;
+    }
+
+    pub fn object_toggle_size(&mut self) {
+        let time = self.get_time();
+        let Some(beatmap) = &mut self.beatmap else { return };
+
+        let mut idx_t = beatmap.timing.len() - 1;
+        while beatmap.timing[idx_t].time > time && idx_t != 0 { idx_t -= 1; }
+        let timing_point = &beatmap.timing[idx_t];
+
+        // Beat length divided by current beat snapping
+        let snap_length = Time::from_seconds(60.0 / timing_point.bpm / self.snapping as f64);
+        let snap_count = ((time - timing_point.time) / snap_length).to_seconds();
+
+        let closest_time = Time::from_seconds(
+            snap_count.round()
+          * snap_length.to_seconds()
+          + timing_point.time.to_seconds()
+        );
+
+        let snap_distance = Time::from_ms(5.0 / 2.0);
+        if let Some(obj) = beatmap.objects.iter_mut().find(|x|
+                x.time < (closest_time + snap_distance) &&
+                x.time > (closest_time - snap_distance)) {
+            obj.big = !obj.big;
         }
 
         self.rebuild_pending = true;
