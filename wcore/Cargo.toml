@@ -10,7 +10,7 @@ ahash = { version = "0.8.3", features = ["compile-time-rng"], default-features =
 egui = "0.21.0"
 egui-wgpu = { version = "0.21.0" }
 egui-winit = { version = "0.21.1", features = ["links", "webbrowser", "wayland", "smithay-clipboard", "document-features"], default-features = false }
-winit = "0.28.4"
+winit = "0.28.5"
 wgpu = "0.15.1"
 cgmath = { git = "https://github.com/rustgd/cgmath.git", features = ["bytemuck"] }
 image = { version = "0.24.6", features = ["png", "jpeg"], default-features = false }
