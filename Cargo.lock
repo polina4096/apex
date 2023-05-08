@@ -910,9 +910,9 @@ dependencies = [
 
 [[package]]
 name = "egui_file"
-version = "0.8.1"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5019f0b646dd17aac634749cf127eab536329fc70ab115dae87f4696480a4a0c"
+checksum = "ea53f834204e28899d702422a5b30e41eadab52384e6d4113e7842b6798b8fe4"
 dependencies = [
  "egui",
 ]
