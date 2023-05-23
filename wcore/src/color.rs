@@ -1,4 +1,7 @@
-#[derive(Clone, Copy, Debug)]
+use bytemuck::{Pod, Zeroable};
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Pod, Zeroable)]
 pub struct Color {
     pub r: f32,
     pub g: f32,

@@ -7,10 +7,11 @@ struct CameraUniform {
 var<uniform> camera: CameraUniform;
 
 struct InstanceInput {
-    @location(3) model_matrix_0: vec4<f32>,
-    @location(4) model_matrix_1: vec4<f32>,
-    @location(5) model_matrix_2: vec4<f32>,
-    @location(6) model_matrix_3: vec4<f32>,
+    @location(3) model_matrix_0 : vec4<f32>,
+    @location(4) model_matrix_1 : vec4<f32>,
+    @location(5) model_matrix_2 : vec4<f32>,
+    @location(6) model_matrix_3 : vec4<f32>,
+    @location(7) color          : vec4<f32>,
 };
 
 struct VertexInput {
@@ -21,6 +22,7 @@ struct VertexInput {
 struct VertexOutput {
     @builtin(position) clip_position : vec4<f32>,
     @location(0)       uv_coords     : vec2<f32>,
+    @location(1)       color         : vec4<f32>,
 }
 
 @vertex
@@ -38,6 +40,7 @@ fn vs_main(
     var out: VertexOutput;
     out.clip_position = camera.view_proj * model_matrix * vec4<f32>(vertex.position, 1.0);
     out.uv_coords = vertex.uv_coords;
+    out.color = instance.color;
     return out;
 }
 
@@ -47,5 +50,5 @@ fn vs_main(
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    return textureSample(t0, s0, in.uv_coords);
+    return textureSample(t0, s0, in.uv_coords) * in.color;
 }

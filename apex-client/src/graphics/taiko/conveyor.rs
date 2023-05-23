@@ -1,5 +1,5 @@
 use cgmath::{Quaternion, vec3, Zero, vec2, Vector4, vec4};
-use wcore::{graphics::{scene::Scene, camera::{ProjectionOrthographic, Camera2D, Camera}, uniform::Uniform, common::{vertex::Vertex, model::Model}, context::Graphics, instance::Instance, bindable::Bindable, layout::Layout}, time::Time};
+use wcore::{graphics::{scene::Scene, camera::{ProjectionOrthographic, Camera2D, Camera}, uniform::Uniform, common::{vertex::Vertex, model::Model}, context::Graphics, instance::Instance, bindable::Bindable, layout::Layout}, time::Time, color::Color};
 use wgpu::util::DeviceExt;
 
 use crate::{layer::taiko::TaikoState, taiko::{parser::Beatmap, taiko_circle::TaikoColor}};
@@ -12,7 +12,7 @@ pub struct Conveyor {
     pub scene           : Scene<ProjectionOrthographic, Camera2D>,
     pub time_uniform    : Uniform<Vector4<f32>>,
     pub circle_pipeline : wgpu::RenderPipeline,
-    pub hitpos_pipeline : wgpu::RenderPipeline,
+    pub common_pipeline : wgpu::RenderPipeline,
 
     pub vertex_buffer      : wgpu::Buffer,
     pub vertex_buffer_data : Vec<Vertex>,
@@ -22,6 +22,10 @@ pub struct Conveyor {
     
     pub hitpos_instance_buffer : wgpu::Buffer,
     pub hitpos_instances       : Vec<Model>,
+
+    pub tick_multiplier      : f32,
+    pub tick_instance_buffer : wgpu::Buffer,
+    pub tick_instances       : Vec<Model>,
 
     pub cull_back : usize,
 }
@@ -39,12 +43,23 @@ impl Conveyor {
         );
 
         // Hit position instances
-        let hitpos_instances = vec![ Model { position: vec3(0.0, 0.0, 0.0), scale: vec3(128.0, 128.0, 1.0), rotation: Quaternion::zero() } ];
+        let hitpos_instances = vec![ Model { position: vec3(0.0,0.0,0.0), scale: vec3(128.0,128.0,1.0), rotation: Quaternion::zero(), color: Color::from_rgb(255, 255 ,255) } ];
         let hitpos_instance_data = hitpos_instances.iter().map(Instance::bake).collect::<Vec<_>>();
         let hitpos_instance_buffer = graphics.device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label    : Some("Instance Buffer"),
                 contents : bytemuck::cast_slice(&hitpos_instance_data),
+                usage    : wgpu::BufferUsages::VERTEX,
+            }
+        );
+
+        // Hit position instances
+        let tick_instances = vec![];
+        let tick_instance_data = hitpos_instances.iter().map(Instance::bake).collect::<Vec<_>>();
+        let tick_instance_buffer = graphics.device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label    : Some("Instance Buffer"),
+                contents : bytemuck::cast_slice(&tick_instance_data),
                 usage    : wgpu::BufferUsages::VERTEX,
             }
         );
@@ -81,7 +96,7 @@ impl Conveyor {
             push_constant_ranges: &[],
         });
 
-        let hitpos_pipeline = graphics.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        let common_pipeline = graphics.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("Render Pipeline"),
             layout: Some(&render_pipeline_layout),
             vertex: wgpu::VertexState {
@@ -183,15 +198,19 @@ impl Conveyor {
             scene,
             time_uniform,
             circle_pipeline,
-            hitpos_pipeline,
+            common_pipeline,
 
             vertex_buffer,
             vertex_buffer_data,
             
             circle_instance_buffer,
             circle_instances,
+            tick_instance_buffer,
+            tick_instances,
             hitpos_instance_buffer,
             hitpos_instances,
+
+            tick_multiplier: 0.0,
 
             cull_back: 0,
         };
@@ -228,8 +247,32 @@ impl Conveyor {
         let time_offset = (audio_offset - time).to_seconds() * 1000.0 * state.zoom;
         self.time_uniform.update(&graphics.queue, &vec4(time_offset as f32, 0.0, 0.0, 0.0));
         
+        // Ticks
+        let instance_data = self.tick_instances.iter().map(|x| {
+            let mut x = x.clone();
+            x.position.x += time_offset as f32 * self.tick_multiplier;
+            return Instance::bake(&x);
+        }).collect::<Vec<_>>();
+        self.tick_instance_buffer = graphics.device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label    : Some("Instance Buffer"),
+                contents : bytemuck::cast_slice(&instance_data),
+                usage    : wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            }
+        );
+
+        render_pass.set_pipeline(&self.common_pipeline);
+
+        self.scene.bind(render_pass, 0);
+        render_pass.set_bind_group(1, &skin.tick.bind_group, &[]);
+
+        render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
+        render_pass.set_vertex_buffer(1, self.tick_instance_buffer.slice(..));
+        render_pass.draw(0 .. self.vertex_buffer_data.len() as u32, 
+                         0 .. self.tick_instances.len() as u32);
+
         // Hit position
-        render_pass.set_pipeline(&self.hitpos_pipeline);
+        render_pass.set_pipeline(&self.common_pipeline);
 
         self.scene.bind(render_pass, 0);
         render_pass.set_bind_group(1, &skin.hit_position.bind_group, &[]);
@@ -257,6 +300,10 @@ impl Conveyor {
 
     fn rebuild_instances_beatmap(&mut self, state: &TaikoState, beatmap: &Beatmap, graphics: &Graphics) {
         self.circle_instances.clear();
+        self.tick_instances.clear();
+
+        // Taiko
+        const OSU_TAIKO_VELOCITY_MULTIPLIER: f64 = 1.4;
         
         let mut idx_t = beatmap.timing.len() - 1;
         let mut idx_v = beatmap.velocity.len() - 1;
@@ -264,10 +311,7 @@ impl Conveyor {
             while beatmap.timing[idx_t].time > obj.time && idx_t != 0 { idx_t -= 1; }
             while beatmap.velocity[idx_v].time > obj.time && idx_v != 0 { idx_v -= 1; }
             
-            // Taiko
-            const OSU_TAIKO_VELOCITY_MULTIPLIER: f64 = 1.4;
-
-            // Timing            
+            // Timing
             let beat_length = 60.0 / beatmap.timing[idx_t].bpm * 1000.0; // we want ms...
             let velocity = beatmap.velocity[idx_v].velocity;
 
@@ -289,6 +333,41 @@ impl Conveyor {
 
         let instance_data = self.circle_instances.iter().map(Instance::bake).collect::<Vec<_>>();
         self.circle_instance_buffer = graphics.device.create_buffer_init(
+            &wgpu::util::BufferInitDescriptor {
+                label    : Some("Instance Buffer"),
+                contents : bytemuck::cast_slice(&instance_data),
+                usage    : wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            }
+        );
+
+        // Ticks
+        let beat_length = 60.0 / beatmap.timing[idx_t].bpm * 1000.0; // we want ms...
+
+        let base_length = 1000.0;
+        let multiplier = OSU_TAIKO_VELOCITY_MULTIPLIER * base_length / beat_length * beatmap.velocity_multiplier as f64;
+        self.tick_multiplier = (OSU_TAIKO_VELOCITY_MULTIPLIER * base_length / beat_length) as f32;
+
+        let mut time = 0.0;
+        let last = beatmap.objects.iter().last().unwrap().time;
+        while Time::from_ms(time) < last {
+            time += beat_length;
+            self.tick_instances.push(Model {
+                position : vec3((time * state.zoom * multiplier) as f32, 0.0, 0.0),
+                scale    : vec3(4.0, 200.0, 1.0),
+                rotation : Quaternion::zero(),
+                color    : Color::from_rgb(255, 255, 255)
+            });
+
+            self.tick_instances.push(Model {
+                position : vec3(((time - beat_length / 2.0) * state.zoom * multiplier) as f32, 0.0, 0.0),
+                scale    : vec3(4.0, 150.0, 1.0),
+                rotation : Quaternion::zero(),
+                color    : Color::from_rgb(255, 80, 80)
+            });
+        }
+
+        let instance_data = self.tick_instances.iter().map(Instance::bake).collect::<Vec<_>>();
+        self.tick_instance_buffer = graphics.device.create_buffer_init(
             &wgpu::util::BufferInitDescriptor {
                 label    : Some("Instance Buffer"),
                 contents : bytemuck::cast_slice(&instance_data),

@@ -1,19 +1,21 @@
 use bytemuck::{Pod, Zeroable};
 use cgmath::{Vector3, Quaternion, Matrix4};
 
-use crate::graphics::instance::Instance;
+use crate::{graphics::instance::Instance, color::Color};
 
 #[derive(Copy, Clone)]
 pub struct Model {
     pub position : Vector3<f32>,
     pub scale    : Vector3<f32>,
     pub rotation : Quaternion<f32>,
+    pub color    : Color,
 }
 
 #[repr(C)]
 #[derive(Copy, Clone, Pod, Zeroable)]
 pub struct BakedModel {
     pub model: Matrix4<f32>,
+    pub color: Color,
 }
 
 impl Model {
@@ -42,6 +44,11 @@ impl Model {
                     shader_location: 6,
                     format: wgpu::VertexFormat::Float32x4,
                 },
+                wgpu::VertexAttribute {
+                    offset: std::mem::size_of::<[f32; 16]>() as wgpu::BufferAddress,
+                    shader_location: 7,
+                    format: wgpu::VertexFormat::Float32x4,
+                },
             ],
         }
     }
@@ -55,6 +62,6 @@ impl Instance for Model {
                   * cgmath::Matrix4::from_nonuniform_scale(self.scale.x, self.scale.y, self.scale.z)
                   * cgmath::Matrix4::from(self.rotation);
         
-        return BakedModel { model };
+        return BakedModel { model, color: self.color };
     }
 }

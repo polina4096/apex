@@ -8,6 +8,7 @@ pub struct Skin {
     pub big_circle   : Texture,
     pub big_overlay  : Texture,
     pub hit_position : Texture,
+    pub tick         : Texture,
 }
 
 impl Skin {
@@ -19,6 +20,7 @@ impl Skin {
             big_circle   : Texture::from_path(path.to_owned().join("taikobigcircle.png"       ), graphics).unwrap_or(Texture::default(graphics)),
             big_overlay  : Texture::from_path(path.to_owned().join("taikobigcircleoverlay.png"), graphics).unwrap_or(Texture::default(graphics)),
             hit_position : Texture::from_path(path.to_owned().join("approachcircle.png"       ), graphics).unwrap_or(Texture::default(graphics)),
+            tick         : Texture::from_path(path.to_owned().join("tick.png"                 ), graphics).unwrap_or(Texture::default(graphics)),
         };
     }
 
@@ -29,6 +31,7 @@ impl Skin {
             big_circle   : Texture::from_memory(include_bytes!("../../../res/taikobigcircle.png"       ), graphics).unwrap(),
             big_overlay  : Texture::from_memory(include_bytes!("../../../res/taikobigcircleoverlay.png"), graphics).unwrap(),
             hit_position : Texture::from_memory(include_bytes!("../../../res/approachcircle.png"       ), graphics).unwrap(),
+            tick         : Texture::from_memory(include_bytes!("../../../res/tick.png"                 ), graphics).unwrap(),
         };
     }
 }
