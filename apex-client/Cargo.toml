@@ -9,7 +9,7 @@ tap = "1.0.1"
 cfg-if = "1"
 pollster = "0.3.0"
 winit = "0.28.6"
-wgpu = "0.15.1"
+wgpu = "0.16.2"
 log = "0.4.17"
 pretty_env_logger = "0.5.0"
 clap = { version = "4.3.0", features = ["derive"] }
