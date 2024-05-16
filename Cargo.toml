@@ -1,0 +1,10 @@
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
+[workspace.lints.clippy]
+needless_return = "allow"
+redundant_field_names = "allow"
+new_without_default = "allow"
+module_inception = "allow"
+single_match = "allow"
