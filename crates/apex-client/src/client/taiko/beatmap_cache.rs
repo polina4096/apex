@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use fxhash::FxBuildHasher;
 use indexmap::IndexMap;
 use log::warn;
+use tap::Tap;
 
 #[derive(Debug, Clone)]
 pub struct BeatmapInfo {

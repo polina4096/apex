@@ -26,7 +26,6 @@ glam = { version = "0.27.0", features = ["bytemuck", "serde"] }
 chrono = { version = "0.4.38", features = ["serde"] }
 bytemuck = "1.15.0"
 image = { version = "*", features = ["jpeg", "png"] }
-instant = "0.1.12"
 fxhash = "0.2.1"
 indexmap = "2.2.6"
 tap = "1.0.1"
@@ -36,10 +35,12 @@ intbits = "0.2.0"
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 wgpu = "0.19.4"
 egui-winit = "0.27.2"
+instant = "0.1.12"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wgpu = { version = "0.19.4", features = ["webgl"] }
 egui-winit = { version = "0.27.2", features = [], default-features = false}
+instant = { version = "0.1.12", features = ["wasm-bindgen"] }
 
 console_error_panic_hook = "0.1.6"
 console_log = "1.0"

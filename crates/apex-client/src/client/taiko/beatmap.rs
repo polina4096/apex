@@ -99,8 +99,8 @@ impl<T: AsRef<str>> From<T> for Beatmap {
             HitObject {
               time  : Time::from_ms(time_in_ms),
               color : if object_type.bit(1) || object_type.bit(3)
-                           { TaikoColor::KAT }
-                      else { TaikoColor::DON },
+                           { TaikoColor::Kat }
+                      else { TaikoColor::Don },
               big   : object_type.bit(2),
             }
           );

@@ -2,7 +2,7 @@ use bytemuck::Zeroable;
 use glam::{vec2, vec3, vec4, Quat, Vec4};
 use wgpu::util::DeviceExt;
 
-use crate::{client::taiko::{hit_object::TaikoColor, beatmap::Beatmap}, core::{graphics::{bindable::Bindable, camera::{Camera as _, Camera2D, ProjectionOrthographic}, color::Color, graphics::Graphics, instance::Instance, layout::Layout, quad_renderer::data::quad_vertex::QuadVertex, scene::Scene, texture::Texture, uniform::Uniform}, time::{clock::AbstractClock, time::Time}}};
+use crate::{client::{screen::gameplay_screen::gameplay_screen::TaikoInput, taiko::{beatmap::Beatmap, hit_object::TaikoColor}}, core::{graphics::{bindable::Bindable, camera::{Camera as _, Camera2D, ProjectionOrthographic}, color::Color, graphics::Graphics, instance::Instance, layout::Layout, quad_renderer::data::quad_vertex::QuadVertex, scene::Scene, texture::Texture, uniform::Uniform}, time::{clock::AbstractClock, time::Time}}};
 
 use super::data::hit_object_model::{BakedHitObjectModel, HitObjectModel};
 
@@ -11,7 +11,7 @@ pub struct TaikoRenderer {
 
   pub pipeline: wgpu::RenderPipeline,
 
-  pub time_uniform: Uniform<f32>,
+  pub time_uniform: Uniform<Vec4>,
 
   pub circle_texture           : Texture,
   pub finisher_texture         : Texture,
@@ -174,28 +174,6 @@ impl TaikoRenderer {
     let audio_offset = Time::from_seconds(audio_offset / 1000.0);
     let time = clock.position();
 
-    while let Some(circle) = beatmap.hit_objects.get(self.hit_idx) {
-      // When you snap to a certain object on a timeline, this thing counts it as being hit
-      // In order to render the object if (obj.time == current_time), we offset it by a bit
-      // TODO: this is most certainly not the best way to handle this, but whatever
-
-      let tolerance = Time::from_ms(2);
-      if circle.time + audio_offset + tolerance <= time {
-        self.hit_idx += 1;
-
-        let len = self.instances.len();
-        let idx = len - self.hit_idx;
-        let instance = &mut self.instances[idx];
-        instance.hit = time * 1000.0 * zoom;
-
-        let single_baked = [instance.bake()];
-        let byte_slice: &[u8] = bytemuck::cast_slice(&single_baked);
-        let offset = std::mem::size_of::<BakedHitObjectModel>() * idx;
-
-        graphics.queue.write_buffer(&self.instance_buffer, offset as wgpu::BufferAddress, byte_slice);
-      } else { break }
-    }
-
     // Update scene matrix
     let scale = (graphics.scale * scale) as f32;
     self.scene.camera.set_scale(vec3(scale, scale, 1.0));
@@ -206,7 +184,7 @@ impl TaikoRenderer {
 
     // Update time uniform
     let time_offset = (audio_offset - time).to_seconds() * 1000.0 * zoom;
-    self.time_uniform.update(&graphics.queue, &(time_offset as f32));
+    self.time_uniform.update(&graphics.queue, &vec4(time_offset as f32, 0.0, 0.0, 0.0));
   }
 
   pub fn render<'rpass>(&'rpass self, rpass: &mut wgpu::RenderPass<'rpass>) {
@@ -223,6 +201,54 @@ impl TaikoRenderer {
     rpass.set_vertex_buffer(1, self.instance_buffer.slice(..));
     rpass.draw(0 ..  self.vertex_buffer_data.len()        as u32,
                0 .. (self.instances.len() - self.culling) as u32);
+  }
+
+  pub fn hit(&mut self, graphics: &Graphics, beatmap: &Beatmap, hit_time: Time, input: TaikoInput) {
+    let audio_offset = 0.0;
+    let audio_offset = Time::from_seconds(audio_offset / 1000.0);
+    let zoom = 0.235;
+
+    let tolerance = Time::from_ms(100);
+
+    while let Some(circle) = beatmap.hit_objects.get(self.hit_idx) {
+      let time = circle.time.to_ms() as i64 + audio_offset.to_ms() as i64 + tolerance.to_ms() as i64;
+      if time > hit_time.to_ms() as i64 {
+        break;
+      }
+
+      self.hit_idx += 1;
+    }
+
+    if let Some(circle) = beatmap.hit_objects.get(self.hit_idx) {
+      // When you snap to a certain object on a timeline, this thing counts it as being hit
+      // In order to render the object if (obj.time == current_time), we offset it by a bit
+      // TODO: this is most certainly not the best way to handle this, but whatever
+      let time = circle.time.to_ms() as i64 + audio_offset.to_ms() as i64;
+      let delta = time - hit_time.to_ms() as i64;
+
+      if delta <= tolerance.to_ms() as i64 {
+        if circle.color == TaikoColor::Don && !matches!(input, TaikoInput::DonOne | TaikoInput::DonTwo) {
+          return;
+        }
+
+        if circle.color == TaikoColor::Kat && !matches!(input, TaikoInput::KatOne | TaikoInput::KatTwo) {
+          return;
+        }
+
+        self.hit_idx += 1;
+
+        let len = self.instances.len();
+        let idx = len - self.hit_idx;
+        let instance = &mut self.instances[idx];
+        instance.hit = (audio_offset - hit_time) * 1000.0 * zoom;
+
+        let single_baked = [instance.bake()];
+        let byte_slice: &[u8] = bytemuck::cast_slice(&single_baked);
+        let offset = std::mem::size_of::<BakedHitObjectModel>() * idx;
+
+        graphics.queue.write_buffer(&self.instance_buffer, offset as wgpu::BufferAddress, byte_slice);
+      }
+    }
   }
 
   pub fn reset_instances(&mut self, graphics: &Graphics) {
@@ -267,7 +293,7 @@ impl TaikoRenderer {
         size: if obj.big { vec2(CIRCLE_SIZE * 1.55, CIRCLE_SIZE * 1.55) }
               else       { vec2(CIRCLE_SIZE       , CIRCLE_SIZE       ) },
 
-        color: if obj.color == TaikoColor::KAT { kat_color }  // vec4(0.0, 0.47, 0.67, 1.0)
+        color: if obj.color == TaikoColor::Kat { kat_color }  // vec4(0.0, 0.47, 0.67, 1.0)
                else                            { don_color }, // vec4(0.92, 0.0, 0.27, 1.0)
 
         finisher: obj.big,

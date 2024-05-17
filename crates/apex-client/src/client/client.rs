@@ -3,7 +3,7 @@ use winit::{event::{KeyEvent, Modifiers}, keyboard::{KeyCode, ModifiersState, Ph
 
 use crate::core::{app::App, core::Core, event::EventBus, input::{bind::{Bind, KeyCombination}, Input}};
 
-use super::{event::ClientEvent, input::client_action::ClientAction, screen::{gameplay_screen::gameplay_screen::GameplayScreen, selection_screen::selection_screen::SelectionScreen}, state::GameState, taiko::beatmap_cache::BeatmapCache};
+use super::{event::ClientEvent, input::client_action::ClientAction, screen::{gameplay_screen::gameplay_screen::{GameplayScreen, TaikoInput}, selection_screen::selection_screen::SelectionScreen}, state::GameState, taiko::beatmap_cache::BeatmapCache};
 
 pub struct Client {
   input     : Input<ClientAction>,
@@ -100,6 +100,43 @@ impl Client {
       }
     );
 
+    // Gameplay control
+    input.keybinds.add(
+      KeyCombination::new(PhysicalKey::Code(KeyCode::KeyA), ModifiersState::empty()),
+      Bind {
+        id: ClientAction::KatOne,
+        name: String::from("Kat 1"),
+        description: String::from("Kat (blue)"),
+      }
+    );
+
+    input.keybinds.add(
+      KeyCombination::new(PhysicalKey::Code(KeyCode::Quote), ModifiersState::empty()),
+      Bind {
+        id: ClientAction::KatTwo,
+        name: String::from("Kat 2"),
+        description: String::from("Kat (blue)"),
+      }
+    );
+
+    input.keybinds.add(
+      KeyCombination::new(PhysicalKey::Code(KeyCode::KeyS), ModifiersState::empty()),
+      Bind {
+        id: ClientAction::DonOne,
+        name: String::from("Don 1"),
+        description: String::from("Don (red)"),
+      }
+    );
+
+    input.keybinds.add(
+      KeyCombination::new(PhysicalKey::Code(KeyCode::Semicolon), ModifiersState::empty()),
+      Bind {
+        id: ClientAction::DonTwo,
+        name: String::from("Don 2"),
+        description: String::from("Don (red)"),
+      }
+    );
+
     let game_state = GameState::Selection;
     let beatmap_cache = BeatmapCache::new().tap_mut(|cache| {
       cache.load_beatmaps("/Users/polina4096/dev/apex/test/beatmaps");
@@ -122,7 +159,7 @@ impl Client {
     if event.state.is_pressed() {
       let comb = KeyCombination::new(event.physical_key, self.input.state.modifiers);
       if let Some(action) = self.input.keybinds.get(&comb).map(|x| x.id) {
-        self.action(core, action)
+        self.action(core, action, event.repeat)
       }
     }
   }
@@ -131,7 +168,7 @@ impl Client {
     self.input.state.modifiers = modifiers.state();
   }
 
-  pub fn action(&mut self, core: &mut Core<Self>, action: ClientAction) {
+  pub fn action(&mut self, core: &mut Core<Self>, action: ClientAction, repeat: bool) {
     match action {
       ClientAction::Back => {
         match self.game_state {
@@ -174,6 +211,21 @@ impl Client {
           _ => { }
         }
       }
+
+      ClientAction::KatOne if !repeat => {
+        self.gameplay_screen.hit(&core.graphics, TaikoInput::KatOne);
+      }
+      ClientAction::KatTwo if !repeat => {
+        self.gameplay_screen.hit(&core.graphics, TaikoInput::KatTwo);
+      }
+      ClientAction::DonOne if !repeat => {
+        self.gameplay_screen.hit(&core.graphics, TaikoInput::DonOne);
+      }
+      ClientAction::DonTwo if !repeat => {
+        self.gameplay_screen.hit(&core.graphics, TaikoInput::DonTwo);
+      }
+
+      _ => { }
     }
   }
 

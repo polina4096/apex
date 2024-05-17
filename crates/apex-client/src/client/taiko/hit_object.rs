@@ -11,15 +11,15 @@ pub struct HitObject {
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum TaikoColor {
   #[default]
-  DON,
-  KAT,
+  Don,
+  Kat,
 }
 
 impl TaikoColor {
   pub fn toggle(&mut self) {
     match self {
-      TaikoColor::KAT => *self = TaikoColor::DON,
-      TaikoColor::DON => *self = TaikoColor::KAT,
+      TaikoColor::Kat => *self = TaikoColor::Don,
+      TaikoColor::Don => *self = TaikoColor::Kat,
     }
   }
 }

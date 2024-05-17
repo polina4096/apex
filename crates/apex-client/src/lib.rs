@@ -3,6 +3,7 @@
 use core::{core::Core, event::{CoreEvent, EventBus}};
 
 use client::{client::Client, event::ClientEvent};
+use instant::Instant;
 use log::warn;
 use winit::{
   event::{Event, WindowEvent},
@@ -22,15 +23,17 @@ pub fn setup() -> (EventLoop<CoreEvent<ClientEvent>>, Window) {
 }
 
 pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> color_eyre::Result<()> {
+  event_loop.set_control_flow(ControlFlow::Poll);
+
   let mut core = Core::new(&event_loop, &window);
   let mut client = Client::new(&mut core, EventBus::new(event_loop.create_proxy()));
 
   let mut app_focus = false;
-  let mut last_frame = std::time::Instant::now();
+  let mut last_frame = Instant::now();
 
   event_loop.run(|event, elwt| {
     if !app_focus || !window.is_visible().unwrap_or(false) {
-      let now = std::time::Instant::now();
+      let now = Instant::now();
       if now.duration_since(last_frame).as_micros() >= (1000 * 1000) / 120 {
         window.request_redraw();
         last_frame = now;

@@ -7,7 +7,7 @@ struct SceneUniform {
 var<uniform> scene: SceneUniform;
 
 @group(1) @binding(0)
-var<uniform> time: f32;
+var<uniform> time: vec4<f32>;
 
 struct VertexInput {
     @location(0) position  : vec3<f32>,
@@ -43,10 +43,10 @@ fn vs_main(
     );
 
     let time_matrix = mat4x4<f32>(
-        vec4( 1.0, 0.0, 0.0, 0.0),
-        vec4( 0.0, 1.0, 0.0, 0.0),
-        vec4( 0.0, 0.0, 1.0, 0.0),
-        vec4(time, 0.0, 0.0, 1.0),
+        vec4(   1.0, 0.0, 0.0, 0.0),
+        vec4(   0.0, 1.0, 0.0, 0.0),
+        vec4(   0.0, 0.0, 1.0, 0.0),
+        vec4(time.x, 0.0, 0.0, 1.0),
     );
 
     var out: VertexOutput;
@@ -54,15 +54,26 @@ fn vs_main(
     out.clip_position = time_matrix * out.clip_position;
 
     if instance.hit != 0.0 {
+        // out.clip_position.y -= 10000.0;
         var offset = 0.0;
 
         let p = (time_matrix * model_matrix) * vec4<f32>(-0.5, 0.0, 0.0, 1.0);
 
-        if (p * instance.velocity).x < 0.0 {
+
+        let hit_matrix = mat4x4<f32>(
+            vec4(         1.0, 0.0, 0.0, 0.0),
+            vec4(         0.0, 1.0, 0.0, 0.0),
+            vec4(         0.0, 0.0, 1.0, 0.0),
+            vec4(instance.hit, 0.0, 0.0, 1.0),
+        );
+        let h = (hit_matrix * model_matrix) * vec4<f32>(-0.5, 0.0, 0.0, 1.0);
+
+
+        if (p * instance.velocity).x - (h * instance.velocity).x < 0.0 {
             let height = 15.0;
             let intensity = 0.4;
 
-            offset = pow(p.x * intensity + height, 2.0) * -1.0 + (height * height);
+            offset = pow((p.x - h.x) * intensity + height, 2.0) * -1.0 + (height * height);
         } else {
             offset = 0.0;
         }

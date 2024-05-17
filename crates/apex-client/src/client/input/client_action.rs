@@ -6,4 +6,9 @@ pub enum ClientAction {
   Prev,
 
   Select,
+
+  KatOne,
+  DonOne,
+  KatTwo,
+  DonTwo,
 }
