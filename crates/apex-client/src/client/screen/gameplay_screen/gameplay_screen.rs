@@ -68,6 +68,21 @@ impl GameplayScreen {
     self.taiko_renderer.hit(graphics, beatmap, hit_time, input);
   }
 
+  pub fn reset(&mut self, graphics: &Graphics) {
+    self.taiko_renderer.reset_instances(graphics);
+    self.taiko_renderer.culling = 0;
+    self.taiko_renderer.hit_idx = 0;
+
+    self.clock.set_playing(false);
+    self.sink.pause();
+
+    self.clock.set_position(Time::zero());
+    self.sink.try_seek(std::time::Duration::ZERO).unwrap();
+
+    self.clock.set_playing(true);
+    self.sink.play();
+  }
+
   pub fn play(&mut self, beatmap_path: &Path, graphics: &Graphics) {
     let data = std::fs::read_to_string(beatmap_path).unwrap();
     let beatmap = Beatmap::from(data);

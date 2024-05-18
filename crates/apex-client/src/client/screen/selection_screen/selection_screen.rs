@@ -13,6 +13,22 @@ impl SelectionScreen {
     };
   }
 
+  pub fn clear_search_query(&mut self) {
+    self.beatmap_list.clear_search_query();
+  }
+
+  pub fn has_search_query(&self) -> bool {
+    return self.beatmap_list.has_search_query();
+  }
+
+  pub fn append_search_query(&mut self, c: char) {
+    self.beatmap_list.append_search_query(c);
+  }
+
+  pub fn pop_search_query(&mut self) {
+    self.beatmap_list.pop_search_query();
+  }
+
   pub fn prepare(&mut self, core: &mut Core<Client>) {
     self.beatmap_list.prepare(core);
   }

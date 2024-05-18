@@ -74,6 +74,24 @@ impl Client {
     );
 
     input.keybinds.add(
+      KeyCombination::new(PhysicalKey::Code(KeyCode::Enter), ModifiersState::empty()),
+      Bind {
+        id: ClientAction::Select,
+        name: String::from("Select"),
+        description: String::from("Pick selected element"),
+      }
+    );
+
+    input.keybinds.add(
+      KeyCombination::new(PhysicalKey::Code(KeyCode::Backquote), ModifiersState::empty()),
+      Bind {
+        id: ClientAction::Retry,
+        name: String::from("Retry"),
+        description: String::from("Replay a beatmap from the beginning"),
+      }
+    );
+
+    input.keybinds.add(
       KeyCombination::new(PhysicalKey::Code(KeyCode::ArrowDown), ModifiersState::empty()),
       Bind {
         id: ClientAction::Next,
@@ -88,15 +106,6 @@ impl Client {
         id: ClientAction::Prev,
         name: String::from("Previous"),
         description: String::from("Select previous element"),
-      }
-    );
-
-    input.keybinds.add(
-      KeyCombination::new(PhysicalKey::Code(KeyCode::Enter), ModifiersState::empty()),
-      Bind {
-        id: ClientAction::Select,
-        name: String::from("Select"),
-        description: String::from("Pick selected element"),
       }
     );
 
@@ -157,9 +166,30 @@ impl Client {
 
   pub fn input(&mut self, core: &mut Core<Self>, event: KeyEvent) {
     if event.state.is_pressed() {
+      if self.game_state == GameState::Selection {
+        match event.physical_key {
+          PhysicalKey::Code(KeyCode::Backspace) => {
+            if self.selection_screen.has_search_query() {
+              self.selection_screen.pop_search_query();
+              return;
+            }
+          }
+
+          | PhysicalKey::Code(KeyCode::Escape)
+          | PhysicalKey::Code(KeyCode::Enter)
+          => { }
+
+          _ => {
+            if let Some(c) = event.logical_key.to_text().and_then(|x| x.chars().next()) {
+              self.selection_screen.append_search_query(c);
+            }
+          }
+        }
+      }
+
       let comb = KeyCombination::new(event.physical_key, self.input.state.modifiers);
       if let Some(action) = self.input.keybinds.get(&comb).map(|x| x.id) {
-        self.action(core, action, event.repeat)
+        self.action(core, action, event.repeat);
       }
     }
   }
@@ -173,7 +203,11 @@ impl Client {
       ClientAction::Back => {
         match self.game_state {
           GameState::Selection => {
-            core.exit();
+            if self.selection_screen.has_search_query() {
+              self.selection_screen.clear_search_query();
+            } else {
+              core.exit();
+            }
           }
 
           GameState::Playing => {
@@ -200,6 +234,10 @@ impl Client {
 
           _ => { }
         }
+      }
+
+      ClientAction::Retry => {
+        self.event_bus.send(ClientEvent::RetryBeatmap);
       }
 
       ClientAction::Select => {
@@ -234,6 +272,10 @@ impl Client {
       ClientEvent::SelectBeatmap { path } => {
         self.game_state = GameState::Playing;
         self.gameplay_screen.play(&path, &core.graphics);
+      }
+
+      ClientEvent::RetryBeatmap => {
+        self.gameplay_screen.reset(&core.graphics);
       }
     }
   }

@@ -1,5 +1,7 @@
+use std::sync::Arc;
+
 use egui::Widget;
-use tap::Tap;
+use nucleo::{pattern::{CaseMatching, Normalization}, Nucleo};
 
 use crate::{client::{client::Client, event::ClientEvent, taiko::beatmap_cache::BeatmapCache}, core::{core::Core, event::EventBus}};
 
@@ -8,24 +10,49 @@ use super::beatmap_card::BeatmapCard;
 pub struct BeatmapListView {
   event_bus: EventBus<ClientEvent>,
 
+  matcher: Nucleo<(usize, String)>,
+
   search_query: String,
+
   beatmap_cards: Vec<BeatmapCard>,
+
   previous_idx: usize,
   selected_idx: usize,
 }
 
 impl BeatmapListView {
   pub fn new(event_bus: EventBus<ClientEvent>, beatmap_cache: &BeatmapCache) -> Self {
+    let matcher = Nucleo::new(
+      nucleo::Config::DEFAULT,
+      Arc::new(|| {}),
+      std::thread::available_parallelism().map(|x| x.get()).ok(),
+      1,
+    );
+
+    let mut beatmap_cards = vec![];
+    for (i, (path, info)) in beatmap_cache.iter().enumerate() {
+      let card = BeatmapCard::new(path.clone(), info.clone());
+      beatmap_cards.push(card);
+
+      let q_str = format!("{}{}{}{}", &info.title, &info.artist, &info.difficulty, &info.creator);
+      matcher.injector().push((i, q_str), |(_, q_str), cols| {
+        cols[0] = q_str.clone().into();
+      });
+    }
+
     return Self {
       event_bus,
+      matcher,
       search_query: String::new(),
-      beatmap_cards: beatmap_cache.iter().map(|(path, info)| BeatmapCard::new(path.clone(), info.clone())).collect(),
+      beatmap_cards,
       previous_idx: 0,
       selected_idx: 0,
     };
   }
 
   pub fn prepare(&mut self, core: &mut Core<Client>) {
+    self.matcher.tick(10);
+
     use egui_extras::{StripBuilder, Size};
 
     egui::CentralPanel::default()
@@ -73,17 +100,33 @@ impl BeatmapListView {
 
             builder.cell(|ui| {
               egui::Frame::none()
-                .outer_margin(egui::Margin::same(8.0))
+                .fill(ui.style().visuals.window_fill)
+                .stroke(egui::Stroke::new(2.0, ui.style().visuals.window_stroke.color))
+                .inner_margin(egui::Margin::same(0.0))
+                .outer_margin(egui::Margin {
+                  right: 6.0,
+                  top: 6.0,
+                  bottom: 6.0,
+                  .. Default::default()
+                })
                 .show(ui, |ui| {
+                  ui.style_mut().text_styles.iter_mut().for_each(|s| s.1.size = 16.0);
                   egui::TextEdit::singleline(&mut self.search_query)
+                    .hint_text("type to search...")
                     .desired_width(f32::INFINITY)
+                    .interactive(false)
+                    .frame(false)
                     .ui(ui);
                 });
 
               egui::ScrollArea::vertical().show(ui, |ui| {
-                for (i, card) in self.beatmap_cards.iter_mut().enumerate() {
-                  ui.push_id(i, |ui| {
-                    let is_selected = i == self.selected_idx;
+                let snapshot = self.matcher.snapshot().matched_items(..);
+                for (sorted_idx, result) in snapshot.enumerate() {
+                  let orig_idx = result.data.0;
+                  let card = &mut self.beatmap_cards[orig_idx];
+
+                  ui.push_id(orig_idx, |ui| {
+                    let is_selected = orig_idx == self.selected_idx;
                     let response = card.prepare(ui, is_selected);
 
                     if is_selected && self.previous_idx != self.selected_idx {
@@ -92,8 +135,8 @@ impl BeatmapListView {
                     }
 
                     if response.interact(egui::Sense::click()).clicked() {
-                      self.selected_idx = i;
-                      self.previous_idx = i;
+                      self.selected_idx = orig_idx;
+                      self.previous_idx = orig_idx;
 
                       if is_selected {
                         self.event_bus.send(ClientEvent::SelectBeatmap { path: card.path.clone() });
@@ -107,15 +150,49 @@ impl BeatmapListView {
       });
   }
 
+  pub fn clear_search_query(&mut self) {
+    self.search_query.clear();
+    self.matcher.pattern.reparse(0, &self.search_query, CaseMatching::Ignore, Normalization::Smart, false);
+  }
+
+  pub fn has_search_query(&self) -> bool {
+    return !self.search_query.is_empty();
+  }
+
+  pub fn append_search_query(&mut self, c: char) {
+    self.search_query.push(c);
+    self.matcher.pattern.reparse(0, &self.search_query, CaseMatching::Ignore, Normalization::Smart, false);
+  }
+
+  pub fn pop_search_query(&mut self) {
+    self.search_query.pop();
+    self.matcher.pattern.reparse(0, &self.search_query, CaseMatching::Ignore, Normalization::Smart, false);
+  }
+
+  // TODO: DRY refactor whatever
   pub fn select_next(&mut self) {
-    if self.selected_idx < self.beatmap_cards.len() - 1 {
-      self.selected_idx += 1;
+    let snapshot = self.matcher.snapshot();
+    let mut iter = snapshot.matched_items(..);
+    let Some(idx) = iter.position(|x| x.data.0 == self.selected_idx) else {
+      self.selected_idx = snapshot.matched_items(..).next().map(|x| x.data.0).unwrap_or(0);
+      return;
+    };
+
+    if let Some(info) = snapshot.get_matched_item(idx as u32 + 1) {
+      self.selected_idx = info.data.0;
     }
   }
 
   pub fn select_prev(&mut self) {
-    if self.selected_idx > 0 {
-      self.selected_idx -= 1;
+    let snapshot = self.matcher.snapshot();
+    let mut iter = snapshot.matched_items(..);
+    let Some(idx) = iter.position(|x| x.data.0 == self.selected_idx) else {
+      self.selected_idx = snapshot.matched_items(..).next().map(|x| x.data.0).unwrap_or(0);
+      return;
+    };
+
+    if let Some(info) = snapshot.get_matched_item(idx as u32 - 1) {
+      self.selected_idx = info.data.0;
     }
   }
 

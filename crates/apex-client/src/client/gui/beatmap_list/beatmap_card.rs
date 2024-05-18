@@ -45,20 +45,20 @@ impl BeatmapCard {
         {
           let mut rect = ui.available_rect_before_wrap();
 
-          ui.set_clip_rect(rect);
+          // ui.set_clip_rect(rect);
 
           if let Some(img_size) = img.load_and_calc_size(ui, egui::Vec2::INFINITY) {
-            let img_aspect = img_size.x / img_size.y;
-            let scr_aspect = rect.width() / rect.height();
+            // let img_aspect = img_size.x / img_size.y;
+            // let scr_aspect = rect.width() / rect.height();
 
-            let width = rect.height() * img_aspect;
-            let height = rect.width() / img_aspect;
+            // let width = rect.height() * img_aspect;
+            // let height = rect.width() / img_aspect;
 
-            if scr_aspect < img_aspect {
-              rect.set_width(width);
-            } else {
-              rect.set_height(height);
-            }
+            // if scr_aspect < img_aspect {
+            //   rect.set_width(width);
+            // } else {
+            //   rect.set_height(height);
+            // }
 
             img.paint_at(ui, rect);
           }

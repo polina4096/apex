@@ -6,6 +6,7 @@ pub enum ClientAction {
   Prev,
 
   Select,
+  Retry,
 
   KatOne,
   DonOne,

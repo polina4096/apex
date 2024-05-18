@@ -1,4 +1,3 @@
-use instant::Instant;
 use pollster::FutureExt;
 use winit::{dpi::PhysicalSize, event_loop::{EventLoop, EventLoopProxy}, window::Window};
 
