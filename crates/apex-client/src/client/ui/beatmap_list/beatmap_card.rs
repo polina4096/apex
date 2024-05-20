@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use egui::Widget;
 use tap::Tap;
 
-use crate::client::taiko::beatmap_cache::BeatmapInfo;
+use crate::client::gameplay::beatmap_cache::BeatmapInfo;
 
 pub struct BeatmapCard {
   pub path: PathBuf,

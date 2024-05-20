@@ -2,7 +2,7 @@ use bytemuck::Zeroable;
 use glam::{vec2, vec3, vec4, Quat, Vec4};
 use wgpu::util::DeviceExt;
 
-use crate::{client::{screen::gameplay_screen::gameplay_screen::TaikoInput, taiko::{beatmap::Beatmap, hit_object::TaikoColor}}, core::{graphics::{bindable::Bindable, camera::{Camera as _, Camera2D, ProjectionOrthographic}, color::Color, graphics::Graphics, instance::Instance, layout::Layout, quad_renderer::data::quad_vertex::QuadVertex, scene::Scene, texture::Texture, uniform::Uniform}, time::{clock::AbstractClock, time::Time}}};
+use crate::{client::gameplay::{beatmap::Beatmap, taiko_hit_object::TaikoColor}, core::{graphics::{bindable::Bindable, camera::{Camera as _, Camera2D, ProjectionOrthographic}, color::Color, graphics::Graphics, instance::Instance, layout::Layout, quad_renderer::data::quad_vertex::QuadVertex, scene::Scene, texture::Texture, uniform::Uniform}, time::{clock::AbstractClock, time::Time}}};
 
 use super::data::hit_object_model::{BakedHitObjectModel, HitObjectModel};
 
@@ -25,7 +25,6 @@ pub struct TaikoRenderer {
   pub instances       : Vec<HitObjectModel>,
 
   pub culling : usize,
-  pub hit_idx : usize,
 }
 
 impl TaikoRenderer {
@@ -161,11 +160,10 @@ impl TaikoRenderer {
       instances,
 
       culling: 0,
-      hit_idx: 0,
     };
   }
 
-  pub fn prepare(&mut self, graphics: &Graphics, beatmap: &Beatmap, clock: &mut impl AbstractClock) {
+  pub fn prepare(&mut self, graphics: &Graphics, clock: &mut impl AbstractClock) {
     let zoom = 0.235;
     let scale = 0.85;
     let hit_pos = vec2(300.0, 300.0);
@@ -203,52 +201,21 @@ impl TaikoRenderer {
                0 .. (self.instances.len() - self.culling) as u32);
   }
 
-  pub fn hit(&mut self, graphics: &Graphics, beatmap: &Beatmap, hit_time: Time, input: TaikoInput) {
+  pub fn hit(&mut self, graphics: &Graphics, hit_time: Time, hit_idx: usize) {
     let audio_offset = 0.0;
     let audio_offset = Time::from_seconds(audio_offset / 1000.0);
     let zoom = 0.235;
 
-    let tolerance = Time::from_ms(100);
+    let len = self.instances.len();
+    let idx = len - hit_idx;
+    let instance = &mut self.instances[idx];
+    instance.hit = (audio_offset - hit_time) * 1000.0 * zoom;
 
-    while let Some(circle) = beatmap.hit_objects.get(self.hit_idx) {
-      let time = circle.time.to_ms() as i64 + audio_offset.to_ms() as i64 + tolerance.to_ms() as i64;
-      if time > hit_time.to_ms() as i64 {
-        break;
-      }
+    let single_baked = [instance.bake()];
+    let byte_slice: &[u8] = bytemuck::cast_slice(&single_baked);
+    let offset = std::mem::size_of::<BakedHitObjectModel>() * idx;
 
-      self.hit_idx += 1;
-    }
-
-    if let Some(circle) = beatmap.hit_objects.get(self.hit_idx) {
-      // When you snap to a certain object on a timeline, this thing counts it as being hit
-      // In order to render the object if (obj.time == current_time), we offset it by a bit
-      // TODO: this is most certainly not the best way to handle this, but whatever
-      let time = circle.time.to_ms() as i64 + audio_offset.to_ms() as i64;
-      let delta = time - hit_time.to_ms() as i64;
-
-      if delta <= tolerance.to_ms() as i64 {
-        if circle.color == TaikoColor::Don && !matches!(input, TaikoInput::DonOne | TaikoInput::DonTwo) {
-          return;
-        }
-
-        if circle.color == TaikoColor::Kat && !matches!(input, TaikoInput::KatOne | TaikoInput::KatTwo) {
-          return;
-        }
-
-        self.hit_idx += 1;
-
-        let len = self.instances.len();
-        let idx = len - self.hit_idx;
-        let instance = &mut self.instances[idx];
-        instance.hit = (audio_offset - hit_time) * 1000.0 * zoom;
-
-        let single_baked = [instance.bake()];
-        let byte_slice: &[u8] = bytemuck::cast_slice(&single_baked);
-        let offset = std::mem::size_of::<BakedHitObjectModel>() * idx;
-
-        graphics.queue.write_buffer(&self.instance_buffer, offset as wgpu::BufferAddress, byte_slice);
-      }
-    }
+    graphics.queue.write_buffer(&self.instance_buffer, offset as wgpu::BufferAddress, byte_slice);
   }
 
   pub fn reset_instances(&mut self, graphics: &Graphics) {

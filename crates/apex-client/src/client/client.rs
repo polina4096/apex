@@ -3,7 +3,7 @@ use winit::{event::{KeyEvent, Modifiers}, keyboard::{KeyCode, ModifiersState, Ph
 
 use crate::core::{app::App, core::Core, event::EventBus, input::{bind::{Bind, KeyCombination}, Input}};
 
-use super::{event::ClientEvent, input::client_action::ClientAction, screen::{gameplay_screen::gameplay_screen::{GameplayScreen, TaikoInput}, selection_screen::selection_screen::SelectionScreen}, state::GameState, taiko::beatmap_cache::BeatmapCache};
+use super::{event::ClientEvent, gameplay::{beatmap_cache::BeatmapCache, taiko_player::TaikoPlayerInput}, input::client_action::ClientAction, screen::{gameplay_screen::gameplay_screen::GameplayScreen, selection_screen::selection_screen::SelectionScreen}, state::GameState};
 
 pub struct Client {
   input     : Input<ClientAction>,
@@ -251,16 +251,16 @@ impl Client {
       }
 
       ClientAction::KatOne if !repeat => {
-        self.gameplay_screen.hit(&core.graphics, TaikoInput::KatOne);
+        self.gameplay_screen.hit(&core.graphics, TaikoPlayerInput::KatOne);
       }
       ClientAction::KatTwo if !repeat => {
-        self.gameplay_screen.hit(&core.graphics, TaikoInput::KatTwo);
+        self.gameplay_screen.hit(&core.graphics, TaikoPlayerInput::KatTwo);
       }
       ClientAction::DonOne if !repeat => {
-        self.gameplay_screen.hit(&core.graphics, TaikoInput::DonOne);
+        self.gameplay_screen.hit(&core.graphics, TaikoPlayerInput::DonOne);
       }
       ClientAction::DonTwo if !repeat => {
-        self.gameplay_screen.hit(&core.graphics, TaikoInput::DonTwo);
+        self.gameplay_screen.hit(&core.graphics, TaikoPlayerInput::DonTwo);
       }
 
       _ => { }

@@ -5,7 +5,7 @@ use log::warn;
 
 use crate::core::time::time::Time;
 
-use super::hit_object::{TaikoColor, HitObject};
+use super::taiko_hit_object::{TaikoColor, TaikoHitObject};
 
 pub struct TimingPoint {
   pub time : Time,
@@ -36,10 +36,11 @@ impl Default for VelocityPoint {
 }
 
 pub struct Beatmap {
-  pub hit_objects     : Vec<HitObject>,
+  pub hit_objects     : Vec<TaikoHitObject>,
   pub timing_points   : Vec<TimingPoint>,
   pub velocity_points : Vec<VelocityPoint>,
 
+  pub overall_difficulty  : f32,
   pub velocity_multiplier : f32,
 
   pub audio : PathBuf,
@@ -51,7 +52,7 @@ pub enum BeatmapParseError {
 impl<T: AsRef<str>> From<T> for Beatmap {
   fn from(data: T) -> Self {
     let data = data.as_ref();
-    let mut objects = Vec::<HitObject>::new();
+    let mut objects = Vec::<TaikoHitObject>::new();
 
     let mut timing_points = Vec::<TimingPoint>::new();
     let mut velocity_points = Vec::<VelocityPoint>::new();
@@ -96,7 +97,7 @@ impl<T: AsRef<str>> From<T> for Beatmap {
           let Some(object_type) = parts.nth(1).and_then(|x| x.parse::<u8> ().ok()) else { warn!("Failed to parse hit object type at line {}", i); continue };
 
           objects.push(
-            HitObject {
+            TaikoHitObject {
               time  : Time::from_ms(time_in_ms),
               color : if object_type.bit(1) || object_type.bit(3)
                            { TaikoColor::Kat }
@@ -145,6 +146,7 @@ impl<T: AsRef<str>> From<T> for Beatmap {
       hit_objects: objects,
       timing_points,
       velocity_points,
+      overall_difficulty: property_map["[Difficulty]"]["OverallDifficulty"].parse().expect("idk what's the default OD, plz fix"),
       velocity_multiplier: property_map["[Difficulty]"]["SliderMultiplier"].parse().unwrap_or(0.6),
       audio: PathBuf::from(property_map["[General]"]["AudioFilename"]),
     };

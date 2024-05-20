@@ -1,8 +1,18 @@
 use instant::Instant;
 
-use crate::{client::{client::Client, screen::gameplay_screen::{gameplay_screen::TaikoInput, playback_controller::PlaybackController}}, core::{core::Core, time::time::Time}};
+use crate::{client::{client::Client, gameplay::taiko_player::TaikoPlayerInput, screen::gameplay_screen::playback_controller::PlaybackController}, core::{core::Core, time::time::Time}};
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum HitResult {
+  Hit300,
+  Hit100,
+  Miss,
+}
 
 pub struct IngameOverlayView {
+  last_hit_result_time: Instant,
+  last_hit_result_kind: HitResult,
+
   last_hit_kat_one: Instant,
   last_hit_kat_two: Instant,
   last_hit_don_one: Instant,
@@ -12,6 +22,9 @@ pub struct IngameOverlayView {
 impl IngameOverlayView {
   pub fn new() -> Self {
     return Self {
+      last_hit_result_time: Instant::now(),
+      last_hit_result_kind: HitResult::Miss,
+
       last_hit_kat_one: Instant::now(),
       last_hit_kat_two: Instant::now(),
       last_hit_don_one: Instant::now(),
@@ -19,21 +32,29 @@ impl IngameOverlayView {
     };
   }
 
-  pub fn hit(&mut self, input: TaikoInput) {
+  pub fn show_hit_result(&mut self, result: HitResult) {
+    if result != HitResult::Hit300 {
+      self.last_hit_result_time = Instant::now();
+    }
+
+    self.last_hit_result_kind = result;
+  }
+
+  pub fn hit(&mut self, input: TaikoPlayerInput) {
     match input {
-      TaikoInput::KatOne => {
+      TaikoPlayerInput::KatOne => {
         self.last_hit_kat_one = Instant::now();
       }
 
-      TaikoInput::KatTwo => {
+      TaikoPlayerInput::KatTwo => {
         self.last_hit_kat_two = Instant::now();
       }
 
-      TaikoInput::DonOne => {
+      TaikoPlayerInput::DonOne => {
         self.last_hit_don_one = Instant::now();
       }
 
-      TaikoInput::DonTwo => {
+      TaikoPlayerInput::DonTwo => {
         self.last_hit_don_two = Instant::now();
       }
     }
@@ -67,6 +88,30 @@ impl IngameOverlayView {
         draw_hit_key(1.0, self.last_hit_don_one.elapsed().as_secs_f32());
         draw_hit_key(2.0, self.last_hit_don_two.elapsed().as_secs_f32());
         draw_hit_key(3.0, self.last_hit_kat_two.elapsed().as_secs_f32());
+
+        'a: {
+          let painter = ui.painter();
+
+          let elapsed = self.last_hit_result_time.elapsed().as_secs_f32();
+
+          let fade = 0.4;
+          let max_brightness = 150;
+          let base_brightness = 0;
+          let value = elapsed.min(fade) / fade * max_brightness as f32;
+          let value = max_brightness + base_brightness - value.round() as u8;
+
+          let color = match self.last_hit_result_kind {
+            HitResult::Hit100 => egui::Color32::from_rgba_unmultiplied( 60, 185, 255, value),
+            HitResult::Miss   => egui::Color32::from_rgba_unmultiplied(255,  20,  60, value),
+
+            _ => { break 'a }
+          };
+
+          let value = elapsed.min(0.125) * 1.25;
+          let value = 1.05 + value;
+
+          painter.circle(egui::pos2(150.0, 150.0), 64.0 * 0.55 * value, color, egui::Stroke::NONE);
+        }
 
         ui.with_layout(egui::Layout::top_down(egui::Align::Max), |ui| {
           ui.label(egui::RichText::new("accuracy or whatever").size(16.0));

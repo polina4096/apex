@@ -1,4 +1,4 @@
-use crate::{client::{client::Client, event::ClientEvent, gui::beatmap_list::beatmap_list_view::BeatmapListView, taiko::beatmap_cache::BeatmapCache}, core::{core::Core, event::EventBus}};
+use crate::{client::{client::Client, event::ClientEvent, ui::beatmap_list::beatmap_list_view::BeatmapListView, gameplay::beatmap_cache::BeatmapCache}, core::{core::Core, event::EventBus}};
 
 pub struct SelectionScreen {
   beatmap_list: BeatmapListView,

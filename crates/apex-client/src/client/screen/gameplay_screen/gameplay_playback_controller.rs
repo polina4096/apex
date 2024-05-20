@@ -1,6 +1,6 @@
 use rodio::Sink;
 
-use crate::{client::graphics::taiko_renderer::taiko_renderer::TaikoRenderer, core::{graphics::graphics::Graphics, time::{clock::{AbstractClock as _, Clock}, time::Time}}};
+use crate::{client::graphics::taiko_renderer::taiko_renderer::TaikoRenderer, core::time::{clock::{AbstractClock as _, Clock}, time::Time}};
 
 use super::playback_controller::PlaybackController;
 
@@ -13,7 +13,6 @@ pub struct GameplayPlaybackController<'a> {
 impl PlaybackController for GameplayPlaybackController<'_> {
   fn set_playing(&mut self, playing: bool) {
     self.taiko_renderer.culling = 0;
-    self.taiko_renderer.hit_idx = 0;
 
     self.clock.set_playing(playing);
 
@@ -33,18 +32,15 @@ impl PlaybackController for GameplayPlaybackController<'_> {
       self.sink.play();
       self.clock.set_playing(true);
       self.taiko_renderer.culling = 0;
-      self.taiko_renderer.hit_idx = 0;
     } else {
       self.sink.pause();
       self.clock.set_playing(false);
       self.taiko_renderer.culling = 0;
-      self.taiko_renderer.hit_idx = 0;
     }
   }
 
   fn set_position(&mut self, position: Time) {
     self.taiko_renderer.culling = 0;
-    self.taiko_renderer.hit_idx = 0;
     self.clock.set_position(position);
     self.sink.try_seek(position.into()).unwrap();
   }

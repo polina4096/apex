@@ -6,9 +6,7 @@ use client::{client::Client, event::ClientEvent};
 use instant::Instant;
 use log::warn;
 use winit::{
-  event::{Event, WindowEvent},
-  event_loop::{ControlFlow, EventLoop, EventLoopBuilder},
-  window::{Window, WindowBuilder},
+  dpi::LogicalSize, event::{Event, WindowEvent}, event_loop::{ControlFlow, EventLoop, EventLoopBuilder}, window::{Window, WindowBuilder}
 };
 
 pub mod client;
@@ -16,8 +14,15 @@ pub mod core;
 pub mod wasm;
 
 pub fn setup() -> (EventLoop<CoreEvent<ClientEvent>>, Window) {
-  let event_loop = EventLoopBuilder::<CoreEvent<ClientEvent>>::with_user_event().build().expect("Failed to create event loop");
-  let window = WindowBuilder::new().build(&event_loop).expect("Failed to create window");
+  let event_loop = EventLoopBuilder::<CoreEvent<ClientEvent>>::with_user_event()
+    .build()
+    .expect("Failed to create event loop");
+
+  let window = WindowBuilder::new()
+    .with_inner_size(LogicalSize::new(1200.0, 800.0))
+    .build(&event_loop)
+    .expect("Failed to create window");
+
   event_loop.set_control_flow(ControlFlow::Poll);
   return (event_loop, window);
 }

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use egui::Widget;
 use nucleo::{pattern::{CaseMatching, Normalization}, Nucleo};
 
-use crate::{client::{client::Client, event::ClientEvent, taiko::beatmap_cache::BeatmapCache}, core::{core::Core, event::EventBus}};
+use crate::{client::{client::Client, event::ClientEvent, gameplay::beatmap_cache::BeatmapCache}, core::{core::Core, event::EventBus}};
 
 use super::beatmap_card::BeatmapCard;
 
@@ -121,7 +121,7 @@ impl BeatmapListView {
 
               egui::ScrollArea::vertical().show(ui, |ui| {
                 let snapshot = self.matcher.snapshot().matched_items(..);
-                for (sorted_idx, result) in snapshot.enumerate() {
+                for result in snapshot {
                   let orig_idx = result.data.0;
                   let card = &mut self.beatmap_cards[orig_idx];
 

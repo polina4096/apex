@@ -1,7 +1,7 @@
 use crate::core::time::time::Time;
 
 #[derive(Clone, Default)]
-pub struct HitObject {
+pub struct TaikoHitObject {
   pub time  : Time,
 
   pub big   : bool,

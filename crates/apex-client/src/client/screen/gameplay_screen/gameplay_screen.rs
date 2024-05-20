@@ -1,28 +1,23 @@
-use std::{fs::File, io::{BufReader, Cursor}, path::Path};
+use std::{fs::File, io::BufReader, path::Path};
 
 use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink, Source as _};
 
-use crate::{client::{client::Client, graphics::taiko_renderer::taiko_renderer::TaikoRenderer, gui::ingame_overlay::ingame_overlay_view::IngameOverlayView, taiko::beatmap::Beatmap}, core::{core::Core, graphics::graphics::Graphics, time::{clock::{AbstractClock, Clock}, time::Time}}};
+use crate::{client::{client::Client, gameplay::{beatmap::Beatmap, taiko_player::{TaikoPlayer, TaikoPlayerInput}}, graphics::taiko_renderer::taiko_renderer::TaikoRenderer, ui::ingame_overlay::ingame_overlay_view::IngameOverlayView}, core::{core::Core, graphics::graphics::Graphics, time::{clock::{AbstractClock, Clock}, time::Time}}};
 
 use super::gameplay_playback_controller::GameplayPlaybackController;
-
-#[derive(Debug, Clone, Copy)]
-pub enum TaikoInput {
-  KatOne,
-  DonOne,
-  KatTwo,
-  DonTwo,
-}
 
 pub struct GameplayScreen {
   taiko_renderer: TaikoRenderer,
   ingame_overlay: IngameOverlayView,
 
+  #[allow(unused)]
   stream: OutputStream,
+  #[allow(unused)]
   stream_handle: OutputStreamHandle,
   sink: Sink,
 
   beatmap: Option<Beatmap>,
+  player: TaikoPlayer,
   clock: Clock,
 }
 
@@ -42,6 +37,7 @@ impl GameplayScreen {
     let ingame_overlay = IngameOverlayView::new();
 
     let beatmap = None;
+    let player = TaikoPlayer::new();
     let clock = Clock::new();
 
     let (stream, stream_handle) = OutputStream::try_default().unwrap();
@@ -56,22 +52,26 @@ impl GameplayScreen {
       sink,
 
       clock,
+      player,
       beatmap,
     };
   }
 
-  pub fn hit(&mut self, graphics: &Graphics, input: TaikoInput) {
+  pub fn hit(&mut self, graphics: &Graphics, input: TaikoPlayerInput) {
     let hit_time = self.clock.position();
     let Some(beatmap) = &self.beatmap else { return };
 
     self.ingame_overlay.hit(input);
-    self.taiko_renderer.hit(graphics, beatmap, hit_time, input);
+    self.player.hit(hit_time, input, beatmap, |result, idx| {
+      self.taiko_renderer.hit(graphics, hit_time, idx);
+      self.ingame_overlay.show_hit_result(result);
+    });
   }
 
   pub fn reset(&mut self, graphics: &Graphics) {
     self.taiko_renderer.reset_instances(graphics);
     self.taiko_renderer.culling = 0;
-    self.taiko_renderer.hit_idx = 0;
+    self.player.reset();
 
     self.clock.set_playing(false);
     self.sink.pause();
@@ -90,7 +90,6 @@ impl GameplayScreen {
 
     self.taiko_renderer.prepare_instances(graphics, &beatmap);
     self.taiko_renderer.culling = 0;
-    self.taiko_renderer.hit_idx = 0;
 
     let audio_path = beatmap_path.parent().unwrap().join(&beatmap.audio);
     let file = BufReader::new(File::open(audio_path).unwrap());
@@ -107,10 +106,7 @@ impl GameplayScreen {
   }
 
   pub fn prepare(&mut self, core: &mut Core<Client>) {
-    let Some(beatmap) = &self.beatmap else { return };
-
-    self.taiko_renderer.prepare(&core.graphics, beatmap, &mut self.clock);
-
+    self.taiko_renderer.prepare(&core.graphics, &mut self.clock);
     self.ingame_overlay.prepare(core, GameplayPlaybackController {
       taiko_renderer: &mut self.taiko_renderer,
       clock: &mut self.clock,
