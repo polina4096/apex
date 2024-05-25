@@ -90,6 +90,7 @@ impl GameplayScreen {
 
     self.taiko_renderer.prepare_instances(graphics, &beatmap);
     self.taiko_renderer.culling = 0;
+    self.player.reset();
 
     let audio_path = beatmap_path.parent().unwrap().join(&beatmap.audio);
     let file = BufReader::new(File::open(audio_path).unwrap());
