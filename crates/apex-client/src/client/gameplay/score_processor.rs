@@ -23,14 +23,13 @@ impl Default for ScoreProcessor {
 
 impl ScoreProcessor {
   pub fn feed(&mut self, event: ScoreProcessorEvent) {
-    self.accuracy = self.calc_accuracy();
-
     match event.result {
       HitResult::Hit300 => self.result_300  += 1,
       HitResult::Hit100 => self.result_100  += 1,
       HitResult::Miss   => self.result_miss += 1,
     }
 
+    self.accuracy = self.calc_accuracy();
     self.events.push(event);
   }
 
