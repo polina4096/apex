@@ -1,6 +1,6 @@
 use instant::Instant;
 
-use crate::{client::{client::Client, gameplay::taiko_player::TaikoPlayerInput, screen::gameplay_screen::playback_controller::PlaybackController}, core::{core::Core, time::time::Time}};
+use crate::{client::{client::Client, gameplay::{score_processor::ScoreProcessor, taiko_player::TaikoPlayerInput}, screen::gameplay_screen::playback_controller::PlaybackController}, core::{core::Core, time::time::Time}};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HitResult {
@@ -60,7 +60,7 @@ impl IngameOverlayView {
     }
   }
 
-  pub fn prepare(&mut self, core: &mut Core<Client>, mut playback: impl PlaybackController) {
+  pub fn prepare(&mut self, core: &mut Core<Client>, mut playback: impl PlaybackController, score: &ScoreProcessor) {
     egui::CentralPanel::default()
       .frame(egui::Frame::none().inner_margin(egui::Margin::same(8.0)))
       .show(core.egui_ctx.egui_ctx(), |ui| {
@@ -114,7 +114,85 @@ impl IngameOverlayView {
         }
 
         ui.with_layout(egui::Layout::top_down(egui::Align::Max), |ui| {
-          ui.label(egui::RichText::new("accuracy or whatever").size(16.0));
+          ui.label(egui::RichText::new(format!("{:.2}%", score.accuracy() * 100.0)).size(24.0));
+
+          {
+            let mut job = egui::text::LayoutJob::default();
+
+            job.append(
+              &score.result_300s().to_string(),
+              0.0,
+              egui::TextFormat {
+                font_id: egui::FontId::new(18.0, egui::FontFamily::Monospace),
+                color: ui.style().visuals.text_color(),
+                ..Default::default()
+              },
+            );
+
+            job.append(
+              " 300",
+              0.0,
+              egui::TextFormat {
+                font_id: egui::FontId::new(18.0, egui::FontFamily::Monospace),
+                color: egui::Color32::GOLD,
+                ..Default::default()
+              },
+            );
+
+            ui.label(job);
+          }
+
+          {
+            let mut job = egui::text::LayoutJob::default();
+
+            job.append(
+              &score.result_100s().to_string(),
+              0.0,
+              egui::TextFormat {
+                font_id: egui::FontId::new(18.0, egui::FontFamily::Monospace),
+                color: ui.style().visuals.text_color(),
+                ..Default::default()
+              },
+            );
+
+            job.append(
+              " 100",
+              0.0,
+              egui::TextFormat {
+                font_id: egui::FontId::new(18.0, egui::FontFamily::Monospace),
+                color: egui::Color32::LIGHT_BLUE,
+                ..Default::default()
+              },
+            );
+
+            ui.label(job);
+          }
+
+          {
+            let mut job = egui::text::LayoutJob::default();
+
+            job.append(
+              &score.result_misses().to_string(),
+              0.0,
+              egui::TextFormat {
+                font_id: egui::FontId::new(18.0, egui::FontFamily::Monospace),
+                color: ui.style().visuals.text_color(),
+                ..Default::default()
+              },
+            );
+
+            job.append(
+              " bad",
+              0.0,
+              egui::TextFormat {
+                font_id: egui::FontId::new(18.0, egui::FontFamily::Monospace),
+                color: egui::Color32::DARK_RED,
+                ..Default::default()
+              },
+            );
+
+            ui.label(job);
+          }
         });
 
         ui.with_layout(egui::Layout::bottom_up(egui::Align::Max), |ui| {
