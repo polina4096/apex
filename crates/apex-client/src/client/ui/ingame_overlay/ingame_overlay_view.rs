@@ -64,6 +64,8 @@ impl IngameOverlayView {
     egui::CentralPanel::default()
       .frame(egui::Frame::none().inner_margin(egui::Margin::same(8.0)))
       .show(core.egui_ctx.egui_ctx(), |ui| {
+        let max_height = ui.available_height();
+
         let painter = ui.painter();
         painter.circle(egui::pos2(150.0, 150.0), 64.0 * 0.85, egui::Color32::TRANSPARENT, egui::Stroke::new(4.0, egui::Color32::GRAY));
 
@@ -197,23 +199,10 @@ impl IngameOverlayView {
 
         ui.with_layout(egui::Layout::bottom_up(egui::Align::Max), |ui| {
           let max_width = ui.available_width();
-          let song_length = playback.length().to_seconds();
-          let mut song_position = playback.position().to_seconds();
-          ui.spacing_mut().slider_width = max_width;
-          let slider = ui.add(egui::Slider::new(&mut song_position, 0.0 ..= song_length).show_value(false));
-
-          // TODO: causes desync without clock synchronization
-          // if slider.drag_started() {
-          //   playback.set_playing(false);
-          // }
-          //
-          // if slider.drag_stopped() {
-          //   playback.set_playing(true);
-          // }
-
-          if slider.changed() {
-            playback.set_position(Time::from_seconds(song_position));
-          };
+          let offset = max_height + 8.0;
+          let progress = max_width as f64 / playback.length().to_seconds() * playback.position().to_seconds();
+          let rect = egui::Rect::from_min_size(egui::Pos2::new(0.0, offset), egui::Vec2::new(progress as f32, 8.0));
+          ui.painter().rect_filled(rect, egui::Rounding::ZERO, egui::Color32::WHITE);
 
           ui.label(egui::RichText::new(format!("{}", playback.position())).size(16.0));
         });
