@@ -7,6 +7,7 @@ use super::beatmap_card::BeatmapCard;
 pub struct BeatmapList {
   event_bus: EventBus<ClientEvent>,
   beatmap_cards: Vec<BeatmapCard>,
+  prev_selected: usize,
 }
 
 impl BeatmapList {
@@ -14,6 +15,7 @@ impl BeatmapList {
     return Self {
       event_bus,
       beatmap_cards,
+      prev_selected: 0,
     };
   }
 
@@ -69,7 +71,8 @@ impl BeatmapList {
                 let is_selected = orig_idx == selected_idx;
                 let response = card.prepare(ui, is_selected);
 
-                if is_selected {
+                if is_selected && self.prev_selected != selected_idx {
+                  self.prev_selected = selected_idx;
                   response.scroll_to_me(Some(egui::Align::Center));
                 }
 
