@@ -17,8 +17,8 @@ impl BeatmapStats {
         .outer_margin(egui::Margin::same(12.0))
         .inner_margin(egui::Margin::symmetric(24.0, 16.0))
         .show(ui, |ui| {
-          ui.label(egui::RichText::new(&format!("{} - {}", beatmap.artist, beatmap.title)).size(24.0).strong());
-          ui.label(egui::RichText::new(&format!("{} by {}", beatmap.difficulty, beatmap.creator)).size(18.0));
+          ui.label(egui::RichText::new(format!("{} - {}", beatmap.artist, beatmap.title)).size(24.0).strong());
+          ui.label(egui::RichText::new(format!("{} by {}", beatmap.difficulty, beatmap.creator)).size(18.0));
         });
     });
   }

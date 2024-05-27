@@ -83,7 +83,7 @@ impl<'a, A: App> Core<'a, A> {
   }
 
   pub fn egui_ctx(&self) -> &egui::Context {
-    return &self.egui_ctx.egui_ctx();
+    return self.egui_ctx.egui_ctx();
   }
 
   pub fn exit(&self) {

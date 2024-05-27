@@ -12,7 +12,7 @@ impl BeatmapSelectionView {
   pub fn new(event_bus: EventBus<ClientEvent>, beatmap_cache: &BeatmapCache) -> Self {
     let mut beatmap_cards = vec![];
     for (path, info) in beatmap_cache.iter() {
-      let card = BeatmapCard::new(path.clone(), info.clone());
+      let card = BeatmapCard::new(path, info);
       beatmap_cards.push(card);
     }
 
@@ -46,7 +46,7 @@ impl BeatmapSelectionView {
             });
 
             builder.cell(|ui| {
-              self.beatmap_list.prepare(ui, selector);
+              self.beatmap_list.prepare(ui, beatmap_cache, selector);
             });
           });
       });

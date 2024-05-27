@@ -1,6 +1,6 @@
 use egui::Widget;
 
-use crate::{client::{event::ClientEvent, util::beatmap_selector::BeatmapSelector}, core::event::EventBus};
+use crate::{client::{event::ClientEvent, gameplay::beatmap_cache::BeatmapCache, util::beatmap_selector::BeatmapSelector}, core::event::EventBus};
 
 use super::beatmap_card::BeatmapCard;
 
@@ -17,7 +17,7 @@ impl BeatmapList {
     };
   }
 
-  pub fn prepare(&mut self, ui: &mut egui::Ui, selector: &mut BeatmapSelector) {
+  pub fn prepare(&mut self, ui: &mut egui::Ui, beatmap_cache: &BeatmapCache, selector: &mut BeatmapSelector) {
     egui::Frame::none()
       .fill(egui::Color32::from_black_alpha(128))
       .inner_margin(egui::Margin {
@@ -63,6 +63,7 @@ impl BeatmapList {
             let selected_idx = selector.selected();
             for orig_idx in selector.matched() {
               let card = &mut self.beatmap_cards[orig_idx];
+              let (path, _) = beatmap_cache.get_index(orig_idx).unwrap();
 
               ui.push_id(orig_idx, |ui| {
                 let is_selected = orig_idx == selected_idx;
@@ -76,11 +77,10 @@ impl BeatmapList {
                   new_selected = Some(orig_idx);
 
                   if is_selected {
-                    self.event_bus.send(ClientEvent::SelectBeatmap { path: card.path.clone() });
+                    self.event_bus.send(ClientEvent::SelectBeatmap { path: path.clone() });
                   }
                 }
               });
-
             }
 
             if let Some(new_selected) = new_selected {
