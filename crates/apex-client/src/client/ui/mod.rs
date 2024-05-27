@@ -1,2 +1,2 @@
-pub mod beatmap_list;
+pub mod beatmap_selection;
 pub mod ingame_overlay;

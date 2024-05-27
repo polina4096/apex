@@ -1,3 +1,4 @@
+use log::error;
 use tap::Tap;
 use winit::{event::{KeyEvent, Modifiers}, keyboard::{KeyCode, ModifiersState, PhysicalKey}};
 
@@ -25,7 +26,7 @@ impl App for Client {
 
     match self.game_state {
       GameState::Selection => {
-        self.selection_screen.prepare(core);
+        self.selection_screen.prepare(core, &self.beatmap_cache);
       }
 
       GameState::Playing => {
@@ -169,8 +170,8 @@ impl Client {
       if self.game_state == GameState::Selection {
         match event.physical_key {
           PhysicalKey::Code(KeyCode::Backspace) => {
-            if self.selection_screen.has_search_query() {
-              self.selection_screen.pop_search_query();
+            if self.selection_screen.beatmap_selector().has_query() {
+              self.selection_screen.beatmap_selector_mut().pop_query();
               return;
             }
           }
@@ -181,7 +182,7 @@ impl Client {
 
           _ => {
             if let Some(c) = event.logical_key.to_text().and_then(|x| x.chars().next()) {
-              self.selection_screen.append_search_query(c);
+              self.selection_screen.beatmap_selector_mut().push_query(c);
             }
           }
         }
@@ -203,8 +204,8 @@ impl Client {
       ClientAction::Back => {
         match self.game_state {
           GameState::Selection => {
-            if self.selection_screen.has_search_query() {
-              self.selection_screen.clear_search_query();
+            if self.selection_screen.beatmap_selector().has_query() {
+              self.selection_screen.beatmap_selector_mut().clear_query();
             } else {
               core.exit();
             }
@@ -219,7 +220,7 @@ impl Client {
       ClientAction::Next => {
         match self.game_state {
           GameState::Selection => {
-            self.selection_screen.select_next();
+            self.selection_screen.beatmap_selector_mut().select_next();
           }
 
           _ => { }
@@ -229,7 +230,7 @@ impl Client {
       ClientAction::Prev => {
         match self.game_state {
           GameState::Selection => {
-            self.selection_screen.select_prev();
+            self.selection_screen.beatmap_selector_mut().select_prev();
           }
 
           _ => { }
@@ -243,7 +244,8 @@ impl Client {
       ClientAction::Select => {
         match self.game_state {
           GameState::Selection => {
-            self.selection_screen.select();
+            self.selection_screen.beatmap_selector().select(&self.event_bus, &self.beatmap_cache)
+              .unwrap_or_else(|err| { error!("Failed to select beatmap: {:?}", err); });
           }
 
           _ => { }

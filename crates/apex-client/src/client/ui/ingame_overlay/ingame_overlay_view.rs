@@ -1,6 +1,6 @@
 use instant::Instant;
 
-use crate::{client::{client::Client, gameplay::{score_processor::ScoreProcessor, taiko_player::TaikoPlayerInput}, screen::gameplay_screen::playback_controller::PlaybackController}, core::{core::Core, time::time::Time}};
+use crate::{client::{client::Client, gameplay::{score_processor::ScoreProcessor, taiko_player::TaikoPlayerInput}, util::playback_controller::PlaybackController}, core::core::Core};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HitResult {
@@ -63,7 +63,7 @@ impl IngameOverlayView {
   pub fn prepare(&mut self, core: &mut Core<Client>, mut playback: impl PlaybackController, score: &ScoreProcessor) {
     egui::CentralPanel::default()
       .frame(egui::Frame::none().inner_margin(egui::Margin::same(8.0)))
-      .show(core.egui_ctx.egui_ctx(), |ui| {
+      .show(core.egui_ctx(), |ui| {
         let max_height = ui.available_height();
 
         let painter = ui.painter();

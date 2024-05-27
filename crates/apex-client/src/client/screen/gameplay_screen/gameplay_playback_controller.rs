@@ -1,8 +1,6 @@
 use rodio::Sink;
 
-use crate::{client::graphics::taiko_renderer::taiko_renderer::TaikoRenderer, core::time::{clock::{AbstractClock as _, Clock}, time::Time}};
-
-use super::playback_controller::PlaybackController;
+use crate::{client::{graphics::taiko_renderer::taiko_renderer::TaikoRenderer, util::playback_controller::PlaybackController}, core::time::{clock::{AbstractClock as _, Clock}, time::Time}};
 
 pub struct GameplayPlaybackController<'a> {
   pub taiko_renderer: &'a mut TaikoRenderer,

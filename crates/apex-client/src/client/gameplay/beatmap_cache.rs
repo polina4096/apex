@@ -131,6 +131,10 @@ impl BeatmapCache {
     return self.cache.get(path);
   }
 
+  pub fn get_index(&self, idx: usize) -> Option<(&PathBuf, &BeatmapInfo)> {
+    return self.cache.get_index(idx);
+  }
+
   pub fn iter(&self) -> impl Iterator<Item = (&PathBuf, &BeatmapInfo)>{
     return self.cache.iter();
   }

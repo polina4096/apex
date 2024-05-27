@@ -82,6 +82,10 @@ impl<'a, A: App> Core<'a, A> {
     app.scale(self, scale_factor);
   }
 
+  pub fn egui_ctx(&self) -> &egui::Context {
+    return &self.egui_ctx.egui_ctx();
+  }
+
   pub fn exit(&self) {
     self.proxy.send_event(CoreEvent::Exit).unwrap();
   }
