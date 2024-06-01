@@ -37,15 +37,16 @@ pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> col
   let mut last_frame = Instant::now();
 
   event_loop.run(|event, elwt| {
-    if !app_focus || !window.is_visible().unwrap_or(false) {
+    // TODO: provide a way to select vsync/limiter
+    // if !app_focus || !window.is_visible().unwrap_or(false) {
       let now = Instant::now();
       if now.duration_since(last_frame).as_micros() >= (1000 * 1000) / 120 {
         window.request_redraw();
         last_frame = now;
       }
-    } else {
-      window.request_redraw();
-    }
+    // } else {
+    //   window.request_redraw();
+    // }
 
     match event {
       Event::UserEvent(event) => {

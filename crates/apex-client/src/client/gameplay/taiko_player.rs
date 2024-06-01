@@ -1,6 +1,6 @@
 use kiam::when;
 
-use crate::{client::ui::ingame_overlay::ingame_overlay_view::HitResult, core::time::time::Time};
+use crate::{client::ui::ingame_overlay::HitResult, core::time::time::Time};
 
 use super::{beatmap::Beatmap, taiko_hit_object::TaikoColor};
 

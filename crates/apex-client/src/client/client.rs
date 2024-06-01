@@ -4,7 +4,7 @@ use winit::{event::{KeyEvent, Modifiers}, keyboard::{KeyCode, ModifiersState, Ph
 
 use crate::core::{app::App, core::Core, event::EventBus, input::{bind::{Bind, KeyCombination}, Input}};
 
-use super::{event::ClientEvent, gameplay::{beatmap_cache::BeatmapCache, taiko_player::TaikoPlayerInput}, input::client_action::ClientAction, screen::{gameplay_screen::gameplay_screen::GameplayScreen, selection_screen::selection_screen::SelectionScreen}, state::GameState};
+use super::{event::ClientEvent, gameplay::{beatmap_cache::BeatmapCache, taiko_player::TaikoPlayerInput}, input::client_action::ClientAction, screen::{gameplay_screen::gameplay_screen::GameplayScreen, selection_screen::selection_screen::SelectionScreen, settings_screen::settings_screen::SettingsScreen}, state::GameState};
 
 pub struct Client {
   input     : Input<ClientAction>,
@@ -16,6 +16,7 @@ pub struct Client {
 
   selection_screen : SelectionScreen,
   gameplay_screen  : GameplayScreen,
+  settings_screen  : SettingsScreen,
 }
 
 impl App for Client {
@@ -33,6 +34,8 @@ impl App for Client {
         self.gameplay_screen.prepare(core);
       }
     }
+
+    self.settings_screen.prepare(core, &mut self.input);
 
     core.egui_ctx.end_frame(&core.graphics, encoder);
   }
@@ -64,6 +67,15 @@ impl App for Client {
 impl Client {
   pub fn new(core: &mut Core<Self>, event_bus: EventBus<ClientEvent>) -> Self {
     let mut input = Input::default();
+
+    input.keybinds.add(
+      KeyCombination::new(PhysicalKey::Code(KeyCode::Comma), ModifiersState::SUPER),
+      Bind {
+        id: ClientAction::Settings,
+        name: String::from("Settings"),
+        description: String::from("Open settings menu"),
+      }
+    );
 
     input.keybinds.add(
       KeyCombination::new(PhysicalKey::Code(KeyCode::Escape), ModifiersState::empty()),
@@ -154,6 +166,7 @@ impl Client {
 
     let selection_screen = SelectionScreen::new(event_bus.clone(), &beatmap_cache);
     let gameplay_screen = GameplayScreen::new(&core.graphics);
+    let settings_screen = SettingsScreen::new();
 
     return Self {
       input,
@@ -162,10 +175,27 @@ impl Client {
       beatmap_cache,
       selection_screen,
       gameplay_screen,
+      settings_screen,
     };
   }
 
   pub fn input(&mut self, core: &mut Core<Self>, event: KeyEvent) {
+    if event.physical_key != PhysicalKey::Code(KeyCode::SuperRight)
+    && event.physical_key != PhysicalKey::Code(KeyCode::SuperLeft)
+    && event.physical_key != PhysicalKey::Code(KeyCode::ShiftLeft)
+    && event.physical_key != PhysicalKey::Code(KeyCode::ShiftRight)
+    && event.physical_key != PhysicalKey::Code(KeyCode::AltLeft)
+    && event.physical_key != PhysicalKey::Code(KeyCode::AltRight)
+    && event.physical_key != PhysicalKey::Code(KeyCode::ControlLeft)
+    && event.physical_key != PhysicalKey::Code(KeyCode::ControlRight) {
+      self.input.state.last_pressed = event.physical_key;
+
+      if self.input.grabbing {
+        self.input.grabbing = false;
+        return;
+      }
+    }
+
     if event.state.is_pressed() {
       if self.game_state == GameState::Selection {
         match event.physical_key {
@@ -178,6 +208,10 @@ impl Client {
 
           | PhysicalKey::Code(KeyCode::Escape)
           | PhysicalKey::Code(KeyCode::Enter)
+          => { }
+
+          PhysicalKey::Code(KeyCode::Comma)
+          if self.input.state.modifiers.contains(ModifiersState::SUPER)
           => { }
 
           _ => {
@@ -204,7 +238,9 @@ impl Client {
       ClientAction::Back => {
         match self.game_state {
           GameState::Selection => {
-            if self.selection_screen.beatmap_selector().has_query() {
+            if self.settings_screen.is_settings_open() {
+              self.settings_screen.toggle_settings();
+            } else if self.selection_screen.beatmap_selector().has_query() {
               self.selection_screen.beatmap_selector_mut().clear_query();
             } else {
               core.exit();
@@ -212,9 +248,17 @@ impl Client {
           }
 
           GameState::Playing => {
-            self.game_state = GameState::Selection;
+            if self.settings_screen.is_settings_open() {
+              self.settings_screen.toggle_settings();
+            } else {
+              self.game_state = GameState::Selection;
+            }
           }
         }
+      }
+
+      ClientAction::Settings => {
+        self.settings_screen.toggle_settings();
       }
 
       ClientAction::Next => {
@@ -278,6 +322,10 @@ impl Client {
 
       ClientEvent::RetryBeatmap => {
         self.gameplay_screen.reset(&core.graphics);
+      }
+
+      ClientEvent::ToggleSettings => {
+        self.settings_screen.toggle_settings();
       }
     }
   }

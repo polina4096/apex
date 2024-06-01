@@ -1,19 +1,18 @@
 use winit::keyboard::{ModifiersState, NativeKeyCode, PhysicalKey};
 
-use super::bind::KeyCombination;
-
 pub struct InputState {
-  pub last_comb : KeyCombination,
+  /// The last key combination that was pressed.
+  pub last_pressed : PhysicalKey,
+
+  /// The current state of the keyboard modifiers.
   pub modifiers : ModifiersState,
 }
 
 impl Default for InputState {
   fn default() -> Self {
-    let key = PhysicalKey::Unidentified(NativeKeyCode::Unidentified);
-
     return Self {
-      last_comb : KeyCombination::new(key, ModifiersState::empty()),
-      modifiers : ModifiersState::empty(),
+      last_pressed: PhysicalKey::Unidentified(NativeKeyCode::Unidentified),
+      modifiers: ModifiersState::empty(),
     };
   }
 }

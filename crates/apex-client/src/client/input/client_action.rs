@@ -1,5 +1,6 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ClientAction {
+  Settings,
   Back,
 
   Next,

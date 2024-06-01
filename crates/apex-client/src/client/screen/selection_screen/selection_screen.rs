@@ -1,4 +1,4 @@
-use crate::{client::{client::Client, event::ClientEvent, gameplay::beatmap_cache::BeatmapCache, ui::beatmap_selection::beatmap_selection_view::BeatmapSelectionView, util::beatmap_selector::BeatmapSelector}, core::{core::Core, event::EventBus}};
+use crate::{client::{client::Client, event::ClientEvent, gameplay::beatmap_cache::BeatmapCache, ui::beatmap_selection::BeatmapSelectionView, util::beatmap_selector::BeatmapSelector}, core::{core::Core, event::EventBus}};
 
 pub struct SelectionScreen {
   beatmap_selection: BeatmapSelectionView,

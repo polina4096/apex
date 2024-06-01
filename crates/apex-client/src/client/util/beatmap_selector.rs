@@ -21,7 +21,7 @@ impl BeatmapSelector {
     );
 
     for (i, (_, info)) in beatmap_cache.iter().enumerate() {
-      let q_str = format!("{}{}{}{}", &info.title, &info.artist, &info.difficulty, &info.creator);
+      let q_str = format!("{}{}{}{}", &info.title, &info.artist, &info.variant, &info.creator);
       matcher.injector().push((i, q_str), |(_, q_str), cols| {
         cols[0] = q_str.clone().into();
       });

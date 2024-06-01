@@ -1,24 +1,91 @@
-use crate::client::gameplay::beatmap_cache::BeatmapInfo;
+use egui::Widget;
+
+use crate::{client::{event::ClientEvent, gameplay::beatmap_cache::BeatmapInfo}, core::event::EventBus};
 
 pub struct BeatmapStats {
-
+  event_bus: EventBus<ClientEvent>,
 }
 
 impl BeatmapStats {
-  pub fn new() -> Self {
-    return Self { };
+  pub fn new(event_bus: EventBus<ClientEvent>) -> Self {
+    return Self {
+      event_bus,
+    };
   }
 
   pub fn prepare(&mut self, ui: &mut egui::Ui, beatmap: &BeatmapInfo) {
-    let max_width = ui.available_width();
-    ui.set_width(max_width.min(640.0));
-    ui.with_layout(egui::Layout::top_down_justified(egui::Align::Min), |ui| {
+    use egui_extras::{StripBuilder, Size};
+
+    // let max_width = ui.available_width();
+    // ui.set_width(max_width.min(640.0));
+
+    ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
       egui::Frame::window(ui.style())
         .outer_margin(egui::Margin::same(12.0))
         .inner_margin(egui::Margin::symmetric(24.0, 16.0))
         .show(ui, |ui| {
-          ui.label(egui::RichText::new(format!("{} - {}", beatmap.artist, beatmap.title)).size(24.0).strong());
-          ui.label(egui::RichText::new(format!("{} by {}", beatmap.difficulty, beatmap.creator)).size(18.0));
+          ui.set_max_height(80.0);
+
+          StripBuilder::new(ui)
+            .size(Size::remainder())
+            .size(Size::exact(96.0))
+            .horizontal(|mut builder| {
+              builder.cell(|ui| {
+                let text = format!("{} - {}", beatmap.artist, beatmap.title);
+                egui::Label::new(egui::RichText::new(text).size(24.0).strong()).truncate(true).ui(ui);
+
+                let text = format!("{} by {}", beatmap.variant, beatmap.creator);
+                egui::Label::new(egui::RichText::new(text).size(18.0)).truncate(true).ui(ui);
+
+                ui.with_layout(egui::Layout::left_to_right(egui::Align::Max), |ui| {
+                  let text = format!("{:.2} HP", beatmap.hp_drain);
+                  egui::Label::new(egui::RichText::new(text).size(16.0).weak()).truncate(true).ui(ui);
+
+                  egui::Label::new(egui::RichText::new("∙").size(16.0).weak()).truncate(true).ui(ui);
+
+                  let text = format!("{:.2} OD", beatmap.overall_difficulty);
+                  egui::Label::new(egui::RichText::new(text).size(16.0).weak()).truncate(true).ui(ui);
+                });
+              });
+
+              builder.cell(|ui| {
+                ui.with_layout(egui::Layout::top_down(egui::Align::Max), |ui| {
+                  let text = format!("{:.2} ★", beatmap.difficulty);
+                  egui::Label::new(egui::RichText::new(text).size(14.0).line_height(Some(18.0))).truncate(true).ui(ui);
+
+                  let text = format!("{} ⏺", beatmap.object_count);
+                  egui::Label::new(egui::RichText::new(text).size(14.0).line_height(Some(18.0))).truncate(true).ui(ui);
+
+                  let text = format!("{:.2}s", beatmap.length.to_seconds());
+                  egui::Label::new(egui::RichText::new(text).size(14.0).line_height(Some(18.0))).truncate(true).ui(ui);
+
+                  let text = format!("{:.2} BPM", beatmap.bpm);
+                  egui::Label::new(egui::RichText::new(text).size(14.0).line_height(Some(18.0))).truncate(true).ui(ui);
+                });
+              });
+            });
+
+        });
+
+        // egui::Frame::window(ui.style())
+        //   .outer_margin(egui::Margin::same(12.0))
+        //   .inner_margin(egui::Margin::symmetric(24.0, 16.0))
+        //   .show(ui, |ui| {
+        //     ui.set_max_height(0.0);
+
+        //     ui.label("text");
+        //   });
+    });
+
+    ui.with_layout(egui::Layout::bottom_up(egui::Align::Min), |ui| {
+      egui::Frame::window(ui.style())
+        .outer_margin(egui::Margin::same(12.0))
+        .inner_margin(egui::Margin::symmetric(20.0, 16.0))
+        .show(ui, |ui| {
+          let text = egui::RichText::new("⛭").line_height(Some(24.0)).size(24.0);
+          if egui::Button::new(text).frame(false).ui(ui).clicked() {
+            self.event_bus.send(ClientEvent::ToggleSettings);
+          }
         });
     });
   }

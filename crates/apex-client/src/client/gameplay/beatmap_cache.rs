@@ -1,16 +1,27 @@
-use std::path::{Path, PathBuf};
+use std::{path::{Path, PathBuf}, str::FromStr};
 
+use egui::TextBuffer;
 use fxhash::FxBuildHasher;
 use indexmap::IndexMap;
 use log::warn;
+
+use crate::core::time::time::Time;
 
 #[derive(Debug, Clone)]
 pub struct BeatmapInfo {
   pub title: String,
   pub artist: String,
   pub creator: String,
-  pub difficulty: String,
+  pub variant: String,
   pub bg_path: PathBuf,
+
+  pub difficulty: f64,
+  pub object_count: usize,
+  pub length: Time,
+  pub bpm: f64,
+
+  pub hp_drain: f64,
+  pub overall_difficulty: f64,
 }
 
 impl<T: AsRef<str>> From<T> for BeatmapInfo {
@@ -20,9 +31,26 @@ impl<T: AsRef<str>> From<T> for BeatmapInfo {
       title: String::new(),
       artist: String::new(),
       creator: String::new(),
-      difficulty: String::new(),
+      variant: String::new(),
       bg_path: PathBuf::new(),
+
+      difficulty: 0.0,
+      object_count: 0,
+      length: Time::zero(),
+      bpm: 0.0,
+
+      hp_drain: 0.0,
+      overall_difficulty: 0.0,
     };
+
+    let r_beatmap = rosu_pp::Beatmap::from_str(data).unwrap();
+    let r_diff_attrs = rosu_pp::Difficulty::new().calculate(&r_beatmap);
+    beatmap_info.difficulty = r_diff_attrs.stars();
+    beatmap_info.bpm = r_beatmap.bpm();
+    beatmap_info.object_count = r_beatmap.hit_objects.len();
+    beatmap_info.hp_drain = r_beatmap.hp as f64;
+    beatmap_info.overall_difficulty = r_beatmap.od as f64;
+    beatmap_info.length = Time::from_seconds(r_beatmap.hit_objects.last().unwrap().start_time / 1000.0);
 
     let mut category = None::<&str>;
 
@@ -54,7 +82,7 @@ impl<T: AsRef<str>> From<T> for BeatmapInfo {
             "Title"   => if let Some(x) = parts.next() { x.clone_into(&mut beatmap_info.title); }
             "Artist"  => if let Some(x) = parts.next() { x.clone_into(&mut beatmap_info.artist); }
             "Creator" => if let Some(x) = parts.next() { x.clone_into(&mut beatmap_info.creator); }
-            "Version" => if let Some(x) = parts.next() { x.clone_into(&mut beatmap_info.difficulty); }
+            "Version" => if let Some(x) = parts.next() { x.clone_into(&mut beatmap_info.variant); }
 
             _ => { }
           }

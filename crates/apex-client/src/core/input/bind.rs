@@ -38,6 +38,14 @@ impl<T: Copy + Eq + Hash> KeybindManager<T> {
     return cache;
   }
 
+  pub fn len(&self) -> usize {
+    return self.binds.len();
+  }
+
+  pub fn is_empty(&self) -> bool {
+    return self.binds.is_empty();
+  }
+
   pub fn rebind(&mut self, old_key: KeyCombination, new_key: KeyCombination) {
     if old_key != new_key {
       #[allow(clippy::collapsible_else_if)]
@@ -73,14 +81,15 @@ impl KeyCombination {
 }
 
 impl Display for KeyCombination {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-      if self.modifiers.control_key() { write!(f,  "Ctrl + ")?; }
-      if self.modifiers.shift_key()   { write!(f, "Shift + ")?; }
-      if self.modifiers.alt_key()     { write!(f,   "Alt + ")?; }
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    if self.modifiers.control_key() { write!(f,  "Ctrl + ")?; }
+    if self.modifiers.shift_key()   { write!(f, "Shift + ")?; }
+    if self.modifiers.alt_key()     { write!(f,   "Alt + ")?; }
+    if self.modifiers.super_key()   { write!(f, "Super + ")?; }
 
-      return match self.key {
-        PhysicalKey::Code(key)         => write!(f, "{:?}", key),
-        PhysicalKey::Unidentified(key) => write!(f, "{:?}", key),
+    return match self.key {
+      PhysicalKey::Code(key)         => write!(f, "{:?}", key),
+      PhysicalKey::Unidentified(key) => write!(f, "{:?}", key),
     }
   }
 }

@@ -1,4 +1,4 @@
-use crate::client::ui::ingame_overlay::ingame_overlay_view::HitResult;
+use crate::client::ui::ingame_overlay::HitResult;
 
 pub struct ScoreProcessor {
   events: Vec<ScoreProcessorEvent>,

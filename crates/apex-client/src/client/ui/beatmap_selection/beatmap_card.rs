@@ -19,7 +19,7 @@ impl BeatmapCard {
       "{} {} {}",
       info.artist,
       info.title,
-      info.difficulty
+      info.variant
     )).strong();
 
     return Self {
