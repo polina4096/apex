@@ -7,4 +7,7 @@ pub enum ClientEvent {
   SelectBeatmap {
     path: PathBuf,
   },
+
+  // TODO: this probably shouldn't be here
+  RebuildTaikoRendererInstances,
 }

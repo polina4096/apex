@@ -2,7 +2,7 @@ use bytemuck::Zeroable;
 use glam::{vec2, vec3, vec4, Quat, Vec4};
 use wgpu::util::DeviceExt;
 
-use crate::{client::gameplay::{beatmap::Beatmap, taiko_hit_object::TaikoColor}, core::{graphics::{bindable::Bindable, camera::{Camera as _, Camera2D, ProjectionOrthographic}, color::Color, graphics::Graphics, instance::Instance, layout::Layout, quad_renderer::data::quad_vertex::QuadVertex, scene::Scene, texture::Texture, uniform::Uniform}, time::{clock::AbstractClock, time::Time}}};
+use crate::{client::{gameplay::{beatmap::Beatmap, taiko_hit_object::TaikoColor}, state::GameState}, core::{graphics::{bindable::Bindable, camera::{Camera as _, Camera2D, ProjectionOrthographic}, graphics::Graphics, instance::Instance, layout::Layout, quad_renderer::data::quad_vertex::QuadVertex, scene::Scene, texture::Texture, uniform::Uniform}, time::{clock::AbstractClock, time::Time}}};
 
 use super::data::hit_object_model::{BakedHitObjectModel, HitObjectModel};
 
@@ -163,25 +163,21 @@ impl TaikoRenderer {
     };
   }
 
-  pub fn prepare(&mut self, graphics: &Graphics, clock: &mut impl AbstractClock) {
-    let zoom = 0.235;
-    let scale = 0.85;
-    let hit_pos = vec2(300.0, 300.0);
-    let audio_offset = 0.0;
-
-    let audio_offset = Time::from_seconds(audio_offset / 1000.0);
-    let time = clock.position();
+  pub fn prepare(&mut self, graphics: &Graphics, clock: &mut impl AbstractClock, state: &GameState) {
+    let taiko_zoom = state.taiko.zoom;
+    let taiko_scale = state.taiko.scale;
+    let audio_offset = state.gameplay.audio_offset;
 
     // Update scene matrix
-    let scale = (graphics.scale * scale) as f32;
+    let scale = (graphics.scale * taiko_scale) as f32;
     self.scene.camera.set_scale(vec3(scale, scale, 1.0));
-    self.scene.camera.set_x((hit_pos.x / scale) as f32);
-    self.scene.camera.set_y((hit_pos.y / scale) as f32);
+    self.scene.camera.set_x(state.taiko.hit_position_x / taiko_scale as f32);
+    self.scene.camera.set_y(state.taiko.hit_position_y / taiko_scale as f32);
     self.scene.update(&graphics.queue);
 
 
     // Update time uniform
-    let time_offset = (audio_offset - time).to_seconds() * 1000.0 * zoom;
+    let time_offset = (Time::from_ms(audio_offset) - clock.position()).to_seconds() * 1000.0 * taiko_zoom;
     self.time_uniform.update(&graphics.queue, &vec4(time_offset as f32, 0.0, 0.0, 0.0));
   }
 
@@ -201,15 +197,14 @@ impl TaikoRenderer {
                0 .. (self.instances.len() - self.culling) as u32);
   }
 
-  pub fn hit(&mut self, graphics: &Graphics, hit_time: Time, hit_idx: usize) {
-    let audio_offset = 0.0;
-    let audio_offset = Time::from_seconds(audio_offset / 1000.0);
-    let zoom = 0.235;
+  pub fn set_hit(&mut self, graphics: &Graphics, hit_time: Time, hit_idx: usize, state: &GameState) {
+    let audio_offset = Time::from_ms(state.gameplay.audio_offset);
+    let taiko_zoom = state.taiko.zoom;
 
     let len = self.instances.len();
     let idx = len - hit_idx;
     let instance = &mut self.instances[idx];
-    instance.hit = (audio_offset - hit_time) * 1000.0 * zoom;
+    instance.hit = (audio_offset - hit_time) * 1000.0 * taiko_zoom;
 
     let single_baked = [instance.bake()];
     let byte_slice: &[u8] = bytemuck::cast_slice(&single_baked);
@@ -230,17 +225,17 @@ impl TaikoRenderer {
     graphics.queue.write_buffer(&self.instance_buffer, offset, byte_slice);
   }
 
-  pub fn prepare_instances(&mut self, graphics: &Graphics, beatmap: &Beatmap) {
-    const CIRCLE_SIZE: f32 = 128.0;
+  pub fn prepare_instances(&mut self, graphics: &Graphics, beatmap: &Beatmap, state: &GameState) {
+    const OSU_TAIKO_VELOCITY_MULTIPLIER: f64 = 1.4;
+    const OSU_TAIKO_CIRCLE_SIZE: f32 = 128.0;
 
-    let zoom = 0.235;
-    let don_color = Color::new(0.973, 0.596, 0.651, 1.0);
-    let kat_color = Color::new(0.741, 0.698, 0.827, 1.0);
+    let circle_size = OSU_TAIKO_CIRCLE_SIZE;
+
+    let taiko_zoom = state.taiko.zoom;
+    let don_color = state.taiko.don_color;
+    let kat_color = state.taiko.kat_color;
 
     self.instances.clear();
-
-    // Taiko
-    const OSU_TAIKO_VELOCITY_MULTIPLIER: f64 = 1.4;
 
     let mut idx_t = beatmap.timing_points.len() - 1;
     let mut idx_v = beatmap.velocity_points.len() - 1;
@@ -256,16 +251,16 @@ impl TaikoRenderer {
       let multiplier = OSU_TAIKO_VELOCITY_MULTIPLIER * velocity * base_length / beat_length * beatmap.velocity_multiplier as f64;
 
       self.instances.push(HitObjectModel {
-        time: (obj.time.to_seconds() * 1000.0 * zoom) as f32,
-        size: if obj.big { vec2(CIRCLE_SIZE * 1.55, CIRCLE_SIZE * 1.55) }
-              else       { vec2(CIRCLE_SIZE       , CIRCLE_SIZE       ) },
+        time: (obj.time.to_seconds() * 1000.0 * taiko_zoom) as f32,
+        size: if obj.big { vec2(circle_size * 1.55, circle_size * 1.55) }
+              else       { vec2(circle_size       , circle_size       ) },
 
-        color: if obj.color == TaikoColor::Kat { kat_color }  // vec4(0.0, 0.47, 0.67, 1.0)
-               else                            { don_color }, // vec4(0.92, 0.0, 0.27, 1.0)
+        color: if obj.color == TaikoColor::Kat { kat_color }
+               else                            { don_color },
 
         finisher: obj.big,
-        hit: Time::zero(),
         velocity: multiplier as f32,
+        hit: Time::zero(),
       });
     }
 

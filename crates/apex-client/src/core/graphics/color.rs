@@ -1,8 +1,9 @@
 use bytemuck::{Pod, Zeroable};
 use glam::{vec3, vec4, Vec3, Vec4};
+use serde::{Deserialize, Serialize};
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Pod, Zeroable)]
+#[derive(Clone, Copy, Debug, Pod, Zeroable, Serialize, Deserialize)]
 pub struct Color {
   pub r: f32,
   pub g: f32,
@@ -48,6 +49,10 @@ impl Color {
     let a = ((value >>  0) & 255) as f32 / 255.0;
     return Color { r, g, b, a };
   }
+
+  pub fn as_rgba(&self) -> (f32, f32, f32, f32) {
+    return (self.r, self.g, self.b, self.a);
+  }
 }
 
 impl From<Color> for Vec4 {
@@ -59,5 +64,11 @@ impl From<Color> for Vec4 {
 impl From<Color> for Vec3 {
   fn from(color: Color) -> Self {
     return vec3(color.r, color.g, color.b);
+  }
+}
+
+impl From<egui::Rgba> for Color {
+  fn from(value: egui::Rgba) -> Self {
+    return Color::new(value.r(), value.g(), value.b(), value.a());
   }
 }

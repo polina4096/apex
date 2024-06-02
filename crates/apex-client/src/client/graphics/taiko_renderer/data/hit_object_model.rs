@@ -18,8 +18,8 @@ pub struct HitObjectModel {
   pub size     : Vec2,
   pub color    : Color,
   pub finisher : bool,
-  pub hit      : Time,
   pub velocity : f32,
+  pub hit      : Time,
 }
 
 impl HitObjectModel {

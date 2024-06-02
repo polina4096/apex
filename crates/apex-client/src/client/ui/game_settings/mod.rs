@@ -3,11 +3,11 @@ use egui::Widget;
 use log::debug;
 use tap::Tap;
 
-use crate::{client::input::client_action::ClientAction, core::input::{bind::{Bind, KeyCombination}, Input}};
+use crate::{client::{event::ClientEvent, input::client_action::ClientAction, state::GameState}, core::{event::EventBus, input::{bind::{Bind, KeyCombination}, Input}}};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GameSettingsTab {
-  Gameplay,
+  General,
   Controls,
 }
 
@@ -15,16 +15,20 @@ pub struct GameSettingsView {
   pub tab: GameSettingsTab,
   pub is_open: bool,
 
+  event_bus: EventBus<ClientEvent>,
+
   buffer: String,
   current_bind: Option<KeyCombination>,
   bind_cache: Vec<(KeyCombination, Bind<ClientAction>)>,
 }
 
 impl GameSettingsView {
-  pub fn new() -> Self {
+  pub fn new(event_bus: EventBus<ClientEvent>) -> Self {
     return Self {
-      tab: GameSettingsTab::Gameplay,
+      tab: GameSettingsTab::General,
       is_open: false,
+
+      event_bus,
 
       buffer: String::new(),
       current_bind: None,
@@ -32,7 +36,7 @@ impl GameSettingsView {
     };
   }
 
-  pub fn prepare(&mut self, ctx: &egui::Context, input: &mut Input<ClientAction>) {
+  pub fn prepare(&mut self, ctx: &egui::Context, input: &mut Input<ClientAction>, state: &mut GameState) {
     let mut is_open = self.is_open;
 
     // TODO: the cache won't be rebuilt if the keybinds are changed while the,
@@ -58,12 +62,12 @@ impl GameSettingsView {
           let default = egui::Color32::TRANSPARENT;
 
           {
-            let stroke = if self.tab == GameSettingsTab::Gameplay { active } else { default };
-            let text = egui::RichText::new("Gameplay").strong().size(16.0);
+            let stroke = if self.tab == GameSettingsTab::General { active } else { default };
+            let text = egui::RichText::new("General").strong().size(16.0);
             let button = egui::Button::new(text).fill(stroke);
 
             if button.ui(ui).clicked() {
-              self.tab = GameSettingsTab::Gameplay;
+              self.tab = GameSettingsTab::General;
             }
           }
 
@@ -81,7 +85,7 @@ impl GameSettingsView {
         ui.separator();
 
         match self.tab {
-          GameSettingsTab::Gameplay => self.gameplay_tab(ui),
+          GameSettingsTab::General => self.general_tab(ui, state),
           GameSettingsTab::Controls => self.controls_tab(ui, input),
         }
       });
@@ -89,66 +93,108 @@ impl GameSettingsView {
     self.is_open = is_open;
   }
 
-  fn gameplay_tab(&mut self, ui: &mut egui::Ui) {
-    egui::Grid::new("gameplay_tab_grid")
-      .num_columns(2)
-      .spacing([40.0, 4.0])
+  fn general_tab(&mut self, ui: &mut egui::Ui, state: &mut GameState) {
+    use egui_extras::{Column, TableBuilder};
+
+    let text_height = egui::TextStyle::Body
+      .resolve(ui.style()).size
+      .max(ui.spacing().interact_size.y);
+
+    let available_width = ui.available_width() - 192.0;
+    ui.style_mut().spacing.slider_width = available_width;
+
+    TableBuilder::new(ui)
       .striped(true)
-      .show(ui, |ui| {
-        let mut dummy = 0.0;
+      .resizable(false)
+      .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
+      .column(Column::exact(96.0))
+      .column(Column::remainder())
+      .body(|mut body| {
+        body.row(text_height, |mut row| {
+          row.col(|ui| {
+            ui.label("Audio Offset");
+          });
 
-        {
-          ui.label("Audio Offset");
-          egui::Slider::new(&mut dummy, -100.0 ..= 100.0)
-            .ui(ui);
+          row.col(|ui| {
+            egui::Slider::new(&mut state.gameplay.audio_offset, -50 ..= 50).ui(ui);
+          });
+        });
 
-          ui.end_row();
-        }
+        body.row(text_height, |mut row| {
+          row.col(|ui| {
+            ui.label("Zoom");
+          });
 
-        {
-          ui.label("Zoom");
-          egui::Slider::new(&mut dummy, 0.0 ..= 2.0)
-            .ui(ui);
+          row.col(|ui| {
+            if egui::Slider::new(&mut state.taiko.zoom, 0.0 ..= 1.0).step_by(0.001).ui(ui).changed() {
+              self.event_bus.send(ClientEvent::RebuildTaikoRendererInstances);
+            }
+          });
+        });
 
-          ui.end_row();
-        }
+        body.row(text_height, |mut row| {
+          row.col(|ui| {
+            ui.label("Scale");
+          });
 
-        {
-          ui.label("Scale");
-          egui::Slider::new(&mut dummy, 0.0 ..= 2.0)
-            .ui(ui);
+          row.col(|ui| {
+            egui::Slider::new(&mut state.taiko.scale, 0.0 ..= 2.0).ui(ui);
+          });
+        });
 
-          ui.end_row();
-        }
+        body.row(text_height, |mut row| {
+          row.col(|ui| {
+            ui.label("Hit position x");
+          });
 
-        {
-          ui.label("Hit position X");
-          egui::DragValue::new(&mut dummy)
-            .ui(ui);
+          row.col(|ui| {
+            egui::DragValue::new(&mut state.taiko.hit_position_x).ui(ui);
+          });
+        });
 
-          ui.end_row();
+        body.row(text_height, |mut row| {
+          row.col(|ui| {
+            ui.label("Hit position y");
+          });
 
-          ui.label("Hit position Y");
-          egui::DragValue::new(&mut dummy)
-            .ui(ui);
+          row.col(|ui| {
+            egui::DragValue::new(&mut state.taiko.hit_position_y).ui(ui);
+          });
+        });
 
-          ui.end_row();
-        }
-
-
-        {
+        body.row(text_height, |mut row| {
           use egui::color_picker::{color_edit_button_rgba, Alpha};
 
-          let mut dummy_color = egui::Rgba::from_rgba_unmultiplied(0.8, 0.1, 0.2, 1.0);
+          row.col(|ui| {
+            ui.label("Don color");
+          });
 
-          ui.label("Don color");
-          color_edit_button_rgba(ui, &mut dummy_color, Alpha::Opaque);
-          ui.end_row();
+          row.col(|ui| {
+            let (r, g, b, a) = state.taiko.don_color.as_rgba();
+            let mut color = egui::Rgba::from_rgba_unmultiplied(r, g, b, a);
+            if color_edit_button_rgba(ui, &mut color, Alpha::Opaque).changed() {
+              state.taiko.don_color = color.into();
+              self.event_bus.send(ClientEvent::RebuildTaikoRendererInstances);
+            }
+          });
+        });
 
-          ui.label("Kat color");
-          color_edit_button_rgba(ui, &mut dummy_color, Alpha::Opaque);
-          ui.end_row()
-        }
+        body.row(text_height, |mut row| {
+          use egui::color_picker::{color_edit_button_rgba, Alpha};
+
+          row.col(|ui| {
+            ui.label("Kat color");
+          });
+
+          row.col(|ui| {
+            let (r, g, b, a) = state.taiko.kat_color.as_rgba();
+            let mut color = egui::Rgba::from_rgba_unmultiplied(r, g, b, a);
+            if color_edit_button_rgba(ui, &mut color, Alpha::Opaque).changed() {
+              state.taiko.kat_color = color.into();
+              self.event_bus.send(ClientEvent::RebuildTaikoRendererInstances);
+            }
+          });
+        });
       });
   }
 
@@ -156,8 +202,7 @@ impl GameSettingsView {
     use egui_extras::{Column, TableBuilder};
 
     let text_height = egui::TextStyle::Body
-      .resolve(ui.style())
-      .size
+      .resolve(ui.style()).size
       .max(ui.spacing().interact_size.y);
 
     let available_height = ui.available_height();

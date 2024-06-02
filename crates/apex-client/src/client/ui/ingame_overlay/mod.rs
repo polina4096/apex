@@ -1,6 +1,6 @@
 use instant::Instant;
 
-use crate::{client::{client::Client, gameplay::{score_processor::ScoreProcessor, taiko_player::TaikoPlayerInput}, util::playback_controller::PlaybackController}, core::core::Core};
+use crate::{client::{client::Client, gameplay::{score_processor::ScoreProcessor, taiko_player::TaikoPlayerInput}, state::GameState, util::playback_controller::PlaybackController}, core::core::Core};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HitResult {
@@ -60,14 +60,18 @@ impl IngameOverlayView {
     }
   }
 
-  pub fn prepare(&mut self, core: &mut Core<Client>, mut playback: impl PlaybackController, score: &ScoreProcessor) {
+  pub fn prepare(&mut self, core: &mut Core<Client>, mut playback: impl PlaybackController, score: &ScoreProcessor, state: &GameState) {
     egui::CentralPanel::default()
       .frame(egui::Frame::none().inner_margin(egui::Margin::same(8.0)))
       .show(core.egui_ctx(), |ui| {
         let max_height = ui.available_height();
 
         let painter = ui.painter();
-        painter.circle(egui::pos2(150.0, 150.0), 64.0 * 0.85, egui::Color32::TRANSPARENT, egui::Stroke::new(4.0, egui::Color32::GRAY));
+
+        let pos = egui::pos2(state.taiko.hit_position_x, state.taiko.hit_position_y);
+        let fill = egui::Color32::TRANSPARENT;
+        let stroke = egui::Stroke::new(4.0, egui::Color32::GRAY);
+        painter.circle(pos, 64.0 * 0.85, fill, stroke);
 
         let draw_hit_key = |i: f32, elapsed: f32| {
           let fade = 0.2;
@@ -76,7 +80,7 @@ impl IngameOverlayView {
           let value = elapsed.min(fade) / fade * max_brightness as f32;
 
           let size = egui::vec2(32.0, 32.0);
-          let pos = egui::pos2(150.0 + i * (4.0 + size.x) - 2.0 * (4.0 + size.x), 220.0);
+          let pos = egui::pos2(state.taiko.hit_position_x + i * (4.0 + size.x) - 2.0 * (4.0 + size.x), state.taiko.hit_position_y + 70.0);
 
           painter.rect(
             egui::Rect::from_min_size(pos, size),
@@ -112,7 +116,7 @@ impl IngameOverlayView {
           let value = elapsed.min(0.125) * 1.25;
           let value = 1.05 + value;
 
-          painter.circle(egui::pos2(150.0, 150.0), 64.0 * 0.55 * value, color, egui::Stroke::NONE);
+          painter.circle(egui::pos2(state.taiko.hit_position_x, state.taiko.hit_position_y), 64.0 * 0.55 * value, color, egui::Stroke::NONE);
         }
 
         ui.with_layout(egui::Layout::top_down(egui::Align::Max), |ui| {

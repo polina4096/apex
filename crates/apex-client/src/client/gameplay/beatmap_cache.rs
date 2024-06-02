@@ -1,6 +1,5 @@
 use std::{path::{Path, PathBuf}, str::FromStr};
 
-use egui::TextBuffer;
 use fxhash::FxBuildHasher;
 use indexmap::IndexMap;
 use log::warn;
