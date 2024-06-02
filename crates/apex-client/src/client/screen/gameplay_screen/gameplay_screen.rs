@@ -62,13 +62,14 @@ impl GameplayScreen {
 
   pub fn hit(&mut self, input: TaikoPlayerInput, graphics: &Graphics, state: &GameState) {
     let Some(beatmap) = &self.beatmap else { return };
-    let hit_time = self.clock.position();
+    let offset = Time::from_ms(state.gameplay.audio_offset);
+    let time = self.clock.position() + offset;
 
     self.ingame_overlay.hit(input);
 
-    self.player.hit(hit_time, input, beatmap, |result, idx| {
+    self.player.hit(time, input, beatmap, |result, idx| {
       self.score.feed(ScoreProcessorEvent { result });
-      self.taiko_renderer.set_hit(graphics, hit_time, idx, state);
+      self.taiko_renderer.set_hit(graphics, time, idx, state);
       self.ingame_overlay.show_hit_result(result);
     });
   }
@@ -114,16 +115,17 @@ impl GameplayScreen {
   }
 
   pub fn prepare(&mut self, core: &mut Core<Client>, state: &GameState) {
-    if let Some(beatmap) = &self.beatmap {
-      let time = self.clock.position();
+    let offset = Time::from_ms(state.gameplay.audio_offset);
+    let time = self.clock.position() + offset;
 
+    if let Some(beatmap) = &self.beatmap {
       self.player.tick(time, beatmap, |_idx| {
         self.score.feed(ScoreProcessorEvent { result: HitResult::Miss });
         self.ingame_overlay.show_hit_result(HitResult::Miss);
       });
     }
 
-    self.taiko_renderer.prepare(&core.graphics, &mut self.clock, state);
+    self.taiko_renderer.prepare(&core.graphics, time, state);
     self.ingame_overlay.prepare(core, GameplayPlaybackController {
       taiko_renderer: &mut self.taiko_renderer,
       clock: &mut self.clock,

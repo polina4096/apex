@@ -2,7 +2,7 @@ use bytemuck::Zeroable;
 use glam::{vec2, vec3, vec4, Quat, Vec4};
 use wgpu::util::DeviceExt;
 
-use crate::{client::{gameplay::{beatmap::Beatmap, taiko_hit_object::TaikoColor}, state::GameState}, core::{graphics::{bindable::Bindable, camera::{Camera as _, Camera2D, ProjectionOrthographic}, graphics::Graphics, instance::Instance, layout::Layout, quad_renderer::data::quad_vertex::QuadVertex, scene::Scene, texture::Texture, uniform::Uniform}, time::{clock::AbstractClock, time::Time}}};
+use crate::{client::{gameplay::{beatmap::Beatmap, taiko_hit_object::TaikoColor}, state::GameState}, core::{graphics::{bindable::Bindable, camera::{Camera as _, Camera2D, ProjectionOrthographic}, graphics::Graphics, instance::Instance, layout::Layout, quad_renderer::data::quad_vertex::QuadVertex, scene::Scene, texture::Texture, uniform::Uniform}, time::time::Time}};
 
 use super::data::hit_object_model::{BakedHitObjectModel, HitObjectModel};
 
@@ -163,10 +163,9 @@ impl TaikoRenderer {
     };
   }
 
-  pub fn prepare(&mut self, graphics: &Graphics, clock: &mut impl AbstractClock, state: &GameState) {
+  pub fn prepare(&mut self, graphics: &Graphics, time: Time, state: &GameState) {
     let taiko_zoom = state.taiko.zoom;
     let taiko_scale = state.taiko.scale;
-    let audio_offset = state.gameplay.audio_offset;
 
     // Update scene matrix
     let scale = (graphics.scale * taiko_scale) as f32;
@@ -177,7 +176,7 @@ impl TaikoRenderer {
 
 
     // Update time uniform
-    let time_offset = (Time::from_ms(audio_offset) - clock.position()).to_seconds() * 1000.0 * taiko_zoom;
+    let time_offset = time.to_seconds() * 1000.0 * taiko_zoom * -1.0;
     self.time_uniform.update(&graphics.queue, &vec4(time_offset as f32, 0.0, 0.0, 0.0));
   }
 
@@ -198,13 +197,12 @@ impl TaikoRenderer {
   }
 
   pub fn set_hit(&mut self, graphics: &Graphics, hit_time: Time, hit_idx: usize, state: &GameState) {
-    let audio_offset = Time::from_ms(state.gameplay.audio_offset);
     let taiko_zoom = state.taiko.zoom;
 
     let len = self.instances.len();
     let idx = len - hit_idx;
     let instance = &mut self.instances[idx];
-    instance.hit = (audio_offset - hit_time) * 1000.0 * taiko_zoom;
+    instance.hit = hit_time * 1000.0 * taiko_zoom * -1.0;
 
     let single_baked = [instance.bake()];
     let byte_slice: &[u8] = bytemuck::cast_slice(&single_baked);

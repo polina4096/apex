@@ -116,7 +116,9 @@ impl GameSettingsView {
           });
 
           row.col(|ui| {
-            egui::Slider::new(&mut state.gameplay.audio_offset, -50 ..= 50).ui(ui);
+            egui::Slider::new(&mut state.gameplay.audio_offset, -100 ..= 100)
+              .clamp_to_range(false)
+              .ui(ui);
           });
         });
 
@@ -126,7 +128,11 @@ impl GameSettingsView {
           });
 
           row.col(|ui| {
-            if egui::Slider::new(&mut state.taiko.zoom, 0.0 ..= 1.0).step_by(0.001).ui(ui).changed() {
+            let slider = egui::Slider::new(&mut state.taiko.zoom, 0.0 ..= 1.0)
+              .step_by(0.001)
+              .ui(ui);
+
+            if slider.changed() {
               self.event_bus.send(ClientEvent::RebuildTaikoRendererInstances);
             }
           });
@@ -138,7 +144,8 @@ impl GameSettingsView {
           });
 
           row.col(|ui| {
-            egui::Slider::new(&mut state.taiko.scale, 0.0 ..= 2.0).ui(ui);
+            egui::Slider::new(&mut state.taiko.scale, 0.0 ..= 2.0)
+              .ui(ui);
           });
         });
 
@@ -148,7 +155,8 @@ impl GameSettingsView {
           });
 
           row.col(|ui| {
-            egui::DragValue::new(&mut state.taiko.hit_position_x).ui(ui);
+            egui::DragValue::new(&mut state.taiko.hit_position_x)
+              .ui(ui);
           });
         });
 
@@ -158,7 +166,8 @@ impl GameSettingsView {
           });
 
           row.col(|ui| {
-            egui::DragValue::new(&mut state.taiko.hit_position_y).ui(ui);
+            egui::DragValue::new(&mut state.taiko.hit_position_y)
+              .ui(ui);
           });
         });
 
