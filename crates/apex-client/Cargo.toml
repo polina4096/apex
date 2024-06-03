@@ -55,6 +55,8 @@ web-sys = { version = "0.3", features = [
 ]}
 
 [features]
+default = ["native"]
+
 native = [
   "egui-winit/links",
   "egui-winit/wayland",
@@ -65,12 +67,3 @@ wasm = [
   "instant/wasm-bindgen",
   "wgpu/webgl",
 ]
-
-[target.'cfg(not(target_arch = "wasm32"))'.features]
-default = ["native"]
-
-[target.'cfg(target_arch = "wasm32")'.features]
-default = ["wasm"]
-
-[package.metadata.wasm-pack.profile.release]
-wasm-opt = false

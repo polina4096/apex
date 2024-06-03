@@ -109,7 +109,11 @@ impl BeatmapCache {
   pub fn load_beatmaps(&mut self, path: impl AsRef<Path>) {
     let path = path.as_ref();
     let Ok(iter) = std::fs::read_dir(path) else {
-      warn!("Failed to read directory: {:?}", path);
+      warn!("Failed to read beatmap directory: {:?}, creating new one...", path);
+      if let Err(e) = std::fs::create_dir_all(path) {
+        warn!("Failed to create beatmap directory: {:?}", e);
+      }
+
       return;
     };
 

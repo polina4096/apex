@@ -1,0 +1,82 @@
+[config]
+skip_core_tasks = true
+default_to_workspace = false
+
+[tasks.default]
+dependencies = ["make-dev-dirs", "run"]
+
+[tasks.run]
+dependencies = ["copy-assets"]
+command = "cargo"
+args = ["run"]
+cwd = "./debug/"
+env = { "RUST_LOG" = "apex_client=debug" }
+
+[tasks.make-dev-dirs]
+script = '''
+#!@duckscript
+mkdir ./debug
+'''
+
+[tasks.copy-assets]
+condition_script = [
+'''
+#!@rust
+//! ```cargo
+//! [dependencies]
+//! anyhow = "1.0.86"
+//! walkdir = "2.5.0"
+//! crc32fast = "1.4.2"
+//! ```
+use std::env;
+use std::path::PathBuf;
+use crc32fast::Hasher;
+use walkdir::{WalkDir, DirEntry};
+
+fn is_valid(entry: &DirEntry) -> bool {
+  let is_hidden = entry.file_name()
+    .to_str()
+    .map(|s| s.starts_with("."))
+    .unwrap_or(false);
+
+  return !is_hidden;
+}
+
+fn main() -> anyhow::Result<()> {
+  let mut hasher = Hasher::new();
+
+  let walker = WalkDir::new("./assets").into_iter();
+  for entry in walker.filter_entry(is_valid) {
+    let Ok(entry) = entry else { continue };
+    if entry.file_type().is_dir() { continue }
+
+    let data = std::fs::read(entry.path())?;
+    hasher.update(&data);
+
+    let path = entry.path().as_os_str();
+    hasher.update(&path.as_encoded_bytes());
+  }
+
+  let target_dir = env!("CARGO_MAKE_CRATE_TARGET_DIRECTORY");
+  let hash_path = PathBuf::from(target_dir).join("_apex_last_assets_hash");
+  let old_hash = std::fs::read_to_string(&hash_path).unwrap_or_default();
+  let new_hash = hasher.finalize().to_string();
+
+  if old_hash != new_hash || !PathBuf::from(target_dir).join("assets").exists() {
+    std::fs::write(hash_path, new_hash)?;
+    return Ok(());
+  }
+
+  std::process::exit(-1);
+}
+'''
+]
+script = '''
+#!@duckscript
+rm -r ./debug/assets
+cp ./assets ./debug
+'''
+
+[tasks.clean]
+command = "cargo"
+args = ["clean"]

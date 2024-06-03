@@ -37,7 +37,10 @@ impl BeatmapSelectionView {
     use egui_extras::{StripBuilder, Size};
 
     let selected = selector.selected();
-    let Some((path, info)) = beatmap_cache.get_index(selected) else { panic!() };
+    let Some((path, info)) = beatmap_cache.get_index(selected) else {
+      // TODO: Show error message no beatmaps found
+      return;
+    };
 
     egui::CentralPanel::default()
       .frame(egui::Frame::none())

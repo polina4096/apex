@@ -170,7 +170,7 @@ impl Client {
     let game_state = GameState::default();
 
     let beatmap_cache = BeatmapCache::new().tap_mut(|cache| {
-      cache.load_beatmaps("/Users/polina4096/dev/apex/test/beatmaps");
+      cache.load_beatmaps("./beatmaps");
     });
 
     let selection_screen = SelectionScreen::new(event_bus.clone(), &beatmap_cache);

@@ -136,10 +136,10 @@ impl TaikoRenderer {
       }
     );
 
-    let circle_texture = Texture::from_path("/Users/polina4096/dev/apex/crates/apex-client/res/taikohitcircle.png", graphics).unwrap();
-    let finisher_texture = Texture::from_path("/Users/polina4096/dev/apex/crates/apex-client/res/taikobigcircle.png", graphics).unwrap();
-    let circle_overlay_texture = Texture::from_path("/Users/polina4096/dev/apex/crates/apex-client/res/taikohitcircleoverlay.png", graphics).unwrap();
-    let finisher_overlaytexture = Texture::from_path("/Users/polina4096/dev/apex/crates/apex-client/res/taikobigcircleoverlay.png", graphics).unwrap();
+    let circle_texture = Texture::from_path("./assets/taikohitcircle.png", graphics).unwrap();
+    let finisher_texture = Texture::from_path("./assets/taikobigcircle.png", graphics).unwrap();
+    let circle_overlay_texture = Texture::from_path("./assets/taikohitcircleoverlay.png", graphics).unwrap();
+    let finisher_overlaytexture = Texture::from_path("./assets/taikobigcircleoverlay.png", graphics).unwrap();
 
     return Self {
       scene,
