@@ -9,3 +9,4 @@ pub mod color;
 pub mod instance;
 pub mod texture;
 pub mod quad_renderer;
+pub mod drawable;

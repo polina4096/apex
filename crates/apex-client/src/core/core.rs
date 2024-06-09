@@ -1,6 +1,8 @@
 use pollster::FutureExt;
 use winit::{dpi::PhysicalSize, event_loop::{EventLoop, EventLoopProxy}, window::Window};
 
+use crate::client::state::{graphics_state::RenderingBackend, AppState};
+
 use super::{app::App, event::CoreEvent, graphics::{egui::EguiContext, graphics::Graphics}};
 
 pub struct Core<'a, A: App> {
@@ -12,9 +14,10 @@ pub struct Core<'a, A: App> {
 }
 
 impl<'a, A: App> Core<'a, A> {
-  pub fn new(event_loop: &EventLoop<CoreEvent<A::Event>>, window: &'a Window) -> Self {
+  pub fn new(event_loop: &EventLoop<CoreEvent<A::Event>>, window: &'a Window, app_state: &AppState) -> Self {
     let proxy = event_loop.create_proxy();
-    let graphics = Graphics::new(window).block_on();
+    let RenderingBackend::Wgpu(backend) = app_state.graphics.rendering_backend else { todo!() };
+    let graphics = Graphics::new(window, backend.into()).block_on();
     let egui_ctx = EguiContext::new(event_loop, &graphics);
 
     return Self {
@@ -88,5 +91,9 @@ impl<'a, A: App> Core<'a, A> {
 
   pub fn exit(&self) {
     self.proxy.send_event(CoreEvent::Exit).unwrap();
+  }
+
+  pub fn recreate_graphics_context(&self) {
+    self.proxy.send_event(CoreEvent::RecreateGraphicsContext).unwrap();
   }
 }

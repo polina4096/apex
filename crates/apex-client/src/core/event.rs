@@ -5,6 +5,7 @@ use winit::event_loop::EventLoopProxy;
 #[derive(Debug, PartialEq, Eq)]
 pub enum CoreEvent<T> {
   Exit,
+  RecreateGraphicsContext,
   User(T),
 }
 

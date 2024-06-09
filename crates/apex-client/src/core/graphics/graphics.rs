@@ -16,19 +16,18 @@ pub struct Graphics {
 }
 
 impl Graphics {
-  pub async fn new(window: &Window) -> Graphics {
+  pub async fn new(window: &Window, backends: Backends) -> Graphics {
     let instance = wgpu::Instance::new(
       wgpu::InstanceDescriptor {
-        flags                : InstanceFlags::empty(),
-        backends             : Backends::all().tap_mut(|x| x.remove(wgpu::Backends::BROWSER_WEBGPU)),
-        dx12_shader_compiler : Default::default(),
-        gles_minor_version   : wgpu::Gles3MinorVersion::Automatic,
+        backends,
+        flags: InstanceFlags::empty(),
+        dx12_shader_compiler: Default::default(),
+        gles_minor_version: wgpu::Gles3MinorVersion::Automatic,
       }
     );
 
     // # Safety
-    // The surface needs to live as long as the window that created it.
-    // State owns the window so this should be safe.
+    // The window needs to live as long as the surface created from it. Should be probably safe ^_^
     let target = unsafe { SurfaceTargetUnsafe::from_window(window) }.expect("Failed to create suface target");
     let surface = unsafe { instance.create_surface_unsafe(target) }.expect("Failed to create a surface");
 

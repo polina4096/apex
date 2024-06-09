@@ -1,5 +1,5 @@
 use egui::ClippedPrimitive;
-use winit::event_loop::EventLoop;
+use wgpu::rwh::HasDisplayHandle;
 use winit::window::Window;
 
 use super::graphics::Graphics;
@@ -14,7 +14,7 @@ pub struct EguiContext {
 }
 
 impl EguiContext {
-  pub fn new<T>(event_loop: &EventLoop<T>, graphics: &Graphics) -> Self {
+  pub fn new(display_handle: &impl HasDisplayHandle, graphics: &Graphics) -> Self {
     let context = egui::Context::default();
     let renderer = egui_wgpu::Renderer::new(&graphics.device, graphics.format, None, 1);
     let screen_desc = egui_wgpu::ScreenDescriptor {
@@ -22,11 +22,10 @@ impl EguiContext {
       pixels_per_point : graphics.scale as f32,
     };
 
-    #[allow(unused_mut)]
-    let mut winit_state = egui_winit::State::new(
+    let winit_state = egui_winit::State::new(
       context,
       egui::ViewportId::default(),
-      event_loop,
+      display_handle,
       Some(graphics.scale as f32),
       Some(graphics.device.limits().max_texture_dimension_2d as usize),
     );

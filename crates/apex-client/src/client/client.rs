@@ -2,9 +2,9 @@ use log::error;
 use tap::Tap;
 use winit::{event::{KeyEvent, Modifiers}, keyboard::{KeyCode, ModifiersState, PhysicalKey}};
 
-use crate::core::{app::App, core::Core, event::EventBus, input::{bind::{Bind, KeyCombination}, Input}};
+use crate::core::{app::App, core::Core, event::EventBus, graphics::{drawable::Drawable, graphics::Graphics}, input::{bind::{Bind, KeyCombination}, Input}};
 
-use super::{event::ClientEvent, gameplay::{beatmap_cache::BeatmapCache, taiko_player::TaikoPlayerInput}, input::client_action::ClientAction, screen::{gameplay_screen::gameplay_screen::GameplayScreen, selection_screen::selection_screen::SelectionScreen, settings_screen::settings_screen::SettingsScreen}, state::GameState};
+use super::{event::ClientEvent, gameplay::{beatmap_cache::BeatmapCache, taiko_player::TaikoPlayerInput}, input::client_action::ClientAction, screen::{gameplay_screen::gameplay_screen::GameplayScreen, selection_screen::selection_screen::SelectionScreen, settings_screen::settings_screen::SettingsScreen}, state::AppState};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LogicalState {
@@ -13,16 +13,16 @@ pub enum LogicalState {
 }
 
 pub struct Client {
-  input     : Input<ClientAction>,
-  event_bus : EventBus<ClientEvent>,
+  input: Input<ClientAction>,
+  event_bus: EventBus<ClientEvent>,
 
-  logical_state : LogicalState,
-  beatmap_cache : BeatmapCache,
-  game_state    : GameState,
+  game_state: LogicalState,
+  beatmap_cache: BeatmapCache,
+  pub app_state: AppState,
 
-  selection_screen : SelectionScreen,
-  gameplay_screen  : GameplayScreen,
-  settings_screen  : SettingsScreen,
+  selection_screen: SelectionScreen,
+  gameplay_screen: GameplayScreen,
+  settings_screen: SettingsScreen,
 }
 
 impl App for Client {
@@ -31,24 +31,24 @@ impl App for Client {
   fn prepare(&mut self, core: &mut Core<Self>, encoder: &mut wgpu::CommandEncoder) {
     core.egui_ctx.begin_frame(core.window);
 
-    match self.logical_state {
+    match self.game_state {
       LogicalState::Selection => {
         self.selection_screen.prepare(core, &self.beatmap_cache);
       }
 
       LogicalState::Playing => {
-        self.gameplay_screen.prepare(core, &self.game_state);
+        self.gameplay_screen.prepare(core, &self.app_state);
       }
     }
 
-    self.settings_screen.prepare(core, &mut self.input, &mut self.game_state);
+    self.settings_screen.prepare(core, &mut self.input, &mut self.app_state);
 
     core.egui_ctx.end_frame(&core.graphics, encoder);
   }
 
   fn render<'rpass>(&'rpass self, core: &'rpass mut Core<Self>, rpass: &mut wgpu::RenderPass<'rpass>) {
     // Draw wgpu
-    match self.logical_state {
+    match self.game_state {
       LogicalState::Selection => {
       }
 
@@ -70,8 +70,14 @@ impl App for Client {
   }
 }
 
+impl Drawable for Client {
+  fn recreate(&mut self, graphics: &Graphics) {
+    self.gameplay_screen.recreate(graphics);
+  }
+}
+
 impl Client {
-  pub fn new(core: &mut Core<Self>, event_bus: EventBus<ClientEvent>) -> Self {
+  pub fn new(core: &mut Core<Self>, app_state: AppState, event_bus: EventBus<ClientEvent>) -> Self {
     let mut input = Input::default();
 
     input.keybinds.add(
@@ -165,9 +171,7 @@ impl Client {
       }
     );
 
-    let logical_state = LogicalState::Selection;
-
-    let game_state = GameState::default();
+    let game_state = LogicalState::Selection;
 
     let beatmap_cache = BeatmapCache::new().tap_mut(|cache| {
       cache.load_beatmaps("./beatmaps");
@@ -180,8 +184,8 @@ impl Client {
     return Self {
       input,
       event_bus,
-      logical_state,
       game_state,
+      app_state,
       beatmap_cache,
       selection_screen,
       gameplay_screen,
@@ -207,7 +211,7 @@ impl Client {
     }
 
     if event.state.is_pressed() {
-      if self.logical_state == LogicalState::Selection {
+      if self.game_state == LogicalState::Selection {
         match event.physical_key {
           PhysicalKey::Code(KeyCode::Backspace) => {
             if self.selection_screen.beatmap_selector().has_query() {
@@ -246,7 +250,7 @@ impl Client {
   pub fn action(&mut self, core: &mut Core<Self>, action: ClientAction, repeat: bool) {
     match action {
       ClientAction::Back => {
-        match self.logical_state {
+        match self.game_state {
           LogicalState::Selection => {
             if self.settings_screen.is_settings_open() {
               self.settings_screen.toggle_settings();
@@ -261,7 +265,7 @@ impl Client {
             if self.settings_screen.is_settings_open() {
               self.settings_screen.toggle_settings();
             } else {
-              self.logical_state = LogicalState::Selection;
+              self.game_state = LogicalState::Selection;
             }
           }
         }
@@ -272,7 +276,7 @@ impl Client {
       }
 
       ClientAction::Next => {
-        match self.logical_state {
+        match self.game_state {
           LogicalState::Selection => {
             self.selection_screen.beatmap_selector_mut().select_next();
           }
@@ -282,7 +286,7 @@ impl Client {
       }
 
       ClientAction::Prev => {
-        match self.logical_state {
+        match self.game_state {
           LogicalState::Selection => {
             self.selection_screen.beatmap_selector_mut().select_prev();
           }
@@ -296,7 +300,7 @@ impl Client {
       }
 
       ClientAction::Select => {
-        match self.logical_state {
+        match self.game_state {
           LogicalState::Selection => {
             self.selection_screen.beatmap_selector().select(&self.event_bus, &self.beatmap_cache)
               .unwrap_or_else(|err| { error!("Failed to select beatmap: {:?}", err); });
@@ -307,16 +311,16 @@ impl Client {
       }
 
       ClientAction::KatOne if !repeat => {
-        self.gameplay_screen.hit(TaikoPlayerInput::KatOne, &core.graphics, &self.game_state);
+        self.gameplay_screen.hit(TaikoPlayerInput::KatOne, &core.graphics, &self.app_state);
       }
       ClientAction::KatTwo if !repeat => {
-        self.gameplay_screen.hit(TaikoPlayerInput::KatTwo, &core.graphics, &self.game_state);
+        self.gameplay_screen.hit(TaikoPlayerInput::KatTwo, &core.graphics, &self.app_state);
       }
       ClientAction::DonOne if !repeat => {
-        self.gameplay_screen.hit(TaikoPlayerInput::DonOne, &core.graphics, &self.game_state);
+        self.gameplay_screen.hit(TaikoPlayerInput::DonOne, &core.graphics, &self.app_state);
       }
       ClientAction::DonTwo if !repeat => {
-        self.gameplay_screen.hit(TaikoPlayerInput::DonTwo, &core.graphics, &self.game_state);
+        self.gameplay_screen.hit(TaikoPlayerInput::DonTwo, &core.graphics, &self.app_state);
       }
 
       _ => { }
@@ -326,8 +330,8 @@ impl Client {
   pub fn dispatch(&mut self, core: &mut Core<Self>, event: ClientEvent) {
     match event {
       ClientEvent::SelectBeatmap { path } => {
-        self.logical_state = LogicalState::Playing;
-        self.gameplay_screen.play(&path, &core.graphics, &self.game_state);
+        self.game_state = LogicalState::Playing;
+        self.gameplay_screen.play(&path, &core.graphics, &self.app_state);
       }
 
       ClientEvent::RetryBeatmap => {
@@ -339,7 +343,7 @@ impl Client {
       }
 
       ClientEvent::RebuildTaikoRendererInstances => {
-        self.gameplay_screen.rebuild_instances(&core.graphics, &self.game_state);
+        self.gameplay_screen.rebuild_instances(&core.graphics, &self.app_state);
       }
     }
   }

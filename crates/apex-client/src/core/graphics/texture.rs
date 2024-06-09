@@ -2,9 +2,10 @@ use std::path::Path;
 
 use image::{DynamicImage, GenericImageView};
 
-use super::{bindable::Bindable, graphics::Graphics};
+use super::{bindable::Bindable, drawable::Drawable, graphics::Graphics};
 
 pub struct Texture {
+  pub data         : Vec<u8>,
   pub texture      : wgpu::Texture,
   pub bind_group   : wgpu::BindGroup,
   pub texture_view : wgpu::TextureView,
@@ -18,16 +19,19 @@ impl Texture {
       let Ok(image) = image::load_from_memory(bytes) else { Err(())? };
       return Ok(Self::from_image(image, graphics));
   }
+
   pub fn from_path(path: impl AsRef<Path>, graphics: &Graphics) -> Result<Self, ()> {
       let Ok(image) = image::open(path) else { Err(())? };
       return Ok(Self::from_image(image, graphics));
   }
+
   pub fn from_image(image: DynamicImage, graphics: &Graphics) -> Self {
       let dimensions = image.dimensions();
       let rgba_data = image.to_rgba8();
 
       return Self::from_bytes(&rgba_data, dimensions, graphics);
   }
+
   pub fn from_bytes(data: &[u8], dimensions: (u32, u32), graphics: &Graphics) -> Self {
     let size = wgpu::Extent3d {
       width: dimensions.0,
@@ -124,6 +128,7 @@ impl Texture {
     );
 
     return Self {
+      data: data.to_vec(),
       texture,
       bind_group,
       texture_view,
@@ -160,6 +165,13 @@ impl Texture {
       },
       size
     );
+  }
+}
+
+impl Drawable for Texture {
+  fn recreate(&mut self, graphics: &Graphics) {
+    // TODO: optimize/refactor DRY
+    *self = Self::from_bytes(&self.data, (self.texture.width(), self.texture.height()), graphics)
   }
 }
 

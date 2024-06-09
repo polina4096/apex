@@ -2,7 +2,7 @@ use std::{fs::File, io::BufReader, path::Path};
 
 use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink, Source as _};
 
-use crate::{client::{client::Client, gameplay::{beatmap::Beatmap, score_processor::{ScoreProcessor, ScoreProcessorEvent}, taiko_player::{TaikoPlayer, TaikoPlayerInput}}, graphics::taiko_renderer::taiko_renderer::TaikoRenderer, state::GameState, ui::ingame_overlay::{HitResult, IngameOverlayView}}, core::{core::Core, graphics::graphics::Graphics, time::{clock::{AbstractClock, Clock}, time::Time}}};
+use crate::{client::{client::Client, gameplay::{beatmap::Beatmap, score_processor::{ScoreProcessor, ScoreProcessorEvent}, taiko_player::{TaikoPlayer, TaikoPlayerInput}}, graphics::taiko_renderer::taiko_renderer::TaikoRenderer, state::AppState, ui::ingame_overlay::{HitResult, IngameOverlayView}}, core::{core::Core, graphics::{drawable::Drawable, graphics::Graphics}, time::{clock::{AbstractClock, Clock}, time::Time}}};
 
 use super::gameplay_playback_controller::GameplayPlaybackController;
 
@@ -60,7 +60,7 @@ impl GameplayScreen {
     };
   }
 
-  pub fn hit(&mut self, input: TaikoPlayerInput, graphics: &Graphics, state: &GameState) {
+  pub fn hit(&mut self, input: TaikoPlayerInput, graphics: &Graphics, state: &AppState) {
     let Some(beatmap) = &self.beatmap else { return };
     let offset = Time::from_ms(state.gameplay.audio_offset);
     let time = self.clock.position() + offset;
@@ -90,7 +90,7 @@ impl GameplayScreen {
     self.sink.play();
   }
 
-  pub fn play(&mut self, beatmap_path: &Path, graphics: &Graphics, state: &GameState) {
+  pub fn play(&mut self, beatmap_path: &Path, graphics: &Graphics, state: &AppState) {
     let data = std::fs::read_to_string(beatmap_path).unwrap();
     let beatmap = Beatmap::from(data);
     let end_time = beatmap.hit_objects.last().unwrap().time;
@@ -114,7 +114,7 @@ impl GameplayScreen {
     self.sink.play();
   }
 
-  pub fn prepare(&mut self, core: &mut Core<Client>, state: &GameState) {
+  pub fn prepare(&mut self, core: &mut Core<Client>, state: &AppState) {
     let offset = Time::from_ms(state.gameplay.audio_offset);
     let time = self.clock.position() + offset;
 
@@ -145,9 +145,15 @@ impl GameplayScreen {
     self.taiko_renderer.scene.scale(scale_factor);
   }
 
-  pub fn rebuild_instances(&mut self, graphics: &Graphics, state: &GameState) {
+  pub fn rebuild_instances(&mut self, graphics: &Graphics, state: &AppState) {
     if let Some(beatmap) = &self.beatmap {
       self.taiko_renderer.prepare_instances(graphics, beatmap, state);
     }
+  }
+}
+
+impl Drawable for GameplayScreen {
+  fn recreate(&mut self, graphics: &Graphics) {
+    self.taiko_renderer.recreate(graphics);
   }
 }

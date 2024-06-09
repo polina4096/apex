@@ -1,8 +1,8 @@
 use std::fmt::Debug;
 
-use super::core::Core;
+use super::{core::Core, graphics::drawable::Drawable};
 
-pub trait App: Sized {
+pub trait App: Drawable + Sized {
   type Event: Debug + 'static;
 
   fn prepare(&mut self, core: &mut Core<Self>, encoder: &mut wgpu::CommandEncoder);

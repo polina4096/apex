@@ -1,10 +1,12 @@
 #![feature(map_many_mut)]
 
-use core::{core::Core, event::{CoreEvent, EventBus}};
+use core::{core::Core, event::{CoreEvent, EventBus}, graphics::{drawable::Drawable as _, egui::EguiContext, graphics::Graphics}};
 
-use client::{client::Client, event::ClientEvent};
+use client::{client::Client, event::ClientEvent, state::{graphics_state::RenderingBackend, AppState}};
 use instant::Instant;
 use log::warn;
+use pollster::FutureExt as _;
+use wgpu::rwh::HasDisplayHandle;
 use winit::{
   dpi::LogicalSize, event::{Event, WindowEvent}, event_loop::{ControlFlow, EventLoop, EventLoopBuilder}, window::{Window, WindowBuilder}
 };
@@ -30,8 +32,9 @@ pub fn setup() -> (EventLoop<CoreEvent<ClientEvent>>, Window) {
 pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> color_eyre::Result<()> {
   event_loop.set_control_flow(ControlFlow::Poll);
 
-  let mut core = Core::new(&event_loop, &window);
-  let mut client = Client::new(&mut core, EventBus::new(event_loop.create_proxy()));
+  let app_state = AppState::default();
+  let mut core = Core::new(&event_loop, &window, &app_state);
+  let mut client = Client::new(&mut core, app_state, EventBus::new(event_loop.create_proxy()));
 
   let mut app_focus = false;
   let mut last_frame = Instant::now();
@@ -53,6 +56,15 @@ pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> col
         match event {
           CoreEvent::Exit => {
             elwt.exit();
+          }
+
+          CoreEvent::RecreateGraphicsContext => {
+            let RenderingBackend::Wgpu(backend) = client.app_state.graphics.rendering_backend else { todo!() };
+            core.graphics = Graphics::new(core.window, backend.into()).block_on();
+
+            let display_handle = elwt.display_handle().unwrap();
+            core.egui_ctx = EguiContext::new(&display_handle, &core.graphics);
+            client.recreate(&core.graphics);
           }
 
           CoreEvent::User(event) => {
