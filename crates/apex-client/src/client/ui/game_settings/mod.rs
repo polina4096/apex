@@ -2,10 +2,20 @@ use egui::Widget;
 use log::debug;
 use tap::Tap;
 
-use crate::{client::{client::Client, event::ClientEvent, input::client_action::ClientAction, state::AppState}, core::{core::Core, event::EventBus, input::{bind::{Bind, KeyCombination}, Input}}};
+use crate::{
+  client::{client::Client, event::ClientEvent, input::client_action::ClientAction, state::AppState},
+  core::{
+    core::Core,
+    event::EventBus,
+    input::{
+      bind::{Bind, KeyCombination},
+      Input,
+    },
+  },
+};
 
-pub mod tab_general;
 pub mod tab_controls;
+pub mod tab_general;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GameSettingsTab {
@@ -38,18 +48,18 @@ impl GameSettingsView {
     };
   }
 
-  pub fn prepare(&mut self, ctx: &egui::Context, core: &Core<Client>, input: &mut Input<ClientAction>, state: &mut AppState) {
+  pub fn prepare(&mut self, core: &Core<Client>, input: &mut Input<ClientAction>, state: &mut AppState) {
     let mut is_open = self.is_open;
 
     // TODO: the cache won't be rebuilt if the keybinds are changed while the,
     // settings are open yet it doesn't matter right now as that is not possible.
-    if !is_open { self.bind_cache.clear(); return; }
+    #[rustfmt::skip] if !is_open { self.bind_cache.clear(); return; };
     if self.bind_cache.is_empty() && !input.keybinds.is_empty() {
       debug!("Rebuilding bind cache");
       self.bind_cache = input.keybinds.as_vec();
     }
 
-    ctx.set_visuals(egui::Visuals::dark().tap_mut(|vis| {
+    core.egui_ctx().set_visuals(egui::Visuals::dark().tap_mut(|vis| {
       vis.window_highlight_topmost = false;
     }));
 
@@ -58,7 +68,7 @@ impl GameSettingsView {
       .resizable(false)
       .collapsible(false)
       .open(&mut is_open)
-      .show(ctx, |ui| {
+      .show(core.egui_ctx.egui_ctx(), |ui| {
         ui.horizontal(|ui| {
           let active = ui.style().visuals.widgets.active.bg_fill;
           let default = egui::Color32::TRANSPARENT;

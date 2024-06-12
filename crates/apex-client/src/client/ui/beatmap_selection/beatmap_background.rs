@@ -1,14 +1,12 @@
 use std::{fmt::Write as _, path::Path};
 
 pub struct BeatmapBackground {
-  buffer: String
+  buffer: String,
 }
 
 impl BeatmapBackground {
   pub fn new() -> Self {
-    return Self {
-      buffer: String::new()
-    };
+    return Self { buffer: String::new() };
   }
 
   pub fn prepare(&mut self, ui: &mut egui::Ui, bg_path: &Path) {
@@ -16,6 +14,7 @@ impl BeatmapBackground {
 
     write!(&mut self.buffer, "file://{}", bg_path.to_str().unwrap()).unwrap();
 
+    #[rustfmt::skip]
     let img = egui::Image::new(&self.buffer)
       .tint(egui::Color32::from_gray(80));
 
@@ -28,8 +27,9 @@ impl BeatmapBackground {
       let width = rect.height() * img_aspect;
       let height = rect.width() / img_aspect;
 
+      #[rustfmt::skip]
       if scr_aspect < img_aspect { rect.set_width(width);   }
-      else                       { rect.set_height(height); }
+      else                       { rect.set_height(height); };
     }
 
     img.paint_at(ui, rect);

@@ -24,32 +24,33 @@ pub trait Camera: Transformation {
 
 /* Camera 2D */
 pub struct Camera2D {
-  position : Vec3,
-  scale    : Vec3,
-  rotation : Quat,
+  position: Vec3,
+  rotation: Quat,
+  scale: Vec3,
 }
 
 impl Camera2D {
   pub fn new<V, Q>(position: V, rotation: Q, scale: V) -> Self
   where
     V: Into<Vec3>,
-    Q: Into<Quat>
+    Q: Into<Quat>,
   {
     return Self {
-      position : position . into(),
-      scale    : scale    .into(),
-      rotation : rotation . into(),
+      position: position.into(),
+      rotation: rotation.into(),
+      scale: scale.into(),
     };
   }
 }
 
+#[rustfmt::skip]
 impl Camera for Camera2D {
-  fn get_position(&self) -> Vec3    { return self.position; }
-  fn get_scale(&mut self) -> Vec3   { return self.scale;    }
-  fn get_rotation(&self) -> Quat { return self.rotation  }
+  fn get_position(&self) -> Vec3  { return self.position; }
+  fn get_scale(&mut self) -> Vec3 { return self.scale;    }
+  fn get_rotation(&self) -> Quat  { return self.rotation  }
 
-  fn set_position(&mut self, value: Vec3)    { self.position = value; }
-  fn set_scale(&mut self, value: Vec3)       { self.scale    = value; }
+  fn set_position(&mut self, value: Vec3) { self.position = value; }
+  fn set_scale(&mut self, value: Vec3)    { self.scale    = value; }
   fn set_rotation(&mut self, value: Quat) { self.rotation = value; }
 
   fn get_x(&self) -> f32 { return self.position.x; }
@@ -62,9 +63,10 @@ impl Camera for Camera2D {
 
 impl Transformation for Camera2D {
   fn apply(&self) -> Mat4 {
-    let model = Mat4::from_scale(vec3(self.scale.x, self.scale.y, self.scale.z))
-              * Mat4::from_translation(self.position)
-              * Mat4::from_rotation_translation(self.rotation, Vec3::ONE);
+    #[rustfmt::skip] let model
+      = Mat4::from_scale(vec3(self.scale.x, self.scale.y, self.scale.z))
+      * Mat4::from_translation(self.position)
+      * Mat4::from_rotation_translation(self.rotation, Vec3::ONE);
 
     return model;
   }
@@ -76,6 +78,7 @@ pub trait Projection: Transformation {
 }
 
 /* Orthographic projection matrix */
+#[rustfmt::skip]
 pub struct ProjectionOrthographic {
   width  : f32,
   height : f32,
@@ -85,7 +88,7 @@ pub struct ProjectionOrthographic {
 
 impl ProjectionOrthographic {
   pub fn new(width: u32, height: u32, znear: f32, zfar: f32) -> Self {
-    return Self {
+    #[rustfmt::skip] return Self {
       width  : width as f32,
       height : height as f32,
       znear  : znear,

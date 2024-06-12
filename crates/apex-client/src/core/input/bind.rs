@@ -1,7 +1,7 @@
 use std::{fmt::Display, hash::Hash};
 
-use log::warn;
 use fxhash::FxHashMap;
+use log::warn;
 use winit::keyboard::{ModifiersState, PhysicalKey};
 
 /// Container providing ergonomic API to store and access keybinds
@@ -12,9 +12,7 @@ pub struct KeybindManager<T> {
 
 impl<T> Default for KeybindManager<T> {
   fn default() -> Self {
-    Self {
-      binds: Default::default(),
-    }
+    Self { binds: Default::default() }
   }
 }
 
@@ -33,7 +31,7 @@ impl<T: Copy + Eq + Hash> KeybindManager<T> {
   }
 
   pub fn as_vec(&self) -> Vec<(KeyCombination, Bind<T>)> {
-    let mut cache: Vec<_> = self.binds.iter().map(|x|(*x.0, x.1.clone())).collect();
+    let mut cache: Vec<_> = self.binds.iter().map(|x| (*x.0, x.1.clone())).collect();
     cache.sort_by(|a, b| a.1.name.cmp(&b.1.name));
     return cache;
   }
@@ -58,20 +56,21 @@ impl<T: Copy + Eq + Hash> KeybindManager<T> {
         if let Some(keybind) = self.binds.remove(&old_key) {
           self.binds.insert(new_key, keybind);
           return;
-
         }
       }
 
       warn!("Failed to find key: {}", old_key);
-    } else { return }
+    } else {
+      return;
+    }
   }
 }
 
 /// Represents a key combination: <A>, <Ctrl + A>, <Ctrl + Shift + D>
 #[derive(Debug, Hash, Ord, PartialOrd, PartialEq, Eq, Clone, Copy)]
 pub struct KeyCombination {
-    pub key       : PhysicalKey,
-    pub modifiers : ModifiersState,
+  pub key: PhysicalKey,
+  pub modifiers: ModifiersState,
 }
 
 impl KeyCombination {
@@ -82,22 +81,25 @@ impl KeyCombination {
 
 impl Display for KeyCombination {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    if self.modifiers.control_key() { write!(f,  "Ctrl + ")?; }
-    if self.modifiers.shift_key()   { write!(f, "Shift + ")?; }
-    if self.modifiers.alt_key()     { write!(f,   "Alt + ")?; }
-    if self.modifiers.super_key()   { write!(f, "Super + ")?; }
+    #[rustfmt::skip] {
+      if self.modifiers.control_key() { write!(f,  "Ctrl + ")?; }
+      if self.modifiers.shift_key()   { write!(f, "Shift + ")?; }
+      if self.modifiers.alt_key()     { write!(f,   "Alt + ")?; }
+      if self.modifiers.super_key()   { write!(f, "Super + ")?; }
+    };
 
     return match self.key {
-      PhysicalKey::Code(key)         => write!(f, "{:?}", key),
+      PhysicalKey::Code(key) => write!(f, "{:?}", key),
       PhysicalKey::Unidentified(key) => write!(f, "{:?}", key),
-    }
+    };
   }
 }
 
 /// Action which is usually dispatched by the input system, or rendered in the UI
+#[rustfmt::skip]
 #[derive(Clone)]
 pub struct Bind<T> {
-    pub id          : T,
-    pub name        : String,
-    pub description : String,
+  pub id          : T,
+  pub name        : String,
+  pub description : String,
 }

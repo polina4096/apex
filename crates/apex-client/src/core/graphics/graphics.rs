@@ -1,77 +1,80 @@
 use log::info;
 use tap::Tap;
-use wgpu::{Backends, InstanceFlags, PowerPreference, SurfaceTargetUnsafe};
+use wgpu::PowerPreference;
 use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
+#[rustfmt::skip]
 pub struct Graphics {
-  pub device  : wgpu::Device,
-  pub surface : wgpu::Surface<'static>,
-  pub queue   : wgpu::Queue,
-  pub format  : wgpu::TextureFormat,
-  pub config  : wgpu::SurfaceConfiguration,
+  pub instance : wgpu::Instance,
+  pub device   : wgpu::Device,
+  pub surface  : wgpu::Surface<'static>,
+  pub queue    : wgpu::Queue,
+  pub format   : wgpu::TextureFormat,
+  pub config   : wgpu::SurfaceConfiguration,
 
-  pub size    : PhysicalSize<u32>,
-  pub scale   : f64,
+  pub size  : PhysicalSize<u32>,
+  pub scale : f64,
 }
 
 impl Graphics {
-  pub async fn new(window: &Window, backends: Backends) -> Graphics {
-    let instance = wgpu::Instance::new(
-      wgpu::InstanceDescriptor {
-        backends,
-        flags: InstanceFlags::empty(),
-        dx12_shader_compiler: Default::default(),
-        gles_minor_version: wgpu::Gles3MinorVersion::Automatic,
-      }
-    );
+  pub async fn new(window: &Window, backends: wgpu::Backends, present_mode: wgpu::PresentMode) -> Graphics {
+    let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+      backends,
+      flags: wgpu::InstanceFlags::empty(),
+      dx12_shader_compiler: Default::default(),
+      gles_minor_version: wgpu::Gles3MinorVersion::Automatic,
+    });
 
     // # Safety
     // The window needs to live as long as the surface created from it. Should be probably safe ^_^
-    let target = unsafe { SurfaceTargetUnsafe::from_window(window) }.expect("Failed to create suface target");
+    let target = unsafe { wgpu::SurfaceTargetUnsafe::from_window(window) }.expect("Failed to create suface target");
     let surface = unsafe { instance.create_surface_unsafe(target) }.expect("Failed to create a surface");
 
-    let adapter = instance.request_adapter(&wgpu::RequestAdapterOptions {
-      power_preference       : PowerPreference::HighPerformance,
-      compatible_surface     : Some(&surface),
-      force_fallback_adapter : false,
-    }).await.expect("Failed to retrive an adapter");
+    #[rustfmt::skip]
+    let adapter = instance
+      .request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference       : PowerPreference::HighPerformance,
+        compatible_surface     : Some(&surface),
+        force_fallback_adapter : false,
+      })
+      .await
+      .expect("Failed to retrive an adapter");
 
     let info = adapter.get_info();
     info!("Selected GPU: {} | ({:?})", info.name, info.device_type);
     info!("Selected backend: {:?}", info.backend);
     info!("Driver: {} | {}", info.driver, info.driver_info);
 
-    let (device, queue) = adapter.request_device(
-      &wgpu::DeviceDescriptor {
-        label: None,
+    let (device, queue) = adapter
+      .request_device(
+        &wgpu::DeviceDescriptor {
+          label: None,
 
-        required_features: wgpu::Features::empty(),
+          required_features: wgpu::Features::empty(),
 
-        // WebGL doesn't support all of wgpu's features, so if
-        // we're building for the web we'll have to disable some.
-        required_limits: {
-          if cfg!(target_arch = "wasm32") {
-            wgpu::Limits::downlevel_webgl2_defaults()
-              .tap_mut(|limits| {
+          // WebGL doesn't support all of wgpu's features, so if
+          // we're building for the web we'll have to disable some.
+          required_limits: {
+            if cfg!(target_arch = "wasm32") {
+              wgpu::Limits::downlevel_webgl2_defaults().tap_mut(|limits| {
                 limits.max_texture_dimension_2d = 8192;
                 limits.max_bind_groups = 8;
               })
-          } else {
-            wgpu::Limits::default()
-              .tap_mut(|limits| {
+            } else {
+              wgpu::Limits::default().tap_mut(|limits| {
                 limits.max_bind_groups = 8;
               })
-          }
+            }
+          },
         },
-      },
-      None, // Trace path
-    ).await.expect("Failed to retrieve a device");
+        None, // Trace path
+      )
+      .await
+      .expect("Failed to retrieve a device");
 
     let surface_caps = surface.get_capabilities(&adapter);
-    let surface_format = surface_caps.formats.iter().copied()
-      .find(|f| f.is_srgb())
-      .unwrap_or(surface_caps.formats[0]);
+    let surface_format = surface_caps.formats.iter().copied().find(|f| f.is_srgb()).unwrap_or(surface_caps.formats[0]);
 
     info!("Surface format: {:?}", surface_format);
 
@@ -91,9 +94,9 @@ impl Graphics {
     assert_ne!(size.width, 0);
     assert_ne!(size.height, 0);
 
-    let present_mode = wgpu::PresentMode::AutoVsync;
     info!("Present mode: {:?}", present_mode);
 
+    #[rustfmt::skip]
     let surface_config = wgpu::SurfaceConfiguration {
       usage        : wgpu::TextureUsages::RENDER_ATTACHMENT,
       format       : surface_format,
@@ -103,7 +106,7 @@ impl Graphics {
       alpha_mode   : surface_caps.alpha_modes[0],
       view_formats : vec![],
 
-      desired_maximum_frame_latency: 1,
+      desired_maximum_frame_latency: 0,
     };
 
     surface.configure(&device, &surface_config);
@@ -111,6 +114,7 @@ impl Graphics {
     let scale = window.scale_factor();
 
     return Graphics {
+      instance,
       device,
       surface,
       queue,

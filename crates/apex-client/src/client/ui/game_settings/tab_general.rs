@@ -1,6 +1,16 @@
 use egui::Widget as _;
 
-use crate::{client::{client::Client, event::ClientEvent, state::{graphics_state::{RenderingBackend, WgpuBackend}, AppState}}, core::core::Core};
+use crate::{
+  client::{
+    client::Client,
+    event::ClientEvent,
+    state::{
+      graphics_state::{FrameLimiterOptions, PresentModeOptions, RenderingBackend, WgpuBackend},
+      AppState,
+    },
+  },
+  core::core::Core,
+};
 
 use super::GameSettingsView;
 
@@ -8,10 +18,7 @@ impl GameSettingsView {
   pub(super) fn general_tab(&mut self, ui: &mut egui::Ui, core: &Core<Client>, state: &mut AppState) {
     use egui_extras::{Column, TableBuilder};
 
-    let text_height = egui::TextStyle::Body
-      .resolve(ui.style()).size
-      .max(ui.spacing().interact_size.y);
-
+    let text_height = egui::TextStyle::Body.resolve(ui.style()).size.max(ui.spacing().interact_size.y);
     let available_width = ui.available_width() - 192.0;
     ui.style_mut().spacing.slider_width = available_width;
 
@@ -28,7 +35,13 @@ impl GameSettingsView {
       });
   }
 
-  fn graphics_category(&mut self, body: &mut egui_extras::TableBody, text_height: f32, core: &Core<Client>, state: &mut AppState) {
+  fn graphics_category(
+    &mut self,
+    body: &mut egui_extras::TableBody,
+    text_height: f32,
+    core: &Core<Client>,
+    state: &mut AppState,
+  ) {
     body.row(text_height + 8.0, |mut row| {
       row.col(|ui| {
         let text = egui::RichText::new("Graphics").strong().heading();
@@ -36,6 +49,54 @@ impl GameSettingsView {
       });
 
       row.col(|_| {});
+    });
+
+    body.row(text_height, |mut row| {
+      row.col(|ui| {
+        ui.label("Present Mode");
+      });
+
+      row.col(|ui| {
+        let selected = &mut state.graphics.present_mode;
+        let available_width = ui.available_width() - 192.0;
+
+        egui::ComboBox::new("present_mode", "")
+          .selected_text(format!("{:?}", selected))
+          .width(available_width)
+          .show_ui(ui, |ui| {
+            if ui.selectable_value(selected, PresentModeOptions::VSync, "VSync").changed()
+              || ui.selectable_value(selected, PresentModeOptions::Immediate, "Immediate").changed()
+            {
+              core.reconfigure_surface_texture();
+            };
+          });
+      });
+    });
+
+    body.row(text_height, |mut row| {
+      row.col(|ui| {
+        ui.label("Frame Limiter");
+      });
+
+      row.col(|ui| {
+        let selected = &mut state.graphics.frame_limiter;
+        let available_width = ui.available_width() - 192.0;
+
+        egui::ComboBox::new("frame_limiter", "")
+          .selected_text(format!("{:?}", selected))
+          .width(available_width)
+          .show_ui(ui, |ui| {
+            if { false }
+              || ui.selectable_value(selected, FrameLimiterOptions::Custom(240), "240 fps").changed()
+              || ui.selectable_value(selected, FrameLimiterOptions::Custom(480), "480 fps").changed()
+              || ui.selectable_value(selected, FrameLimiterOptions::Custom(960), "960 fps").changed()
+              || ui.selectable_value(selected, FrameLimiterOptions::Unlimited, "Unlimited").changed()
+              || ui.selectable_value(selected, FrameLimiterOptions::DisplayLink, "Display Link").changed()
+            {
+              core.update_frame_limiter_configuration();
+            };
+          });
+      });
     });
 
     body.row(text_height, |mut row| {
@@ -51,16 +112,17 @@ impl GameSettingsView {
           .selected_text(format!("{:?}", selected))
           .width(available_width)
           .show_ui(ui, |ui| {
-              if ui.selectable_value(selected, RenderingBackend::Wgpu(WgpuBackend::Auto), "Auto").changed()
+            if { false }
+              || ui.selectable_value(selected, RenderingBackend::Wgpu(WgpuBackend::Auto), "Auto").changed()
               || ui.selectable_value(selected, RenderingBackend::Wgpu(WgpuBackend::Vulkan), "Vulkan").changed()
               || ui.selectable_value(selected, RenderingBackend::Wgpu(WgpuBackend::Metal), "Metal").changed()
               || ui.selectable_value(selected, RenderingBackend::Wgpu(WgpuBackend::Dx12), "DirectX 12").changed()
               || ui.selectable_value(selected, RenderingBackend::Wgpu(WgpuBackend::Gl), "OpenGL").changed()
-              || ui.selectable_value(selected, RenderingBackend::Wgpu(WgpuBackend::WebGpu), "WebGPU").changed() {
-                core.recreate_graphics_context();
-              };
-            }
-          );
+              || ui.selectable_value(selected, RenderingBackend::Wgpu(WgpuBackend::WebGpu), "WebGPU").changed()
+            {
+              core.recreate_graphics_context();
+            };
+          });
       });
     });
   }
@@ -81,13 +143,10 @@ impl GameSettingsView {
       });
 
       row.col(|ui| {
-        egui::Slider::new(&mut state.gameplay.audio_offset, -100 ..= 100)
-          .clamp_to_range(false)
-          .ui(ui);
+        egui::Slider::new(&mut state.gameplay.audio_offset, -100 ..= 100).clamp_to_range(false).ui(ui);
       });
     });
   }
-
 
   fn taiko_category(&mut self, body: &mut egui_extras::TableBody, text_height: f32, state: &mut AppState) {
     body.row(text_height + 8.0, |mut row| {
@@ -96,7 +155,8 @@ impl GameSettingsView {
         egui::Label::new(text).ui(ui);
       });
 
-      row.col(|_| {});    });
+      row.col(|_| {});
+    });
 
     body.row(text_height, |mut row| {
       row.col(|ui| {
@@ -104,9 +164,7 @@ impl GameSettingsView {
       });
 
       row.col(|ui| {
-        let slider = egui::Slider::new(&mut state.taiko.zoom, 0.0 ..= 1.0)
-          .step_by(0.001)
-          .ui(ui);
+        let slider = egui::Slider::new(&mut state.taiko.zoom, 0.0 ..= 1.0).step_by(0.001).ui(ui);
 
         if slider.changed() {
           self.event_bus.send(ClientEvent::RebuildTaikoRendererInstances);
@@ -120,8 +178,7 @@ impl GameSettingsView {
       });
 
       row.col(|ui| {
-        egui::Slider::new(&mut state.taiko.scale, 0.0 ..= 2.0)
-          .ui(ui);
+        egui::Slider::new(&mut state.taiko.scale, 0.0 ..= 2.0).ui(ui);
       });
     });
 
@@ -131,8 +188,7 @@ impl GameSettingsView {
       });
 
       row.col(|ui| {
-        egui::DragValue::new(&mut state.taiko.hit_position_x)
-          .ui(ui);
+        egui::DragValue::new(&mut state.taiko.hit_position_x).ui(ui);
       });
     });
 
@@ -142,8 +198,7 @@ impl GameSettingsView {
       });
 
       row.col(|ui| {
-        egui::DragValue::new(&mut state.taiko.hit_position_y)
-          .ui(ui);
+        egui::DragValue::new(&mut state.taiko.hit_position_y).ui(ui);
       });
     });
 

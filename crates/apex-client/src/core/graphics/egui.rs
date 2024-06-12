@@ -5,12 +5,12 @@ use winit::window::Window;
 use super::graphics::Graphics;
 
 pub struct EguiContext {
-  pub renderer    : egui_wgpu::Renderer,
-  pub screen_desc : egui_wgpu::ScreenDescriptor,
-  pub winit_state : egui_winit::State,
+  pub renderer: egui_wgpu::Renderer,
+  pub screen_desc: egui_wgpu::ScreenDescriptor,
+  pub winit_state: egui_winit::State,
 
-  pub clipped_primitives : Vec<ClippedPrimitive>,
-  pub commands           : Vec<wgpu::CommandBuffer>,
+  pub clipped_primitives: Vec<ClippedPrimitive>,
+  pub commands: Vec<wgpu::CommandBuffer>,
 }
 
 impl EguiContext {
@@ -18,8 +18,8 @@ impl EguiContext {
     let context = egui::Context::default();
     let renderer = egui_wgpu::Renderer::new(&graphics.device, graphics.format, None, 1);
     let screen_desc = egui_wgpu::ScreenDescriptor {
-      size_in_pixels   : [graphics.size.width, graphics.size.height],
-      pixels_per_point : graphics.scale as f32,
+      size_in_pixels: [graphics.size.width, graphics.size.height],
+      pixels_per_point: graphics.scale as f32,
     };
 
     let winit_state = egui_winit::State::new(
@@ -37,9 +37,9 @@ impl EguiContext {
       screen_desc,
       winit_state,
 
-      clipped_primitives : Vec::new(),
-      commands           : Vec::new(),
-    }
+      clipped_primitives: Vec::new(),
+      commands: Vec::new(),
+    };
   }
 
   pub fn egui_ctx(&self) -> &egui::Context {
@@ -61,23 +61,12 @@ impl EguiContext {
 
     // Upload textures
     for (id, image_delta) in &egui_output.textures_delta.set {
-      self.renderer.update_texture(
-        &graphics.device,
-        &graphics.queue,
-        *id,
-        image_delta,
-      );
+      self.renderer.update_texture(&graphics.device, &graphics.queue, *id, image_delta);
     }
 
     // Generate vertices and render commands
-    let clipped_primitives = self.winit_state.egui_ctx().tessellate(egui_output.shapes, self.screen_desc.pixels_per_point);
-    let commands = self.renderer.update_buffers(
-      &graphics.device,
-      &graphics.queue,
-      encoder,
-      &clipped_primitives,
-      &self.screen_desc,
-    );
+    #[rustfmt::skip] let clipped_primitives = self.winit_state.egui_ctx().tessellate(egui_output.shapes, self.screen_desc.pixels_per_point);
+    #[rustfmt::skip] let commands = self.renderer.update_buffers(&graphics.device, &graphics.queue, encoder, &clipped_primitives, &self.screen_desc);
 
     self.clipped_primitives = clipped_primitives;
     self.commands = commands;

@@ -1,8 +1,12 @@
 use bytemuck::{Pod, Zeroable};
 use glam::{vec3, Vec2, Vec3};
 
-use crate::core::{graphics::{color::Color, instance::Instance}, time::time::Time};
+use crate::core::{
+  graphics::{color::Color, instance::Instance},
+  time::time::Time,
+};
 
+#[rustfmt::skip]
 #[repr(C)]
 #[derive(Copy, Clone, Pod, Zeroable)]
 pub struct BakedHitObjectModel {
@@ -13,6 +17,7 @@ pub struct BakedHitObjectModel {
   pub hit         : f32,
 }
 
+#[rustfmt::skip]
 pub struct HitObjectModel {
   pub time     : f32,
   pub size     : Vec2,
@@ -36,7 +41,7 @@ impl HitObjectModel {
     wgpu::VertexBufferLayout {
       array_stride: mem::size_of::<BakedHitObjectModel>() as wgpu::BufferAddress,
       step_mode: wgpu::VertexStepMode::Instance,
-      attributes: &Self::ATTRIBS
+      attributes: &Self::ATTRIBS,
     }
   }
 }
@@ -45,6 +50,7 @@ impl Instance for HitObjectModel {
   type Baked = BakedHitObjectModel;
 
   fn bake(&self) -> Self::Baked {
+    #[rustfmt::skip]
     return BakedHitObjectModel {
       size_offset : vec3(self.size.x / self.velocity, self.size.y, self.time),
       velocity    : self.velocity,

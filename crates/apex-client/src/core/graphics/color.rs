@@ -32,6 +32,7 @@ impl Color {
   }
 
   /// Format: 0xRRGGBB
+  #[rustfmt::skip]
   #[allow(clippy::identity_op)]
   pub fn from_hex(value: u32) -> Self {
     let r = ((value >> 16) & 255) as f32 / 255.0;
@@ -41,6 +42,7 @@ impl Color {
   }
 
   /// Format: 0xRRGGBBAA
+  #[rustfmt::skip]
   #[allow(clippy::identity_op)]
   pub fn from_hex_alpha(value: u32) -> Self {
     let r = ((value >> 25) & 255) as f32 / 255.0;

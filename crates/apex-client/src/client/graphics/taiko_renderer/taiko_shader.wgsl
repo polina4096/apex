@@ -70,8 +70,8 @@ fn vs_main(
 
 
         if (p * instance.velocity).x - (h * instance.velocity).x < 0.0 {
-            let height = 15.0;
-            let intensity = 0.4;
+            let height = 12.5;
+            let intensity = 0.36;
 
             offset = pow((p.x - h.x) * intensity + height, 2.0) * -1.0 + (height * height);
         } else {

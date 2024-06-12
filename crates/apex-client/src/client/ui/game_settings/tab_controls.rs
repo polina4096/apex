@@ -2,7 +2,10 @@ use std::fmt::Write as _;
 
 use egui::Widget as _;
 
-use crate::{client::input::client_action::ClientAction, core::input::{bind::KeyCombination, Input}};
+use crate::{
+  client::input::client_action::ClientAction,
+  core::input::{bind::KeyCombination, Input},
+};
 
 use super::GameSettingsView;
 
@@ -10,10 +13,7 @@ impl GameSettingsView {
   pub(super) fn controls_tab(&mut self, ui: &mut egui::Ui, input: &mut Input<ClientAction>) {
     use egui_extras::{Column, TableBuilder};
 
-    let text_height = egui::TextStyle::Body
-      .resolve(ui.style()).size
-      .max(ui.spacing().interact_size.y);
-
+    let text_height = egui::TextStyle::Body.resolve(ui.style()).size.max(ui.spacing().interact_size.y);
     let available_height = ui.available_height();
 
     TableBuilder::new(ui)

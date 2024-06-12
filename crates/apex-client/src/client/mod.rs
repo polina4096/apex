@@ -1,9 +1,9 @@
 pub mod client;
-pub mod state;
 pub mod event;
-pub mod input;
-pub mod graphics;
 pub mod gameplay;
+pub mod graphics;
+pub mod input;
 pub mod screen;
+pub mod state;
 pub mod ui;
 pub mod util;

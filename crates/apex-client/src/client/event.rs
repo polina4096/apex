@@ -4,9 +4,7 @@ use std::path::PathBuf;
 pub enum ClientEvent {
   RetryBeatmap,
   ToggleSettings,
-  SelectBeatmap {
-    path: PathBuf,
-  },
+  SelectBeatmap { path: PathBuf },
 
   // TODO: this probably shouldn't be here
   RebuildTaikoRendererInstances,

@@ -1,4 +1,7 @@
-use std::{path::{Path, PathBuf}, str::FromStr};
+use std::{
+  path::{Path, PathBuf},
+  str::FromStr,
+};
 
 use fxhash::FxBuildHasher;
 use indexmap::IndexMap;
@@ -65,31 +68,34 @@ impl<T: AsRef<str>> From<T> for BeatmapInfo {
 
       match category {
         Some("[Events]") => {
-          if line.contains(".jpg")
-          || line.contains(".jpeg")
-          || line.contains(".png") {
-            let Some(bg_path) = line.split("\"").nth(1) else { continue };
+          if line.contains(".jpg") || line.contains(".jpeg") || line.contains(".png") {
+            let Some(bg_path) = line.split("\"").nth(1) else {
+              continue;
+            };
+
             beatmap_info.bg_path = bg_path.into();
           }
         }
 
         Some("[Metadata]") => {
           let mut parts = line.split(':');
-          let Some(key) = parts.next() else { continue };
+          let Some(key) = parts.next() else {
+            continue;
+          };
 
+          #[rustfmt::skip]
           match key {
             "Title"   => if let Some(x) = parts.next() { x.clone_into(&mut beatmap_info.title); }
             "Artist"  => if let Some(x) = parts.next() { x.clone_into(&mut beatmap_info.artist); }
             "Creator" => if let Some(x) = parts.next() { x.clone_into(&mut beatmap_info.creator); }
             "Version" => if let Some(x) = parts.next() { x.clone_into(&mut beatmap_info.variant); }
 
-            _ => { }
-          }
+            _ => {}
+          };
         }
 
-        _ => { }
+        _ => {}
       }
-
     }
 
     return beatmap_info;
@@ -102,9 +108,7 @@ pub struct BeatmapCache {
 
 impl BeatmapCache {
   pub fn new() -> Self {
-    return Self {
-      cache: IndexMap::default(),
-    };
+    return Self { cache: IndexMap::default() };
   }
   pub fn load_beatmaps(&mut self, path: impl AsRef<Path>) {
     let path = path.as_ref();
@@ -166,7 +170,7 @@ impl BeatmapCache {
     return self.cache.get_index(idx);
   }
 
-  pub fn iter(&self) -> impl Iterator<Item = (&PathBuf, &BeatmapInfo)>{
+  pub fn iter(&self) -> impl Iterator<Item = (&PathBuf, &BeatmapInfo)> {
     return self.cache.iter();
   }
 }

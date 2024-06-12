@@ -3,6 +3,7 @@ use glam::{vec3, Mat4, Quat, Vec3};
 
 use crate::core::graphics::{color::Color, instance::Instance};
 
+#[rustfmt::skip]
 #[derive(Copy, Clone)]
 pub struct QuadModel {
   pub position : Vec3,
@@ -11,11 +12,12 @@ pub struct QuadModel {
   pub color    : Color,
 }
 
+#[rustfmt::skip]
 #[repr(C)]
 #[derive(Copy, Clone, Pod, Zeroable)]
 pub struct BakedModel {
-  pub model: Mat4,
-  pub color: Color,
+  pub model : Mat4,
+  pub color : Color,
 }
 
 impl QuadModel {
@@ -58,9 +60,10 @@ impl Instance for QuadModel {
   type Baked = BakedModel;
 
   fn bake(&self) -> Self::Baked {
-    let model = Mat4::from_translation(self.position)
-              * Mat4::from_scale(vec3(self.scale.x, self.scale.y, self.scale.z))
-              * Mat4::from_rotation_translation(self.rotation, Vec3::ONE);
+    #[rustfmt::skip] let model
+      = Mat4::from_translation(self.position)
+      * Mat4::from_scale(vec3(self.scale.x, self.scale.y, self.scale.z))
+      * Mat4::from_rotation_translation(self.rotation, Vec3::ONE);
 
     return BakedModel { model, color: self.color };
   }

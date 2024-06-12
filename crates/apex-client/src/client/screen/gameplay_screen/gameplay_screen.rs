@@ -2,7 +2,27 @@ use std::{fs::File, io::BufReader, path::Path};
 
 use rodio::{Decoder, OutputStream, OutputStreamHandle, Sink, Source as _};
 
-use crate::{client::{client::Client, gameplay::{beatmap::Beatmap, score_processor::{ScoreProcessor, ScoreProcessorEvent}, taiko_player::{TaikoPlayer, TaikoPlayerInput}}, graphics::taiko_renderer::taiko_renderer::TaikoRenderer, state::AppState, ui::ingame_overlay::{HitResult, IngameOverlayView}}, core::{core::Core, graphics::{drawable::Drawable, graphics::Graphics}, time::{clock::{AbstractClock, Clock}, time::Time}}};
+use crate::{
+  client::{
+    client::Client,
+    gameplay::{
+      beatmap::Beatmap,
+      score_processor::{ScoreProcessor, ScoreProcessorEvent},
+      taiko_player::{TaikoPlayer, TaikoPlayerInput},
+    },
+    graphics::taiko_renderer::taiko_renderer::TaikoRenderer,
+    state::AppState,
+    ui::ingame_overlay::{HitResult, IngameOverlayView},
+  },
+  core::{
+    core::Core,
+    graphics::{drawable::Drawable, graphics::Graphics},
+    time::{
+      clock::{AbstractClock, Clock},
+      time::Time,
+    },
+  },
+};
 
 use super::gameplay_playback_controller::GameplayPlaybackController;
 
@@ -126,11 +146,16 @@ impl GameplayScreen {
     }
 
     self.taiko_renderer.prepare(&core.graphics, time, state);
-    self.ingame_overlay.prepare(core, GameplayPlaybackController {
-      taiko_renderer: &mut self.taiko_renderer,
-      clock: &mut self.clock,
-      sink: &mut self.sink,
-    }, &self.score, state);
+    self.ingame_overlay.prepare(
+      core,
+      GameplayPlaybackController {
+        taiko_renderer: &mut self.taiko_renderer,
+        clock: &mut self.clock,
+        sink: &mut self.sink,
+      },
+      &self.score,
+      state,
+    );
   }
 
   pub fn render<'rpass>(&'rpass self, rpass: &mut wgpu::RenderPass<'rpass>) {

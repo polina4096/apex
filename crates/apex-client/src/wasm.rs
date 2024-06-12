@@ -1,13 +1,16 @@
-#[cfg(target_arch="wasm32")]
+#[cfg(target_arch = "wasm32")]
 pub mod wasm {
   use log::info;
-use wasm_bindgen::prelude::*;
+  use wasm_bindgen::prelude::*;
 
-  use winit::{event_loop::{ControlFlow, EventLoopBuilder}, window::WindowBuilder};
+  use winit::{
+    event_loop::{ControlFlow, EventLoopBuilder},
+    window::WindowBuilder,
+  };
 
   use crate::{client::event::ClientEvent, core::event::CoreEvent};
 
-  #[cfg_attr(target_arch="wasm32", wasm_bindgen(start))]
+  #[cfg_attr(target_arch = "wasm32", wasm_bindgen(start))]
   pub fn wasm_main() {
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
     console_log::init_with_level(log::Level::Info).expect("Failed to initialize logger");
@@ -29,8 +32,8 @@ use wasm_bindgen::prelude::*;
     let closure = wasm_bindgen::closure::Closure::wrap(Box::new(move |_: web_sys::Event| {
       let web_window = web_sys::window().expect("Failed to get web window object");
       let size = winit::dpi::LogicalSize::new(
-          web_window.inner_width().unwrap().as_f64().unwrap(),
-          web_window.inner_height().unwrap().as_f64().unwrap(),
+        web_window.inner_width().unwrap().as_f64().unwrap(),
+        web_window.inner_height().unwrap().as_f64().unwrap(),
       );
 
       unsafe {

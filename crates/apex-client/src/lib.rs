@@ -1,14 +1,29 @@
 #![feature(map_many_mut)]
 
-use core::{core::Core, event::{CoreEvent, EventBus}, graphics::{drawable::Drawable as _, egui::EguiContext, graphics::Graphics}};
+use core::{
+  core::Core,
+  event::{CoreEvent, EventBus},
+  graphics::{drawable::Drawable as _, egui::EguiContext, graphics::Graphics},
+};
+use std::sync::Arc;
 
-use client::{client::Client, event::ClientEvent, state::{graphics_state::RenderingBackend, AppState}};
-use instant::Instant;
+use client::{
+  client::Client,
+  event::ClientEvent,
+  state::{
+    graphics_state::{FrameLimiterOptions, RenderingBackend},
+    AppState,
+  },
+  util::frame_limiter::FrameLimiter,
+};
 use log::warn;
 use pollster::FutureExt as _;
 use wgpu::rwh::HasDisplayHandle;
 use winit::{
-  dpi::LogicalSize, event::{Event, WindowEvent}, event_loop::{ControlFlow, EventLoop, EventLoopBuilder}, window::{Window, WindowBuilder}
+  dpi::LogicalSize,
+  event::{Event, WindowEvent},
+  event_loop::{ControlFlow, EventLoop, EventLoopBuilder},
+  window::{Window, WindowBuilder},
 };
 
 pub mod client;
@@ -26,31 +41,28 @@ pub fn setup() -> (EventLoop<CoreEvent<ClientEvent>>, Window) {
     .expect("Failed to create window");
 
   event_loop.set_control_flow(ControlFlow::Poll);
+
   return (event_loop, window);
 }
 
 pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> color_eyre::Result<()> {
-  event_loop.set_control_flow(ControlFlow::Poll);
-
+  let window = Arc::new(window);
   let app_state = AppState::default();
   let mut core = Core::new(&event_loop, &window, &app_state);
   let mut client = Client::new(&mut core, app_state, EventBus::new(event_loop.create_proxy()));
 
-  let mut app_focus = false;
-  let mut last_frame = Instant::now();
+  let external_sync = client.app_state.graphics.frame_limiter == FrameLimiterOptions::DisplayLink;
+  let is_unlimited = client.app_state.graphics.frame_limiter == FrameLimiterOptions::Unlimited;
+  let target_fps = match client.app_state.graphics.frame_limiter {
+    FrameLimiterOptions::Custom(fps) => fps as u16,
+    _ => 120,
+  };
+
+  let mut frame_limiter = FrameLimiter::new(external_sync, is_unlimited, target_fps);
+
+  window.request_redraw();
 
   event_loop.run(|event, elwt| {
-    // TODO: provide a way to select vsync/limiter
-    // if !app_focus || !window.is_visible().unwrap_or(false) {
-      let now = Instant::now();
-      if now.duration_since(last_frame).as_micros() >= (1000 * 1000) / 120 {
-        window.request_redraw();
-        last_frame = now;
-      }
-    // } else {
-    //   window.request_redraw();
-    // }
-
     match event {
       Event::UserEvent(event) => {
         match event {
@@ -59,12 +71,39 @@ pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> col
           }
 
           CoreEvent::RecreateGraphicsContext => {
-            let RenderingBackend::Wgpu(backend) = client.app_state.graphics.rendering_backend else { todo!() };
-            core.graphics = Graphics::new(core.window, backend.into()).block_on();
+            let RenderingBackend::Wgpu(backend) = client.app_state.graphics.rendering_backend else {
+              todo!()
+            };
+            core.graphics =
+              Graphics::new(core.window, backend.into(), client.app_state.graphics.present_mode.into()).block_on();
 
             let display_handle = elwt.display_handle().unwrap();
             core.egui_ctx = EguiContext::new(&display_handle, &core.graphics);
             client.recreate(&core.graphics);
+          }
+
+          CoreEvent::ReconfigureSurfaceTexture => {
+            core.graphics.config.present_mode = client.app_state.graphics.present_mode.into();
+            core.graphics.surface.configure(&core.graphics.device, &core.graphics.config);
+          }
+
+          CoreEvent::UpdateFrameLimiterConfiguration => {
+            match client.app_state.graphics.frame_limiter {
+              FrameLimiterOptions::Custom(fps) => {
+                frame_limiter.disable_external_sync();
+                frame_limiter.set_unlimited(false);
+                frame_limiter.set_target_fps(fps as u16);
+              }
+
+              FrameLimiterOptions::DisplayLink => {
+                frame_limiter.enable_external_sync(window.clone());
+              }
+
+              FrameLimiterOptions::Unlimited => {
+                frame_limiter.disable_external_sync();
+                frame_limiter.set_unlimited(true);
+              }
+            }
           }
 
           CoreEvent::User(event) => {
@@ -73,12 +112,12 @@ pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> col
         }
       }
 
+      Event::AboutToWait => {
+        frame_limiter.request_redraw(&window);
+      }
+
       Event::WindowEvent { event, .. } => {
-        if core.egui_ctx
-          .winit_state
-          .on_window_event(&window, &event)
-          .consumed
-        {
+        if core.egui_ctx.winit_state.on_window_event(&window, &event).consumed {
           return;
         }
 
@@ -88,7 +127,7 @@ pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> col
           }
 
           WindowEvent::Focused(focused) => {
-            app_focus = focused;
+            frame_limiter.update_focus(focused);
           }
 
           WindowEvent::KeyboardInput { event, .. } => {
@@ -122,12 +161,11 @@ pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> col
             }
           }
 
-          _ => { }
+          _ => {}
         }
-
       }
 
-      _ => { }
+      _ => {}
     }
   })?;
 

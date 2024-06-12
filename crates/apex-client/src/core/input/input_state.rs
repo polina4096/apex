@@ -2,10 +2,10 @@ use winit::keyboard::{ModifiersState, NativeKeyCode, PhysicalKey};
 
 pub struct InputState {
   /// The last key combination that was pressed.
-  pub last_pressed : PhysicalKey,
+  pub last_pressed: PhysicalKey,
 
   /// The current state of the keyboard modifiers.
-  pub modifiers : ModifiersState,
+  pub modifiers: ModifiersState,
 }
 
 impl Default for InputState {

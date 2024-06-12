@@ -1,11 +1,11 @@
 use crate::core::time::time::Time;
 
+#[rustfmt::skip]
 #[derive(Clone, Default)]
 pub struct TaikoHitObject {
   pub time  : Time,
-
-  pub big   : bool,
   pub color : TaikoColor,
+  pub big   : bool,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
@@ -21,5 +21,13 @@ impl TaikoColor {
       TaikoColor::Kat => *self = TaikoColor::Don,
       TaikoColor::Don => *self = TaikoColor::Kat,
     }
+  }
+
+  pub fn is_don(&self) -> bool {
+    return *self == TaikoColor::Don;
+  }
+
+  pub fn is_kat(&self) -> bool {
+    return *self == TaikoColor::Kat;
   }
 }

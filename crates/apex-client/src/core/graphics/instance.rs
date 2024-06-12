@@ -1,7 +1,7 @@
 use bytemuck::{Pod, Zeroable};
 
 pub trait Instance {
-    type Baked: Pod + Zeroable;
+  type Baked: Pod + Zeroable;
 
-    fn bake(&self) -> Self::Baked;
+  fn bake(&self) -> Self::Baked;
 }

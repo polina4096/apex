@@ -32,9 +32,7 @@ pub struct TaikoPlayer {
 
 impl TaikoPlayer {
   pub fn new() -> Self {
-    return Self {
-      current_circle: 0,
-    };
+    return Self { current_circle: 0 };
   }
 
   /// Reset the player's state to default, call when starting a new play.
@@ -63,7 +61,13 @@ impl TaikoPlayer {
     }
   }
 
-  pub fn hit(&mut self, hit_time: Time, input: TaikoPlayerInput, beatmap: &Beatmap, on_hit: impl FnOnce(HitResult, usize)) {
+  pub fn hit(
+    &mut self,
+    hit_time: Time,
+    input: TaikoPlayerInput,
+    beatmap: &Beatmap,
+    on_hit: impl FnOnce(HitResult, usize),
+  ) {
     let audio_offset = 0.0;
     let audio_offset = Time::from_seconds(audio_offset / 1000.0);
 

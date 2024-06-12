@@ -1,2 +1,2 @@
-pub mod taiko_renderer;
 pub mod data;
+pub mod taiko_renderer;

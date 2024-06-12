@@ -1,2 +1,2 @@
-pub mod quad_renderer;
 pub mod data;
+pub mod quad_renderer;

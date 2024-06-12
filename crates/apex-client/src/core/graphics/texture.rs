@@ -4,6 +4,7 @@ use image::{DynamicImage, GenericImageView};
 
 use super::{bindable::Bindable, drawable::Drawable, graphics::Graphics};
 
+#[rustfmt::skip]
 pub struct Texture {
   pub data         : Vec<u8>,
   pub texture      : wgpu::Texture,
@@ -16,20 +17,20 @@ pub struct Texture {
 impl Texture {
   // TODO: proper error handling
   pub fn from_memory(bytes: &[u8], graphics: &Graphics) -> Result<Self, ()> {
-      let Ok(image) = image::load_from_memory(bytes) else { Err(())? };
-      return Ok(Self::from_image(image, graphics));
+    #[rustfmt::skip] let Ok(image) = image::load_from_memory(bytes) else { Err(())? };
+    return Ok(Self::from_image(image, graphics));
   }
 
   pub fn from_path(path: impl AsRef<Path>, graphics: &Graphics) -> Result<Self, ()> {
-      let Ok(image) = image::open(path) else { Err(())? };
-      return Ok(Self::from_image(image, graphics));
+    let Ok(image) = image::open(path) else { Err(())? };
+    return Ok(Self::from_image(image, graphics));
   }
 
   pub fn from_image(image: DynamicImage, graphics: &Graphics) -> Self {
-      let dimensions = image.dimensions();
-      let rgba_data = image.to_rgba8();
+    let dimensions = image.dimensions();
+    let rgba_data = image.to_rgba8();
 
-      return Self::from_bytes(&rgba_data, dimensions, graphics);
+    return Self::from_bytes(&rgba_data, dimensions, graphics);
   }
 
   pub fn from_bytes(data: &[u8], dimensions: (u32, u32), graphics: &Graphics) -> Self {
@@ -40,18 +41,16 @@ impl Texture {
     };
 
     // Instantiate the texture resource on the GPU side
-    let texture = graphics.device.create_texture(
-      &wgpu::TextureDescriptor {
-        size,
-        mip_level_count : 1,
-        sample_count    : 1,
-        dimension       : wgpu::TextureDimension::D2,
-        format          : wgpu::TextureFormat::Rgba8UnormSrgb,
-        usage           : wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-        label           : Some("diffuse_texture"),
-        view_formats    : &[],
-      }
-    );
+    let texture = graphics.device.create_texture(&wgpu::TextureDescriptor {
+      size,
+      mip_level_count: 1,
+      sample_count: 1,
+      dimension: wgpu::TextureDimension::D2,
+      format: wgpu::TextureFormat::Rgba8UnormSrgb,
+      usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+      label: Some("diffuse_texture"),
+      view_formats: &[],
+    });
 
     // Upload texture to GPU
     graphics.queue.write_texture(
@@ -67,24 +66,23 @@ impl Texture {
         bytes_per_row: Some(4 * dimensions.0),
         rows_per_image: Some(dimensions.1),
       },
-      size
+      size,
     );
 
     // Prepare the view and sampler
     let texture_view = texture.create_view(&wgpu::TextureViewDescriptor {
       label: None, // TODO: use filename from path
-      .. Default::default()
+      ..Default::default()
     });
 
-
     let sampler = graphics.device.create_sampler(&wgpu::SamplerDescriptor {
-      address_mode_u : wgpu::AddressMode::ClampToEdge,
-      address_mode_v : wgpu::AddressMode::ClampToEdge,
-      address_mode_w : wgpu::AddressMode::ClampToEdge,
-      mag_filter     : wgpu::FilterMode::Linear,
-      min_filter     : wgpu::FilterMode::Nearest,
-      mipmap_filter  : wgpu::FilterMode::Nearest,
-      .. Default::default()
+      address_mode_u: wgpu::AddressMode::ClampToEdge,
+      address_mode_v: wgpu::AddressMode::ClampToEdge,
+      address_mode_w: wgpu::AddressMode::ClampToEdge,
+      mag_filter: wgpu::FilterMode::Linear,
+      min_filter: wgpu::FilterMode::Nearest,
+      mipmap_filter: wgpu::FilterMode::Nearest,
+      ..Default::default()
     });
 
     let texture_layout = graphics.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -110,22 +108,20 @@ impl Texture {
     });
 
     // Bind group
-    let bind_group = graphics.device.create_bind_group(
-      &wgpu::BindGroupDescriptor {
-        layout: &texture_layout,
-        entries: &[
-          wgpu::BindGroupEntry {
-            binding: 0,
-            resource: wgpu::BindingResource::TextureView(&texture_view),
-          },
-          wgpu::BindGroupEntry {
-            binding: 1,
-            resource: wgpu::BindingResource::Sampler(&sampler),
-          }
-        ],
-        label: Some("texture_bind_group"),
-      }
-    );
+    let bind_group = graphics.device.create_bind_group(&wgpu::BindGroupDescriptor {
+      layout: &texture_layout,
+      entries: &[
+        wgpu::BindGroupEntry {
+          binding: 0,
+          resource: wgpu::BindingResource::TextureView(&texture_view),
+        },
+        wgpu::BindGroupEntry {
+          binding: 1,
+          resource: wgpu::BindingResource::Sampler(&sampler),
+        },
+      ],
+      label: Some("texture_bind_group"),
+    });
 
     return Self {
       data: data.to_vec(),
@@ -163,7 +159,7 @@ impl Texture {
         bytes_per_row: Some(4 * dimensions.0),
         rows_per_image: Some(dimensions.1),
       },
-      size
+      size,
     );
   }
 }

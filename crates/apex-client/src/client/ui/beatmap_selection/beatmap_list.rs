@@ -1,6 +1,9 @@
 use egui::Widget;
 
-use crate::{client::{event::ClientEvent, gameplay::beatmap_cache::BeatmapCache, util::beatmap_selector::BeatmapSelector}, core::event::EventBus};
+use crate::{
+  client::{event::ClientEvent, gameplay::beatmap_cache::BeatmapCache, util::beatmap_selector::BeatmapSelector},
+  core::event::EventBus,
+};
 
 use super::beatmap_card::BeatmapCard;
 
@@ -25,22 +28,21 @@ impl BeatmapList {
       .inner_margin(egui::Margin {
         left: 12.0,
         right: 12.0,
-        .. Default::default()
+        ..Default::default()
       })
       .show(ui, |ui| {
         ui.set_height(ui.available_height());
         ui.set_width(ui.available_width());
 
         egui::Window::new("search_bar_window")
-          .frame(egui::Frame::window(ui.style())
-            .inner_margin(egui::Margin::symmetric(8.0, 6.0))
-            .outer_margin(egui::Margin {
+          .frame(egui::Frame::window(ui.style()).inner_margin(egui::Margin::symmetric(8.0, 6.0)).outer_margin(
+            egui::Margin {
               top: 8.0,
               bottom: 8.0,
               right: 11.75,
-              .. Default::default()
-            })
-          )
+              ..Default::default()
+            },
+          ))
           .fixed_size(egui::vec2(ui.available_width() - 16.0, 0.0))
           .anchor(egui::Align2::RIGHT_TOP, egui::Vec2::ZERO)
           .collapsible(false)

@@ -1,6 +1,14 @@
 use instant::Instant;
 
-use crate::{client::{client::Client, gameplay::{score_processor::ScoreProcessor, taiko_player::TaikoPlayerInput}, state::AppState, util::playback_controller::PlaybackController}, core::core::Core};
+use crate::{
+  client::{
+    client::Client,
+    gameplay::{score_processor::ScoreProcessor, taiko_player::TaikoPlayerInput},
+    state::AppState,
+    util::playback_controller::PlaybackController,
+  },
+  core::core::Core,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HitResult {
@@ -60,10 +68,16 @@ impl IngameOverlayView {
     }
   }
 
-  pub fn prepare(&mut self, core: &mut Core<Client>, mut playback: impl PlaybackController, score: &ScoreProcessor, state: &AppState) {
-    egui::CentralPanel::default()
-      .frame(egui::Frame::none().inner_margin(egui::Margin::same(8.0)))
-      .show(core.egui_ctx(), |ui| {
+  pub fn prepare(
+    &mut self,
+    core: &mut Core<Client>,
+    mut playback: impl PlaybackController,
+    score: &ScoreProcessor,
+    state: &AppState,
+  ) {
+    egui::CentralPanel::default().frame(egui::Frame::none().inner_margin(egui::Margin::same(8.0))).show(
+      core.egui_ctx(),
+      |ui| {
         let max_height = ui.available_height();
 
         let painter = ui.painter();
@@ -80,7 +94,10 @@ impl IngameOverlayView {
           let value = elapsed.min(fade) / fade * max_brightness as f32;
 
           let size = egui::vec2(32.0, 32.0);
-          let pos = egui::pos2(state.taiko.hit_position_x + i * (4.0 + size.x) - 2.0 * (4.0 + size.x), state.taiko.hit_position_y + 70.0);
+          let pos = egui::pos2(
+            state.taiko.hit_position_x + i * (4.0 + size.x) - 2.0 * (4.0 + size.x),
+            state.taiko.hit_position_y + 70.0,
+          );
 
           painter.rect(
             egui::Rect::from_min_size(pos, size),
@@ -106,6 +123,7 @@ impl IngameOverlayView {
           let value = elapsed.min(fade) / fade * max_brightness as f32;
           let value = max_brightness + base_brightness - value.round() as u8;
 
+          #[rustfmt::skip]
           let color = match self.last_hit_result_kind {
             HitResult::Hit100 => egui::Color32::from_rgba_unmultiplied( 60, 185, 255, value),
             HitResult::Miss   => egui::Color32::from_rgba_unmultiplied(255,  20,  60, value),
@@ -116,7 +134,12 @@ impl IngameOverlayView {
           let value = elapsed.min(0.125) * 1.25;
           let value = 1.05 + value;
 
-          painter.circle(egui::pos2(state.taiko.hit_position_x, state.taiko.hit_position_y), 64.0 * 0.55 * value, color, egui::Stroke::NONE);
+          painter.circle(
+            egui::pos2(state.taiko.hit_position_x, state.taiko.hit_position_y),
+            64.0 * 0.55 * value,
+            color,
+            egui::Stroke::NONE,
+          );
         }
 
         ui.with_layout(egui::Layout::top_down(egui::Align::Max), |ui| {
@@ -210,6 +233,7 @@ impl IngameOverlayView {
 
           ui.label(egui::RichText::new(format!("{}", playback.position())).size(16.0));
         });
-      });
+      },
+    );
   }
 }

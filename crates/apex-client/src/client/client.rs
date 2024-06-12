@@ -1,10 +1,31 @@
 use log::error;
 use tap::Tap;
-use winit::{event::{KeyEvent, Modifiers}, keyboard::{KeyCode, ModifiersState, PhysicalKey}};
+use winit::{
+  event::{KeyEvent, Modifiers},
+  keyboard::{KeyCode, ModifiersState, PhysicalKey},
+};
 
-use crate::core::{app::App, core::Core, event::EventBus, graphics::{drawable::Drawable, graphics::Graphics}, input::{bind::{Bind, KeyCombination}, Input}};
+use crate::core::{
+  app::App,
+  core::Core,
+  event::EventBus,
+  graphics::{drawable::Drawable, graphics::Graphics},
+  input::{
+    bind::{Bind, KeyCombination},
+    Input,
+  },
+};
 
-use super::{event::ClientEvent, gameplay::{beatmap_cache::BeatmapCache, taiko_player::TaikoPlayerInput}, input::client_action::ClientAction, screen::{gameplay_screen::gameplay_screen::GameplayScreen, selection_screen::selection_screen::SelectionScreen, settings_screen::settings_screen::SettingsScreen}, state::AppState};
+use super::{
+  event::ClientEvent,
+  gameplay::{beatmap_cache::BeatmapCache, taiko_player::TaikoPlayerInput},
+  input::client_action::ClientAction,
+  screen::{
+    gameplay_screen::gameplay_screen::GameplayScreen, selection_screen::selection_screen::SelectionScreen,
+    settings_screen::settings_screen::SettingsScreen,
+  },
+  state::AppState,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LogicalState {
@@ -49,8 +70,7 @@ impl App for Client {
   fn render<'rpass>(&'rpass self, core: &'rpass mut Core<Self>, rpass: &mut wgpu::RenderPass<'rpass>) {
     // Draw wgpu
     match self.game_state {
-      LogicalState::Selection => {
-      }
+      LogicalState::Selection => {}
 
       LogicalState::Playing => {
         self.gameplay_screen.render(rpass);
@@ -86,7 +106,7 @@ impl Client {
         id: ClientAction::Settings,
         name: String::from("Settings"),
         description: String::from("Open settings menu"),
-      }
+      },
     );
 
     input.keybinds.add(
@@ -95,7 +115,7 @@ impl Client {
         id: ClientAction::Back,
         name: String::from("Back"),
         description: String::from("Return to the previous state"),
-      }
+      },
     );
 
     input.keybinds.add(
@@ -104,7 +124,7 @@ impl Client {
         id: ClientAction::Select,
         name: String::from("Select"),
         description: String::from("Pick selected element"),
-      }
+      },
     );
 
     input.keybinds.add(
@@ -113,7 +133,7 @@ impl Client {
         id: ClientAction::Retry,
         name: String::from("Retry"),
         description: String::from("Replay a beatmap from the beginning"),
-      }
+      },
     );
 
     input.keybinds.add(
@@ -122,7 +142,7 @@ impl Client {
         id: ClientAction::Next,
         name: String::from("Next"),
         description: String::from("Select next element"),
-      }
+      },
     );
 
     input.keybinds.add(
@@ -131,7 +151,7 @@ impl Client {
         id: ClientAction::Prev,
         name: String::from("Previous"),
         description: String::from("Select previous element"),
-      }
+      },
     );
 
     // Gameplay control
@@ -141,7 +161,7 @@ impl Client {
         id: ClientAction::KatOne,
         name: String::from("Kat 1"),
         description: String::from("Kat (blue)"),
-      }
+      },
     );
 
     input.keybinds.add(
@@ -150,7 +170,7 @@ impl Client {
         id: ClientAction::KatTwo,
         name: String::from("Kat 2"),
         description: String::from("Kat (blue)"),
-      }
+      },
     );
 
     input.keybinds.add(
@@ -159,7 +179,7 @@ impl Client {
         id: ClientAction::DonOne,
         name: String::from("Don 1"),
         description: String::from("Don (red)"),
-      }
+      },
     );
 
     input.keybinds.add(
@@ -168,7 +188,7 @@ impl Client {
         id: ClientAction::DonTwo,
         name: String::from("Don 2"),
         description: String::from("Don (red)"),
-      }
+      },
     );
 
     let game_state = LogicalState::Selection;
@@ -194,14 +214,16 @@ impl Client {
   }
 
   pub fn input(&mut self, core: &mut Core<Self>, event: KeyEvent) {
-    if event.physical_key != PhysicalKey::Code(KeyCode::SuperRight)
-    && event.physical_key != PhysicalKey::Code(KeyCode::SuperLeft)
-    && event.physical_key != PhysicalKey::Code(KeyCode::ShiftLeft)
-    && event.physical_key != PhysicalKey::Code(KeyCode::ShiftRight)
-    && event.physical_key != PhysicalKey::Code(KeyCode::AltLeft)
-    && event.physical_key != PhysicalKey::Code(KeyCode::AltRight)
-    && event.physical_key != PhysicalKey::Code(KeyCode::ControlLeft)
-    && event.physical_key != PhysicalKey::Code(KeyCode::ControlRight) {
+    if { true }
+      && event.physical_key != PhysicalKey::Code(KeyCode::SuperRight)
+      && event.physical_key != PhysicalKey::Code(KeyCode::SuperLeft)
+      && event.physical_key != PhysicalKey::Code(KeyCode::ShiftLeft)
+      && event.physical_key != PhysicalKey::Code(KeyCode::ShiftRight)
+      && event.physical_key != PhysicalKey::Code(KeyCode::AltLeft)
+      && event.physical_key != PhysicalKey::Code(KeyCode::AltRight)
+      && event.physical_key != PhysicalKey::Code(KeyCode::ControlLeft)
+      && event.physical_key != PhysicalKey::Code(KeyCode::ControlRight)
+    {
       self.input.state.last_pressed = event.physical_key;
 
       if self.input.grabbing {
@@ -220,13 +242,8 @@ impl Client {
             }
           }
 
-          | PhysicalKey::Code(KeyCode::Escape)
-          | PhysicalKey::Code(KeyCode::Enter)
-          => { }
-
-          PhysicalKey::Code(KeyCode::Comma)
-          if self.input.state.modifiers.contains(ModifiersState::SUPER)
-          => { }
+          PhysicalKey::Code(KeyCode::Escape) | PhysicalKey::Code(KeyCode::Enter) => {}
+          PhysicalKey::Code(KeyCode::Comma) if self.input.state.modifiers.contains(ModifiersState::SUPER) => {}
 
           _ => {
             if let Some(c) = event.logical_key.to_text().and_then(|x| x.chars().next()) {
@@ -281,7 +298,7 @@ impl Client {
             self.selection_screen.beatmap_selector_mut().select_next();
           }
 
-          _ => { }
+          _ => {}
         }
       }
 
@@ -291,7 +308,7 @@ impl Client {
             self.selection_screen.beatmap_selector_mut().select_prev();
           }
 
-          _ => { }
+          _ => {}
         }
       }
 
@@ -302,28 +319,36 @@ impl Client {
       ClientAction::Select => {
         match self.game_state {
           LogicalState::Selection => {
-            self.selection_screen.beatmap_selector().select(&self.event_bus, &self.beatmap_cache)
-              .unwrap_or_else(|err| { error!("Failed to select beatmap: {:?}", err); });
+            self
+              .selection_screen
+              .beatmap_selector()
+              .select(&self.event_bus, &self.beatmap_cache)
+              .unwrap_or_else(|err| {
+                error!("Failed to select beatmap: {:?}", err);
+              });
           }
 
-          _ => { }
+          _ => {}
         }
       }
 
       ClientAction::KatOne if !repeat => {
         self.gameplay_screen.hit(TaikoPlayerInput::KatOne, &core.graphics, &self.app_state);
       }
+
       ClientAction::KatTwo if !repeat => {
         self.gameplay_screen.hit(TaikoPlayerInput::KatTwo, &core.graphics, &self.app_state);
       }
+
       ClientAction::DonOne if !repeat => {
         self.gameplay_screen.hit(TaikoPlayerInput::DonOne, &core.graphics, &self.app_state);
       }
+
       ClientAction::DonTwo if !repeat => {
         self.gameplay_screen.hit(TaikoPlayerInput::DonTwo, &core.graphics, &self.app_state);
       }
 
-      _ => { }
+      _ => {}
     }
   }
 

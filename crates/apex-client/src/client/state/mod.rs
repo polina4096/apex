@@ -3,9 +3,9 @@ use graphics_state::GraphicsState;
 use serde::{Deserialize, Serialize};
 use taiko_state::TaikoState;
 
-pub mod taiko_state;
 pub mod gameplay_state;
 pub mod graphics_state;
+pub mod taiko_state;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppState {

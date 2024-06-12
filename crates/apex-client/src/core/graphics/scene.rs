@@ -1,7 +1,13 @@
 use glam::{Mat4, Vec3};
 
-use super::{bindable::Bindable, camera::{Camera, Projection, Transformation}, layout::Layout, uniform::Uniform};
+use super::{
+  bindable::Bindable,
+  camera::{Camera, Projection, Transformation},
+  layout::Layout,
+  uniform::Uniform,
+};
 
+#[rustfmt::skip]
 pub struct Scene<P: Projection, C: Camera> {
   pub projection : P,
   pub camera     : C,

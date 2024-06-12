@@ -1,8 +1,14 @@
 use std::sync::Arc;
 
-use nucleo::{pattern::{CaseMatching, Normalization}, Nucleo};
+use nucleo::{
+  pattern::{CaseMatching, Normalization},
+  Nucleo,
+};
 
-use crate::{client::{event::ClientEvent, gameplay::beatmap_cache::BeatmapCache}, core::event::EventBus};
+use crate::{
+  client::{event::ClientEvent, gameplay::beatmap_cache::BeatmapCache},
+  core::event::EventBus,
+};
 
 pub struct BeatmapSelector {
   matcher: Nucleo<(usize, String)>,
@@ -31,7 +37,7 @@ impl BeatmapSelector {
       matcher,
       search_query: String::new(),
       selected_idx: 0,
-    }
+    };
   }
 
   pub fn tick(&mut self) {
@@ -60,17 +66,23 @@ impl BeatmapSelector {
 
   pub fn clear_query(&mut self) {
     self.search_query.clear();
-    self.matcher.pattern.reparse(0, &self.search_query, CaseMatching::Ignore, Normalization::Smart, false);
+
+    let matcher = &mut self.matcher;
+    matcher.pattern.reparse(0, &self.search_query, CaseMatching::Ignore, Normalization::Smart, false);
   }
 
   pub fn push_query(&mut self, c: char) {
     self.search_query.push(c);
-    self.matcher.pattern.reparse(0, &self.search_query, CaseMatching::Ignore, Normalization::Smart, false);
+
+    let matcher = &mut self.matcher;
+    matcher.pattern.reparse(0, &self.search_query, CaseMatching::Ignore, Normalization::Smart, false);
   }
 
   pub fn pop_query(&mut self) {
     self.search_query.pop();
-    self.matcher.pattern.reparse(0, &self.search_query, CaseMatching::Ignore, Normalization::Smart, false);
+
+    let matcher = &mut self.matcher;
+    matcher.pattern.reparse(0, &self.search_query, CaseMatching::Ignore, Normalization::Smart, false);
   }
 
   pub fn has_query(&self) -> bool {
@@ -104,7 +116,7 @@ impl BeatmapSelector {
   }
 
   pub fn select(&self, event_bus: &EventBus<ClientEvent>, beatmap_cache: &BeatmapCache) -> Result<(), ()> {
-    let Some((path, _)) = beatmap_cache.get_index(self.selected_idx) else { return Err(()) };
+    #[rustfmt::skip] let Some((path, _)) = beatmap_cache.get_index(self.selected_idx) else { return Err(()) };
     event_bus.send(ClientEvent::SelectBeatmap { path: path.clone() });
 
     return Ok(());

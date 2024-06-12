@@ -1,4 +1,10 @@
-use crate::{client::{client::Client, event::ClientEvent, gameplay::beatmap_cache::BeatmapCache, ui::beatmap_selection::BeatmapSelectionView, util::beatmap_selector::BeatmapSelector}, core::{core::Core, event::EventBus}};
+use crate::{
+  client::{
+    client::Client, event::ClientEvent, gameplay::beatmap_cache::BeatmapCache,
+    ui::beatmap_selection::BeatmapSelectionView, util::beatmap_selector::BeatmapSelector,
+  },
+  core::{core::Core, event::EventBus},
+};
 
 pub struct SelectionScreen {
   beatmap_selection: BeatmapSelectionView,
@@ -10,14 +16,11 @@ impl SelectionScreen {
     let beatmap_selection = BeatmapSelectionView::new(event_bus, beatmap_cache);
     let beatmap_selector = BeatmapSelector::new(beatmap_cache);
 
-    return Self {
-      beatmap_selection,
-      beatmap_selector,
-    };
+    return Self { beatmap_selection, beatmap_selector };
   }
 
   pub fn prepare(&mut self, core: &mut Core<Client>, beatmap_cache: &BeatmapCache) {
-    self.beatmap_selection.prepare(core.egui_ctx(), beatmap_cache, &mut self.beatmap_selector);
+    self.beatmap_selection.prepare(core, beatmap_cache, &mut self.beatmap_selector);
   }
 
   pub fn beatmap_selector(&self) -> &BeatmapSelector {
