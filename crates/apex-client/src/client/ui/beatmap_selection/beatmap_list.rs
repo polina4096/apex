@@ -1,4 +1,6 @@
 use egui::Widget;
+use instant::Instant;
+use log::debug;
 
 use crate::{
   client::{event::ClientEvent, gameplay::beatmap_cache::BeatmapCache, util::beatmap_selector::BeatmapSelector},
@@ -11,6 +13,8 @@ pub struct BeatmapList {
   event_bus: EventBus<ClientEvent>,
   beatmap_cards: Vec<BeatmapCard>,
   prev_selected: usize,
+
+  last_update: Instant,
 }
 
 impl BeatmapList {
@@ -19,10 +23,24 @@ impl BeatmapList {
       event_bus,
       beatmap_cards,
       prev_selected: 0,
+      last_update: Instant::now(),
     };
   }
 
   pub fn prepare(&mut self, ui: &mut egui::Ui, beatmap_cache: &BeatmapCache, selector: &mut BeatmapSelector) {
+    // TODO: this is going to be very slow on a large number of beatmaps, probably go with event based approach
+    if beatmap_cache.last_update() > self.last_update {
+      debug!("Updating beatmap list");
+
+      self.last_update = Instant::now();
+      self.beatmap_cards.clear();
+
+      for (path, info) in beatmap_cache.iter() {
+        let card = BeatmapCard::new(path, info);
+        self.beatmap_cards.push(card);
+      }
+    }
+
     egui::Frame::none()
       .fill(egui::Color32::from_black_alpha(128))
       .inner_margin(egui::Margin {

@@ -37,7 +37,7 @@ impl BeatmapSelectionView {
   }
 
   pub fn prepare(&mut self, core: &mut Core<Client>, beatmap_cache: &BeatmapCache, selector: &mut BeatmapSelector) {
-    selector.tick();
+    selector.tick(beatmap_cache);
 
     use egui_extras::{Size, StripBuilder};
 

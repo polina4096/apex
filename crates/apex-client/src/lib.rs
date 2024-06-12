@@ -71,11 +71,13 @@ pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> col
           }
 
           CoreEvent::RecreateGraphicsContext => {
-            let RenderingBackend::Wgpu(backend) = client.app_state.graphics.rendering_backend else {
-              todo!()
-            };
-            core.graphics =
-              Graphics::new(core.window, backend.into(), client.app_state.graphics.present_mode.into()).block_on();
+            let present_mode = client.app_state.graphics.present_mode;
+            let backend = client.app_state.graphics.rendering_backend;
+
+            #[rustfmt::skip]
+            let RenderingBackend::Wgpu(backend) = backend else { todo!() };
+
+            core.graphics = Graphics::new(core.window, backend.into(), present_mode.into()).block_on();
 
             let display_handle = elwt.display_handle().unwrap();
             core.egui_ctx = EguiContext::new(&display_handle, &core.graphics);
@@ -117,9 +119,9 @@ pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> col
       }
 
       Event::WindowEvent { event, .. } => {
-        if core.egui_ctx.winit_state.on_window_event(&window, &event).consumed {
-          return;
-        }
+        let winit_state = &mut core.egui_ctx.winit_state;
+        let result = winit_state.on_window_event(&window, &event);
+        #[rustfmt::skip] if result.consumed { return };
 
         match event {
           WindowEvent::CloseRequested => {
@@ -159,6 +161,13 @@ pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> col
               // All other errors (Outdated, Timeout) should be resolved by the next frame
               Err(e) => warn!("{:?}", e),
             }
+          }
+
+          WindowEvent::DroppedFile(path) => {
+            match std::fs::read(&path) {
+              Ok(file) => client.file(&mut core, path, file),
+              Err(err) => warn!("Failed to read dropped file: {:?}", err),
+            };
           }
 
           _ => {}

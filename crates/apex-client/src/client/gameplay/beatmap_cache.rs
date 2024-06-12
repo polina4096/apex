@@ -5,6 +5,7 @@ use std::{
 
 use fxhash::FxBuildHasher;
 use indexmap::IndexMap;
+use instant::Instant;
 use log::warn;
 
 use crate::core::time::time::Time;
@@ -85,8 +86,8 @@ impl<T: AsRef<str>> From<T> for BeatmapInfo {
 
           #[rustfmt::skip]
           match key {
-            "Title"   => if let Some(x) = parts.next() { x.clone_into(&mut beatmap_info.title); }
-            "Artist"  => if let Some(x) = parts.next() { x.clone_into(&mut beatmap_info.artist); }
+            "Title"   => if let Some(x) = parts.next() { x.clone_into(&mut beatmap_info.title);   }
+            "Artist"  => if let Some(x) = parts.next() { x.clone_into(&mut beatmap_info.artist);  }
             "Creator" => if let Some(x) = parts.next() { x.clone_into(&mut beatmap_info.creator); }
             "Version" => if let Some(x) = parts.next() { x.clone_into(&mut beatmap_info.variant); }
 
@@ -104,12 +105,17 @@ impl<T: AsRef<str>> From<T> for BeatmapInfo {
 
 pub struct BeatmapCache {
   cache: IndexMap<PathBuf, BeatmapInfo, FxBuildHasher>,
+  last_update: Instant,
 }
 
 impl BeatmapCache {
   pub fn new() -> Self {
-    return Self { cache: IndexMap::default() };
+    return Self {
+      cache: IndexMap::default(),
+      last_update: Instant::now(),
+    };
   }
+
   pub fn load_beatmaps(&mut self, path: impl AsRef<Path>) {
     let path = path.as_ref();
     let Ok(iter) = std::fs::read_dir(path) else {
@@ -133,6 +139,14 @@ impl BeatmapCache {
         self.load_dir_beatmaps(&path);
       }
     }
+
+    self.last_update = Instant::now();
+  }
+
+  pub fn load_difficulties(&mut self, path: impl AsRef<Path>) {
+    self.load_dir_beatmaps(path);
+
+    self.last_update = Instant::now();
   }
 
   fn load_dir_beatmaps(&mut self, path: impl AsRef<Path>) {
@@ -172,5 +186,9 @@ impl BeatmapCache {
 
   pub fn iter(&self) -> impl Iterator<Item = (&PathBuf, &BeatmapInfo)> {
     return self.cache.iter();
+  }
+
+  pub fn last_update(&self) -> Instant {
+    return self.last_update;
   }
 }

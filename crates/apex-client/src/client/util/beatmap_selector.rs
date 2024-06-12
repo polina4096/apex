@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use instant::Instant;
+use log::debug;
 use nucleo::{
   pattern::{CaseMatching, Normalization},
   Nucleo,
@@ -15,6 +17,8 @@ pub struct BeatmapSelector {
 
   search_query: String,
   selected_idx: usize,
+
+  last_update: Instant,
 }
 
 impl BeatmapSelector {
@@ -37,11 +41,27 @@ impl BeatmapSelector {
       matcher,
       search_query: String::new(),
       selected_idx: 0,
+      last_update: Instant::now(),
     };
   }
 
-  pub fn tick(&mut self) {
+  pub fn tick(&mut self, beatmap_cache: &BeatmapCache) {
     self.matcher.tick(10);
+
+    // TODO: this is going to be very slow on a large number of beatmaps, probably go with event based approach
+    if beatmap_cache.last_update() > self.last_update {
+      debug!("Updating beatmap list");
+
+      self.last_update = Instant::now();
+      self.matcher.restart(true);
+
+      for (i, (_, info)) in beatmap_cache.iter().enumerate() {
+        let q_str = format!("{}{}{}{}", &info.title, &info.artist, &info.variant, &info.creator);
+        self.matcher.injector().push((i, q_str), |(_, q_str), cols| {
+          cols[0] = q_str.clone().into();
+        });
+      }
+    }
   }
 
   pub fn selected(&self) -> usize {

@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use log::error;
 use tap::Tap;
 use winit::{
@@ -371,5 +373,17 @@ impl Client {
         self.gameplay_screen.rebuild_instances(&core.graphics, &self.app_state);
       }
     }
+  }
+
+  pub fn file(&mut self, core: &mut Core<Self>, path: PathBuf, file: Vec<u8>) {
+    // TODO: this logic should be moved to the beatmap manager or whatever
+    // TODO: properly parse beatmapset id
+    let beatmapset_id = path.file_name().unwrap().to_str().unwrap().split_whitespace().next().unwrap();
+    zip::read::ZipArchive::new(std::io::Cursor::new(file))
+      .unwrap()
+      .extract(&format!("./beatmaps/{}", beatmapset_id))
+      .unwrap();
+
+    self.beatmap_cache.load_difficulties(&format!("./beatmaps/{}", beatmapset_id));
   }
 }
