@@ -23,8 +23,8 @@ use super::{
   gameplay::{beatmap_cache::BeatmapCache, taiko_player::TaikoPlayerInput},
   input::client_action::ClientAction,
   screen::{
-    gameplay_screen::gameplay_screen::GameplayScreen, selection_screen::selection_screen::SelectionScreen,
-    settings_screen::settings_screen::SettingsScreen,
+    gameplay_screen::gameplay_screen::GameplayScreen, result_screen::result_screen::ResultScreen,
+    selection_screen::selection_screen::SelectionScreen, settings_screen::settings_screen::SettingsScreen,
   },
   state::AppState,
 };
@@ -33,6 +33,7 @@ use super::{
 pub enum LogicalState {
   Selection,
   Playing,
+  Results,
 }
 
 pub struct Client {
@@ -44,6 +45,7 @@ pub struct Client {
   pub app_state: AppState,
 
   selection_screen: SelectionScreen,
+  result_screen: ResultScreen,
   gameplay_screen: GameplayScreen,
   settings_screen: SettingsScreen,
 }
@@ -62,6 +64,10 @@ impl App for Client {
       LogicalState::Playing => {
         self.gameplay_screen.prepare(core, &self.app_state);
       }
+
+      LogicalState::Results => {
+        self.result_screen.prepare(core, &self.beatmap_cache);
+      }
     }
 
     self.settings_screen.prepare(core, &mut self.input, &mut self.app_state);
@@ -77,6 +83,8 @@ impl App for Client {
       LogicalState::Playing => {
         self.gameplay_screen.render(rpass);
       }
+
+      LogicalState::Results => {}
     }
 
     // Draw egui
@@ -200,7 +208,8 @@ impl Client {
     });
 
     let selection_screen = SelectionScreen::new(event_bus.clone(), &beatmap_cache);
-    let gameplay_screen = GameplayScreen::new(&core.graphics);
+    let result_screen = ResultScreen::new(event_bus.clone(), &beatmap_cache);
+    let gameplay_screen = GameplayScreen::new(event_bus.clone(), &core.graphics);
     let settings_screen = SettingsScreen::new(event_bus.clone());
 
     return Self {
@@ -212,6 +221,7 @@ impl Client {
       selection_screen,
       gameplay_screen,
       settings_screen,
+      result_screen,
     };
   }
 
@@ -286,6 +296,10 @@ impl Client {
             } else {
               self.game_state = LogicalState::Selection;
             }
+          }
+
+          LogicalState::Results => {
+            self.game_state = LogicalState::Selection;
           }
         }
       }
@@ -371,6 +385,10 @@ impl Client {
 
       ClientEvent::RebuildTaikoRendererInstances => {
         self.gameplay_screen.rebuild_instances(&core.graphics, &self.app_state);
+      }
+
+      ClientEvent::ShowResultScreen => {
+        self.game_state = LogicalState::Results;
       }
     }
   }

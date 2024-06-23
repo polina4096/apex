@@ -23,8 +23,8 @@ impl Time {
     return self.0;
   }
 
-  pub fn to_ms(&self) -> u64 {
-    return (self.0 * 1000.0).round() as u64;
+  pub fn to_ms(&self) -> i64 {
+    return (self.0 * 1000.0).round() as i64;
   }
 }
 
@@ -105,6 +105,12 @@ impl From<Time> for Duration {
 
 impl Display for Time {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    if self.0 < 0.0 {
+      let duration: Duration = Time(self.0.abs()).into();
+      write!(f, "-")?;
+      return duration.fmt(f);
+    }
+
     let duration: Duration = (*self).into();
     return duration.fmt(f);
   }

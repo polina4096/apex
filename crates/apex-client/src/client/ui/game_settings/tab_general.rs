@@ -146,6 +146,26 @@ impl GameSettingsView {
         egui::Slider::new(&mut state.gameplay.audio_offset, -100 ..= 100).clamp_to_range(false).ui(ui);
       });
     });
+
+    body.row(text_height, |mut row| {
+      row.col(|ui| {
+        ui.label("Lead in");
+      });
+
+      row.col(|ui| {
+        egui::Slider::new(&mut state.gameplay.lead_in, -100 ..= 100).clamp_to_range(false).ui(ui);
+      });
+    });
+
+    body.row(text_height, |mut row| {
+      row.col(|ui| {
+        ui.label("Lead out");
+      });
+
+      row.col(|ui| {
+        egui::Slider::new(&mut state.gameplay.lead_out, -100 ..= 100).clamp_to_range(false).ui(ui);
+      });
+    });
   }
 
   fn taiko_category(&mut self, body: &mut egui_extras::TableBody, text_height: f32, state: &mut AppState) {

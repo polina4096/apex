@@ -5,9 +5,8 @@ use crate::{
     client::Client,
     gameplay::{score_processor::ScoreProcessor, taiko_player::TaikoPlayerInput},
     state::AppState,
-    util::playback_controller::PlaybackController,
   },
-  core::core::Core,
+  core::{core::Core, time::clock::AbstractClock},
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -71,7 +70,7 @@ impl IngameOverlayView {
   pub fn prepare(
     &mut self,
     core: &mut Core<Client>,
-    mut playback: impl PlaybackController,
+    clock: &mut impl AbstractClock,
     score: &ScoreProcessor,
     state: &AppState,
   ) {
@@ -227,11 +226,11 @@ impl IngameOverlayView {
         ui.with_layout(egui::Layout::bottom_up(egui::Align::Max), |ui| {
           let max_width = ui.available_width();
           let offset = max_height + 8.0;
-          let progress = max_width as f64 / playback.length().to_seconds() * playback.position().to_seconds();
+          let progress = max_width as f64 / clock.length().to_seconds() * clock.position().to_seconds();
           let rect = egui::Rect::from_min_size(egui::Pos2::new(0.0, offset), egui::Vec2::new(progress as f32, 8.0));
           ui.painter().rect_filled(rect, egui::Rounding::ZERO, egui::Color32::WHITE);
 
-          ui.label(egui::RichText::new(format!("{}", playback.position())).size(16.0));
+          ui.label(egui::RichText::new(format!("{}", clock.position())).size(16.0));
         });
       },
     );

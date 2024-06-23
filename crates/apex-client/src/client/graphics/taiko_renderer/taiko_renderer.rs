@@ -3,10 +3,7 @@ use glam::{vec2, vec3, vec4, Quat, Vec4};
 use wgpu::util::DeviceExt;
 
 use crate::{
-  client::{
-    gameplay::{beatmap::Beatmap, taiko_hit_object::TaikoColor},
-    state::AppState,
-  },
+  client::{gameplay::beatmap::Beatmap, state::AppState},
   core::{
     graphics::{
       bindable::Bindable,
@@ -45,7 +42,7 @@ pub struct TaikoRenderer {
   pub instance_buffer : wgpu::Buffer,
   pub instances       : Vec<HitObjectModel>,
 
-  pub culling : usize,
+  // pub culling : usize,
 }
 
 impl TaikoRenderer {
@@ -172,8 +169,7 @@ impl TaikoRenderer {
 
       instance_buffer,
       instances,
-
-      culling: 0,
+      // culling: 0,
     };
   }
 
@@ -205,7 +201,10 @@ impl TaikoRenderer {
 
     rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
     rpass.set_vertex_buffer(1, self.instance_buffer.slice(..));
-    rpass.draw(0 .. self.vertex_buffer_data.len() as u32, 0 .. (self.instances.len() - self.culling) as u32);
+    rpass.draw(0 .. self.vertex_buffer_data.len() as u32, 0 .. self.instances.len() as u32);
+
+    // honestly, culling does not affect performance that much so don't bother for now
+    // rpass.draw(0 .. self.vertex_buffer_data.len() as u32, 0 .. (self.instances.len() - self.culling) as u32);
   }
 
   pub fn set_hit(&mut self, graphics: &Graphics, hit_time: Time, hit_idx: usize, state: &AppState) {

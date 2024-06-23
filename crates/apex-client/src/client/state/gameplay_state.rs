@@ -4,10 +4,20 @@ use serde::{Deserialize, Serialize};
 pub struct GameplayState {
   /// Offset of the audio in milliseconds
   pub audio_offset: i32,
+
+  /// Additional time before the first note
+  pub lead_in: i32,
+
+  /// Additional time after the last note
+  pub lead_out: i32,
 }
 
 impl Default for GameplayState {
   fn default() -> Self {
-    return Self { audio_offset: 0 };
+    return Self {
+      audio_offset: 0,
+      lead_in: 1000,
+      lead_out: 1000,
+    };
   }
 }
