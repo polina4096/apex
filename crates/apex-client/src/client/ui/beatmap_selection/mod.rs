@@ -1,22 +1,28 @@
-use beatmap_background::BeatmapBackground;
+use std::path::PathBuf;
+
 use beatmap_card::BeatmapCard;
 use beatmap_list::BeatmapList;
 use beatmap_stats::BeatmapStats;
 
 use crate::{
   client::{
-    client::Client, event::ClientEvent, gameplay::beatmap_cache::BeatmapCache, util::beatmap_selector::BeatmapSelector,
+    client::Client,
+    event::ClientEvent,
+    gameplay::{beatmap_cache::BeatmapCache, beatmap_selector::BeatmapSelector},
   },
   core::{core::Core, event::EventBus},
 };
 
-pub mod beatmap_background;
+use super::background_component::BackgroundComponent;
+
 pub mod beatmap_card;
 pub mod beatmap_list;
 pub mod beatmap_stats;
 
 pub struct BeatmapSelectionView {
-  beatmap_bg: BeatmapBackground,
+  prev_beatmap: PathBuf,
+
+  beatmap_bg: BackgroundComponent,
   beatmap_stats: BeatmapStats,
   beatmap_list: BeatmapList,
 }
@@ -30,7 +36,9 @@ impl BeatmapSelectionView {
     }
 
     return Self {
-      beatmap_bg: BeatmapBackground::new(),
+      prev_beatmap: PathBuf::new(),
+
+      beatmap_bg: BackgroundComponent::new(""),
       beatmap_stats: BeatmapStats::new(event_bus.clone()),
       beatmap_list: BeatmapList::new(event_bus, beatmap_cards),
     };
@@ -47,9 +55,16 @@ impl BeatmapSelectionView {
       return;
     };
 
-    egui::CentralPanel::default().frame(egui::Frame::none()).show(core.egui_ctx(), |ui| {
+    if self.prev_beatmap != *path {
+      self.prev_beatmap = path.clone();
+
       let bg_path = path.parent().unwrap().join(&info.bg_path);
-      self.beatmap_bg.prepare(ui, &bg_path);
+      let bg = format!("file://{}", bg_path.to_str().unwrap());
+      self.beatmap_bg = BackgroundComponent::new(bg);
+    }
+
+    egui::CentralPanel::default().frame(egui::Frame::none()).show(core.egui_ctx(), |ui| {
+      self.beatmap_bg.prepare(ui);
 
       StripBuilder::new(ui).size(Size::remainder()).size(Size::relative(0.4)).horizontal(|mut builder| {
         builder.cell(|ui| {

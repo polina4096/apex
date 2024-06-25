@@ -176,7 +176,7 @@ impl BeatmapCache {
     }
   }
 
-  pub fn get(&self, path: &PathBuf) -> Option<&BeatmapInfo> {
+  pub fn get(&self, path: &Path) -> Option<&BeatmapInfo> {
     return self.cache.get(path);
   }
 

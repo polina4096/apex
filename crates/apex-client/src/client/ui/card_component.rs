@@ -1,26 +1,24 @@
-use std::path::Path;
+use egui::ImageSource;
 
-use egui::{ImageSource, Widget};
-
-use crate::client::gameplay::beatmap_cache::BeatmapInfo;
-
-pub struct Card {
-  image: egui::Image<'static>,
+pub struct CardComponent {
+  pub selected: bool,
+  pub image: egui::Image<'static>,
 }
 
-impl Card {
+impl CardComponent {
   pub fn new(source: impl Into<ImageSource<'static>>) -> Self {
     let image = egui::Image::new(source).rounding(6.0);
+    let selected = false;
 
-    return Self { image };
+    return Self { selected, image };
   }
 
-  pub fn prepare(&mut self, ui: &mut egui::Ui, selected: bool) -> egui::Response {
+  pub fn prepare(&mut self, ui: &mut egui::Ui, inner: impl FnOnce(&mut egui::Ui)) -> egui::Response {
     return ui
       .with_layout(egui::Layout::top_down_justified(egui::Align::Min), |ui| {
         egui::Frame::window(ui.style())
           .inner_margin(egui::Margin::ZERO)
-          .stroke(if selected {
+          .stroke(if self.selected {
             egui::Stroke::new(2.0, egui::Color32::from_gray(200))
           } else {
             egui::Stroke::new(2.0, egui::Color32::from_gray(80))
@@ -35,7 +33,7 @@ impl Card {
             // No panics or unwinds should happen between the read and write.
             unsafe {
               let img = std::ptr::read(&self.image)
-                .tint(if selected { egui::Color32::from_gray(128) } else { egui::Color32::from_gray(60) })
+                .tint(if self.selected { egui::Color32::from_gray(128) } else { egui::Color32::from_gray(60) })
                 .rounding(6.0);
 
               std::ptr::write(&mut self.image, img);
@@ -69,7 +67,7 @@ impl Card {
             }
 
             egui::Frame::none().inner_margin(egui::Margin::same(8.0)).show(ui, |ui| {
-              // inner(ui);
+              inner(ui);
             });
           });
       })

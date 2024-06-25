@@ -75,7 +75,12 @@ pub struct GraphicsState {
 impl Default for GraphicsState {
   fn default() -> Self {
     return Self {
+      #[cfg(not(target_os = "macos"))]
       frame_limiter: FrameLimiterOptions::Unlimited,
+
+      #[cfg(target_os = "macos")]
+      frame_limiter: FrameLimiterOptions::DisplayLink,
+
       present_mode: PresentModeOptions::VSync,
       rendering_backend: RenderingBackend::Wgpu(WgpuBackend::Auto),
     };

@@ -13,27 +13,12 @@ pub struct FrameLimiter {
 
   #[cfg(target_os = "macos")]
   display_link: Option<display_link::DisplayLink>,
-}
-
-impl Default for FrameLimiter {
-  fn default() -> Self {
-    return Self {
-      app_focus: false,
-      last_frame: Instant::now(),
-
-      external_sync: false,
-      unlimited: true,
-      target_fps: 120,
-
-      #[cfg(target_os = "macos")]
-      display_link: None,
-    };
-  }
+  window: Arc<Window>,
 }
 
 impl FrameLimiter {
-  pub fn new(external: bool, unlimited: bool, target_fps: u16) -> Self {
-    Self {
+  pub fn new(window: Arc<Window>, external: bool, unlimited: bool, target_fps: u16) -> Self {
+    let mut limiter = Self {
       app_focus: false,
       last_frame: Instant::now(),
 
@@ -43,7 +28,14 @@ impl FrameLimiter {
 
       #[cfg(target_os = "macos")]
       display_link: None,
+      window,
+    };
+
+    if external {
+      limiter.enable_external_sync();
     }
+
+    return limiter;
   }
 
   /// Requests a redraw if the frame limiter allows it.
@@ -84,12 +76,13 @@ impl FrameLimiter {
     self.unlimited = unlimited;
   }
 
-  pub fn enable_external_sync(&mut self, window: Arc<Window>) {
+  pub fn enable_external_sync(&mut self) {
     self.external_sync = true;
 
     #[cfg(target_os = "macos")]
     {
       // Setup CVDisplayLink
+      let window = self.window.clone();
       let mut display_link = display_link::DisplayLink::new(move |_ts| {
         // This will be called on every vsync.
         window.request_redraw();

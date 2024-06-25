@@ -1,4 +1,5 @@
 pub mod app;
+pub mod audio;
 pub mod core;
 pub mod event;
 pub mod graphics;

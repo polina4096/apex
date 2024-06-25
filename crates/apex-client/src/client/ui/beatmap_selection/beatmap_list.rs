@@ -3,7 +3,10 @@ use instant::Instant;
 use log::debug;
 
 use crate::{
-  client::{event::ClientEvent, gameplay::beatmap_cache::BeatmapCache, util::beatmap_selector::BeatmapSelector},
+  client::{
+    event::ClientEvent,
+    gameplay::{beatmap_cache::BeatmapCache, beatmap_selector::BeatmapSelector},
+  },
   core::event::EventBus,
 };
 

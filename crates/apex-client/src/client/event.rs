@@ -4,7 +4,7 @@ use std::path::PathBuf;
 pub enum ClientEvent {
   RetryBeatmap,
   ToggleSettings,
-  ShowResultScreen,
+  ShowResultScreen { path: PathBuf },
   SelectBeatmap { path: PathBuf },
 
   // TODO: this probably shouldn't be here

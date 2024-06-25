@@ -58,7 +58,7 @@ pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> col
     _ => 120,
   };
 
-  let mut frame_limiter = FrameLimiter::new(external_sync, is_unlimited, target_fps);
+  let mut frame_limiter = FrameLimiter::new(window.clone(), external_sync, is_unlimited, target_fps);
 
   window.request_redraw();
 
@@ -98,7 +98,7 @@ pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> col
               }
 
               FrameLimiterOptions::DisplayLink => {
-                frame_limiter.enable_external_sync(window.clone());
+                frame_limiter.enable_external_sync();
               }
 
               FrameLimiterOptions::Unlimited => {

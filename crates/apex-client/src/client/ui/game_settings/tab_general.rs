@@ -153,7 +153,7 @@ impl GameSettingsView {
       });
 
       row.col(|ui| {
-        egui::Slider::new(&mut state.gameplay.lead_in, -100 ..= 100).clamp_to_range(false).ui(ui);
+        egui::Slider::new(&mut state.gameplay.lead_in, 0 ..= 100).clamp_to_range(false).ui(ui);
       });
     });
 
@@ -163,7 +163,7 @@ impl GameSettingsView {
       });
 
       row.col(|ui| {
-        egui::Slider::new(&mut state.gameplay.lead_out, -100 ..= 100).clamp_to_range(false).ui(ui);
+        egui::Slider::new(&mut state.gameplay.lead_out, 0 ..= 100).clamp_to_range(false).ui(ui);
       });
     });
   }

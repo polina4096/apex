@@ -1,7 +1,9 @@
 use crate::{
   client::{
-    client::Client, event::ClientEvent, gameplay::beatmap_cache::BeatmapCache,
-    ui::beatmap_selection::BeatmapSelectionView, util::beatmap_selector::BeatmapSelector,
+    client::Client,
+    event::ClientEvent,
+    gameplay::{beatmap_cache::BeatmapCache, beatmap_selector::BeatmapSelector},
+    ui::beatmap_selection::BeatmapSelectionView,
   },
   core::{core::Core, event::EventBus},
 };
