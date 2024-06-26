@@ -8,7 +8,7 @@ dependencies = ["make-dev-dirs", "run"]
 [tasks.run]
 dependencies = ["copy-assets"]
 command = "cargo"
-args = ["run"]
+args = ["run", "--bin", "apex-client"]
 cwd = "./debug/"
 env = { "RUST_LOG" = "apex_client=debug" }
 

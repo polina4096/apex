@@ -1,4 +1,4 @@
-use rodio::{source::SeekError, Device, DeviceTrait as _, OutputStream, OutputStreamHandle, Sink, Source};
+use rodio::{source::SeekError, Device, OutputStream, OutputStreamHandle, Sink, Source};
 
 use super::OutputStreamExt as _;
 

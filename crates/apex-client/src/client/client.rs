@@ -10,11 +10,7 @@ use winit::{
 
 use crate::core::{
   app::App,
-  audio::{
-    self,
-    audio_engine::AudioEngine,
-    audio_mixer::{mixer, AudioController, AudioMixer},
-  },
+  audio::{self, audio_engine::AudioEngine, audio_mixer::AudioController},
   core::Core,
   event::EventBus,
   graphics::{drawable::Drawable, graphics::Graphics},

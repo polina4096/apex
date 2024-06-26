@@ -3,7 +3,7 @@ use std::ops::{Deref, DerefMut};
 use rodio::Source;
 
 use crate::core::{
-  audio::{audio_engine::AudioEngine, audio_mixer::AudioController, OutputStreamExt as _},
+  audio::{audio_engine::AudioEngine, audio_mixer::AudioController},
   time::{
     clock::{AbstractClock, Clock},
     time::Time,

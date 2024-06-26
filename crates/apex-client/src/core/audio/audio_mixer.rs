@@ -3,7 +3,7 @@ use std::{
   sync::mpsc::{Receiver, Sender},
 };
 
-use rodio::{dynamic_mixer::DynamicMixer, Sample as _, Source};
+use rodio::{Sample as _, Source};
 
 pub enum AudioMixerEvent {
   AddOneshot(Box<dyn Source<Item = f32> + Send + Sync>),

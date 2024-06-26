@@ -27,10 +27,7 @@ use crate::{
     ui::ingame_overlay::{HitResult, IngameOverlayView},
   },
   core::{
-    audio::{
-      audio_engine::{self, AudioEngine},
-      audio_mixer::AudioController,
-    },
+    audio::{audio_engine::AudioEngine, audio_mixer::AudioController},
     core::Core,
     event::EventBus,
     graphics::{drawable::Drawable, graphics::Graphics},
