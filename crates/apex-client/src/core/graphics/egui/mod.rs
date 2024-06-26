@@ -1,8 +1,13 @@
+use std::sync::Arc;
+
 use egui::ClippedPrimitive;
+use image_loader::BackgroundImageLoader;
 use wgpu::rwh::HasDisplayHandle;
 use winit::window::Window;
 
 use super::graphics::Graphics;
+
+pub mod image_loader;
 
 pub struct EguiContext {
   pub renderer: egui_wgpu::Renderer,
@@ -30,7 +35,9 @@ impl EguiContext {
       Some(graphics.device.limits().max_texture_dimension_2d as usize),
     );
 
-    egui_extras::install_image_loaders(winit_state.egui_ctx());
+    let ctx = winit_state.egui_ctx();
+    egui_extras::install_image_loaders(ctx);
+    ctx.add_image_loader(Arc::new(BackgroundImageLoader::new(ctx.clone())));
 
     return Self {
       renderer,

@@ -3,7 +3,6 @@ use std::{
   str::FromStr,
 };
 
-use fxhash::FxBuildHasher;
 use indexmap::IndexMap;
 use instant::Instant;
 use log::warn;
@@ -104,7 +103,7 @@ impl<T: AsRef<str>> From<T> for BeatmapInfo {
 }
 
 pub struct BeatmapCache {
-  cache: IndexMap<PathBuf, BeatmapInfo, FxBuildHasher>,
+  cache: IndexMap<PathBuf, BeatmapInfo, ahash::RandomState>,
   last_update: Instant,
 }
 

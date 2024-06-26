@@ -1,5 +1,6 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::path::PathBuf;
 
+use ahash::AHashMap;
 use intbits::Bits;
 use log::warn;
 
@@ -50,7 +51,7 @@ impl<T: AsRef<str>> From<T> for Beatmap {
     let mut timing_points = Vec::<TimingPoint>::new();
     let mut velocity_points = Vec::<VelocityPoint>::new();
 
-    let mut property_map = HashMap::<&str, HashMap<&str, &str>>::new();
+    let mut property_map = AHashMap::<&str, AHashMap<&str, &str>>::new();
     let mut current_category = None::<&str>;
 
     for (i, line) in data.lines().enumerate() {

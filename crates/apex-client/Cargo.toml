@@ -31,15 +31,16 @@ pollster = { version = "0.3.0", features = ["macro"] }
 intbits = "0.2.0"
 bytemuck = "1.15.0"
 serde = { version = "1.0.203", features = ["derive"] }
-image = { version = "*", features = ["jpeg", "png"] }
+image = { version = "0.25.1", features = ["jpeg", "png"] }
 zip = "2.1.2"
 
 glam = { version = "0.27.0", features = ["bytemuck", "serde"] }
 chrono = { version = "0.4.38", features = ["serde"] }
 instant = "0.1.12"
 
-fxhash = "0.2.1"
+ahash = "0.8.11"
 nohash-hasher = "0.2.0"
+dashmap = "6.0.1"
 indexmap = "2.2.6"
 
 nucleo = "0.5.0"

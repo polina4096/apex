@@ -1,13 +1,13 @@
 use std::{fmt::Display, hash::Hash};
 
-use fxhash::FxHashMap;
+use ahash::AHashMap;
 use log::warn;
 use winit::keyboard::{ModifiersState, PhysicalKey};
 
 /// Container providing ergonomic API to store and access keybinds
 pub struct KeybindManager<T> {
   /// Maps key combinations to the respective binds values
-  binds: FxHashMap<KeyCombination, Bind<T>>,
+  binds: AHashMap<KeyCombination, Bind<T>>,
 }
 
 impl<T> Default for KeybindManager<T> {
