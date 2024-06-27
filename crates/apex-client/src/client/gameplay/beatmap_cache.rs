@@ -16,6 +16,8 @@ pub struct BeatmapInfo {
   pub creator: String,
   pub variant: String,
   pub bg_path: PathBuf,
+  pub audio_path: PathBuf,
+  pub preview_time: u64,
 
   pub difficulty: f64,
   pub object_count: usize,
@@ -35,6 +37,8 @@ impl<T: AsRef<str>> From<T> for BeatmapInfo {
       creator: String::new(),
       variant: String::new(),
       bg_path: PathBuf::new(),
+      audio_path: PathBuf::new(),
+      preview_time: 0,
 
       difficulty: 0.0,
       object_count: 0,
@@ -77,6 +81,21 @@ impl<T: AsRef<str>> From<T> for BeatmapInfo {
           }
         }
 
+        Some("[General]") => {
+          let mut parts = line.split(':');
+          let Some(key) = parts.next() else {
+            continue;
+          };
+
+          #[rustfmt::skip]
+          match key {
+            "AudioFilename" => if let Some(x) = parts.next() { beatmap_info.audio_path = PathBuf::from(x.trim()); }
+            "PreviewTime"   => if let Some(x) = parts.next() { beatmap_info.preview_time = x.trim().parse().unwrap_or(0); }
+
+            _ => {}
+          };
+        }
+
         Some("[Metadata]") => {
           let mut parts = line.split(':');
           let Some(key) = parts.next() else {
@@ -85,10 +104,10 @@ impl<T: AsRef<str>> From<T> for BeatmapInfo {
 
           #[rustfmt::skip]
           match key {
-            "Title"   => if let Some(x) = parts.next() { x.clone_into(&mut beatmap_info.title);   }
-            "Artist"  => if let Some(x) = parts.next() { x.clone_into(&mut beatmap_info.artist);  }
-            "Creator" => if let Some(x) = parts.next() { x.clone_into(&mut beatmap_info.creator); }
-            "Version" => if let Some(x) = parts.next() { x.clone_into(&mut beatmap_info.variant); }
+            "Title"   => if let Some(x) = parts.next() { x.trim().clone_into(&mut beatmap_info.title);   }
+            "Artist"  => if let Some(x) = parts.next() { x.trim().clone_into(&mut beatmap_info.artist);  }
+            "Creator" => if let Some(x) = parts.next() { x.trim().clone_into(&mut beatmap_info.creator); }
+            "Version" => if let Some(x) = parts.next() { x.trim().clone_into(&mut beatmap_info.variant); }
 
             _ => {}
           };

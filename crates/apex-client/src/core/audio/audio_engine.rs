@@ -29,6 +29,10 @@ impl AudioEngine {
     self.sink.append(source);
   }
 
+  pub fn clear_source(&mut self) {
+    self.sink.clear();
+  }
+
   pub fn play(&self) {
     self.sink.play();
   }

@@ -1,7 +1,10 @@
-use std::path::PathBuf;
+use std::{fs::File, io::BufReader, path::PathBuf};
 
 use log::error;
-use rodio::source::Empty;
+use rodio::{
+  source::{Empty, UniformSourceIterator},
+  Decoder, DeviceTrait as _, Source as _,
+};
 use tap::Tap;
 use winit::{
   event::{KeyEvent, Modifiers},
@@ -234,6 +237,7 @@ impl Client {
         match self.game_state {
           LogicalState::Selection => {
             self.selection_screen.beatmap_selector_mut().select_next();
+            self.play_beatmap_audio();
           }
 
           _ => {}
@@ -244,6 +248,7 @@ impl Client {
         match self.game_state {
           LogicalState::Selection => {
             self.selection_screen.beatmap_selector_mut().select_prev();
+            self.play_beatmap_audio();
           }
 
           _ => {}
@@ -431,5 +436,42 @@ impl Client {
     );
 
     return input;
+  }
+
+  pub fn play_beatmap_audio(&mut self) {
+    use std::time::Duration;
+
+    let selected = self.selection_screen.beatmap_selector().selected();
+    let previous = self.selection_screen.beatmap_selector().previous();
+
+    let Some((path, beatmap)) = self.beatmap_cache.get_index(selected) else {
+      return;
+    };
+
+    let Some((prev_path, _)) = self.beatmap_cache.get_index(previous) else {
+      return;
+    };
+
+    if path.parent() == prev_path.parent() {
+      return;
+    }
+
+    let audio_path = path.parent().unwrap().join(&beatmap.audio_path);
+    let file = BufReader::new(File::open(audio_path).unwrap());
+    let source = Decoder::new(file).unwrap();
+
+    let config = self.audio_engine.device().default_output_config().unwrap();
+    let source = UniformSourceIterator::new(source, config.channels(), config.sample_rate().0);
+
+    self.audio_engine.pause();
+    // TODO: I already fucked up once setting the source through audio_engine,
+    // so the chance that I'm going to do that once again yet that time will
+    // struggle to figure out what went wrong is really high. You do not change
+    // the source through audio_engine if you already did that for some reason.
+    //
+    // Make this safer and more obvious later.
+    self.audio_controller.set_source(Box::new(source));
+    _ = self.audio_engine.try_seek(Duration::from_millis(beatmap.preview_time));
+    self.audio_engine.play();
   }
 }

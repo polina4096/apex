@@ -178,5 +178,5 @@ pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> col
     }
   })?;
 
-  return Ok(());
+  std::process::exit(0);
 }
