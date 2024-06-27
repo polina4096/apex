@@ -276,27 +276,35 @@ impl Client {
       }
 
       ClientAction::KatOne if !repeat => {
-        self
-          .gameplay_screen
-          .hit(TaikoPlayerInput::KatOne, &core.graphics, &mut self.audio_engine, &self.app_state);
+        if self.game_state == LogicalState::Playing {
+          self
+            .gameplay_screen
+            .hit(TaikoPlayerInput::KatOne, &core.graphics, &mut self.audio_engine, &self.app_state);
+        }
       }
 
       ClientAction::KatTwo if !repeat => {
-        self
-          .gameplay_screen
-          .hit(TaikoPlayerInput::KatTwo, &core.graphics, &mut self.audio_engine, &self.app_state);
+        if self.game_state == LogicalState::Playing {
+          self
+            .gameplay_screen
+            .hit(TaikoPlayerInput::KatTwo, &core.graphics, &mut self.audio_engine, &self.app_state);
+        }
       }
 
       ClientAction::DonOne if !repeat => {
-        self
-          .gameplay_screen
-          .hit(TaikoPlayerInput::DonOne, &core.graphics, &mut self.audio_engine, &self.app_state);
+        if self.game_state == LogicalState::Playing {
+          self
+            .gameplay_screen
+            .hit(TaikoPlayerInput::DonOne, &core.graphics, &mut self.audio_engine, &self.app_state);
+        }
       }
 
       ClientAction::DonTwo if !repeat => {
-        self
-          .gameplay_screen
-          .hit(TaikoPlayerInput::DonTwo, &core.graphics, &mut self.audio_engine, &self.app_state);
+        if self.game_state == LogicalState::Playing {
+          self
+            .gameplay_screen
+            .hit(TaikoPlayerInput::DonTwo, &core.graphics, &mut self.audio_engine, &self.app_state);
+        }
       }
 
       _ => {}
