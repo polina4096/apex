@@ -146,6 +146,7 @@ impl BeatmapSelector {
     }
   }
 
+  #[allow(clippy::result_unit_err)]
   pub fn select(&self, event_bus: &EventBus<ClientEvent>, beatmap_cache: &BeatmapCache) -> Result<(), ()> {
     #[rustfmt::skip] let Some((path, _)) = beatmap_cache.get_index(self.selected_idx) else { return Err(()) };
     event_bus.send(ClientEvent::SelectBeatmap { path: path.clone() });

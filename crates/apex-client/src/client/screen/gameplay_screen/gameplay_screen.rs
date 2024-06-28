@@ -188,6 +188,10 @@ impl GameplayScreen {
       audio.lead_out = Time::from_ms(state.gameplay.lead_out as f64);
     }
 
+    if audio.audio_offset.to_ms() != state.gameplay.audio_offset {
+      audio.audio_offset = Time::from_ms(state.gameplay.audio_offset as f64);
+    }
+
     // delay after the last hit object before result screen
     if time >= audio.length() + audio.lead_out {
       let path = self.beatmap_path.clone();

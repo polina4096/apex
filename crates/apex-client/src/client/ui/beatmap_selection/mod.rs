@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use action_bar::ActionBar;
 use beatmap_card::BeatmapCard;
 use beatmap_list::BeatmapList;
 use beatmap_stats::BeatmapStats;
@@ -10,21 +11,25 @@ use crate::{
     event::ClientEvent,
     gameplay::{beatmap_cache::BeatmapCache, beatmap_selector::BeatmapSelector},
   },
-  core::{core::Core, event::EventBus},
+  core::{core::Core, event::EventBus, time::clock::AbstractClock},
 };
 
 use super::background_component::BackgroundComponent;
 
+pub mod action_bar;
 pub mod beatmap_card;
 pub mod beatmap_list;
 pub mod beatmap_stats;
 
 pub struct BeatmapSelectionView {
+  event_bus: EventBus<ClientEvent>,
+
   prev_beatmap: PathBuf,
 
   beatmap_bg: BackgroundComponent,
-  beatmap_stats: BeatmapStats,
   beatmap_list: BeatmapList,
+  beatmap_stats: BeatmapStats,
+  action_bar: ActionBar,
 }
 
 impl BeatmapSelectionView {
@@ -36,15 +41,24 @@ impl BeatmapSelectionView {
     }
 
     return Self {
+      event_bus: event_bus.clone(),
+
       prev_beatmap: PathBuf::new(),
 
       beatmap_bg: BackgroundComponent::new(""),
+      beatmap_list: BeatmapList::new(event_bus.clone(), beatmap_cards),
       beatmap_stats: BeatmapStats::new(event_bus.clone()),
-      beatmap_list: BeatmapList::new(event_bus, beatmap_cards),
+      action_bar: ActionBar::new(event_bus),
     };
   }
 
-  pub fn prepare(&mut self, core: &mut Core<Client>, beatmap_cache: &BeatmapCache, selector: &mut BeatmapSelector) {
+  pub fn prepare(
+    &mut self,
+    core: &mut Core<Client>,
+    beatmap_cache: &BeatmapCache,
+    selector: &mut BeatmapSelector,
+    clock: &mut impl AbstractClock,
+  ) {
     selector.tick(beatmap_cache);
 
     use egui_extras::{Size, StripBuilder};
@@ -68,7 +82,25 @@ impl BeatmapSelectionView {
 
       StripBuilder::new(ui).size(Size::remainder()).size(Size::relative(0.4)).horizontal(|mut builder| {
         builder.cell(|ui| {
-          self.beatmap_stats.prepare(ui, info);
+          // let max_width = ui.available_width();
+          // ui.set_width(max_width.min(640.0));
+
+          ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
+            self.beatmap_stats.prepare(ui, info);
+
+            // egui::Frame::window(ui.style())
+            //   .outer_margin(egui::Margin::same(12.0))
+            //   .inner_margin(egui::Margin::symmetric(24.0, 16.0))
+            //   .show(ui, |ui| {
+            //     ui.set_max_height(0.0);
+
+            //     ui.label("text");
+            //   });
+          });
+
+          ui.with_layout(egui::Layout::left_to_right(egui::Align::Max), |ui| {
+            self.action_bar.prepare(ui, clock);
+          });
         });
 
         builder.cell(|ui| {

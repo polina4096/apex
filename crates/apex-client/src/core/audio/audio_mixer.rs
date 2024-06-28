@@ -94,7 +94,7 @@ impl AudioController {
     self.tx.send(AudioMixerEvent::AddOneshot(sound)).unwrap();
   }
 
-  pub fn set_source(&mut self, source: Box<dyn Source<Item = f32> + Send + Sync>) {
+  pub fn play_audio(&mut self, source: Box<dyn Source<Item = f32> + Send + Sync>) {
     self.tx.send(AudioMixerEvent::SetSource(source)).unwrap();
   }
 }

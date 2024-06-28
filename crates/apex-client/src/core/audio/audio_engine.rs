@@ -1,5 +1,10 @@
 use rodio::{source::SeekError, Device, OutputStream, OutputStreamHandle, Sink, Source};
 
+use crate::core::time::{
+  clock::{AbstractClock, Clock},
+  time::Time,
+};
+
 use super::OutputStreamExt as _;
 
 pub struct AudioEngine {
@@ -11,14 +16,22 @@ pub struct AudioEngine {
 
   device: Device,
   sink: Sink,
+  clock: Clock,
 }
 
 impl AudioEngine {
   pub fn new() -> Self {
     let (device, (stream, stream_handle)) = OutputStream::try_default_device().unwrap();
     let sink = Sink::try_new(&stream_handle).unwrap();
+    let clock = Clock::new();
 
-    return Self { stream, stream_handle, device, sink };
+    return Self {
+      stream,
+      stream_handle,
+      device,
+      sink,
+      clock,
+    };
   }
 
   pub fn set_source<S>(&mut self, source: S)
@@ -33,23 +46,52 @@ impl AudioEngine {
     self.sink.clear();
   }
 
-  pub fn play(&self) {
-    self.sink.play();
-  }
-
-  pub fn pause(&self) {
-    self.sink.pause();
-  }
-
-  pub fn is_paused(&self) -> bool {
-    return self.sink.is_paused();
-  }
-
-  pub fn try_seek(&mut self, pos: std::time::Duration) -> Result<(), SeekError> {
-    return self.sink.try_seek(pos);
-  }
-
   pub fn device(&self) -> &Device {
     return &self.device;
+  }
+}
+
+impl AbstractClock for AudioEngine {
+  fn is_playing(&self) -> bool {
+    return self.clock.is_playing();
+  }
+
+  fn set_playing(&mut self, playing: bool) {
+    self.clock.set_playing(playing);
+
+    if !playing {
+      self.sink.pause();
+    }
+  }
+
+  fn toggle(&mut self) {
+    if !self.clock.is_playing() {
+      self.clock.set_playing(true);
+    } else {
+      self.sink.pause();
+
+      self.clock.set_playing(false);
+    }
+  }
+
+  fn position(&mut self) -> Time {
+    if self.sink.is_paused() && self.clock.is_playing() {
+      self.sink.play();
+    }
+
+    return self.clock.position();
+  }
+
+  fn set_position(&mut self, position: Time) {
+    self.clock.set_position(position);
+    _ = self.sink.try_seek(position.into());
+  }
+
+  fn length(&self) -> Time {
+    return self.clock.length();
+  }
+
+  fn set_length(&mut self, value: Time) {
+    self.clock.set_length(value);
   }
 }

@@ -3,7 +3,7 @@ use std::{fs::File, io::BufReader, path::PathBuf};
 use log::error;
 use rodio::{
   source::{Empty, UniformSourceIterator},
-  Decoder, DeviceTrait as _, Source as _,
+  Decoder, DeviceTrait as _, Source,
 };
 use tap::Tap;
 use winit::{
@@ -21,6 +21,7 @@ use crate::core::{
     bind::{Bind, KeyCombination},
     Input,
   },
+  time::{clock::AbstractClock, time::Time},
 };
 
 use super::{
@@ -68,7 +69,7 @@ impl App for Client {
 
     match self.game_state {
       LogicalState::Selection => {
-        self.selection_screen.prepare(core, &self.beatmap_cache);
+        self.selection_screen.prepare(core, &self.beatmap_cache, &mut self.audio_engine);
       }
 
       LogicalState::Playing => {
@@ -471,15 +472,13 @@ impl Client {
     let config = self.audio_engine.device().default_output_config().unwrap();
     let source = UniformSourceIterator::new(source, config.channels(), config.sample_rate().0);
 
-    self.audio_engine.pause();
-    // TODO: I already fucked up once setting the source through audio_engine,
-    // so the chance that I'm going to do that once again yet that time will
-    // struggle to figure out what went wrong is really high. You do not change
-    // the source through audio_engine if you already did that for some reason.
-    //
-    // Make this safer and more obvious later.
-    self.audio_controller.set_source(Box::new(source));
-    _ = self.audio_engine.try_seek(Duration::from_millis(beatmap.preview_time));
-    self.audio_engine.play();
+    // TODO: calculate length of the audio
+    let length = source.total_duration().unwrap_or(Duration::from_secs(0));
+    self.audio_engine.set_length(length.into());
+
+    self.audio_engine.set_playing(false);
+    self.audio_controller.play_audio(Box::new(source));
+    self.audio_engine.set_position(Time::from_ms(beatmap.preview_time as f64));
+    self.audio_engine.set_playing(true);
   }
 }

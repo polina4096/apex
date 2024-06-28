@@ -5,7 +5,7 @@ use crate::{
     gameplay::{beatmap_cache::BeatmapCache, beatmap_selector::BeatmapSelector},
     ui::beatmap_selection::BeatmapSelectionView,
   },
-  core::{core::Core, event::EventBus},
+  core::{core::Core, event::EventBus, time::clock::AbstractClock},
 };
 
 pub struct SelectionScreen {
@@ -21,8 +21,8 @@ impl SelectionScreen {
     return Self { beatmap_selection, beatmap_selector };
   }
 
-  pub fn prepare(&mut self, core: &mut Core<Client>, beatmap_cache: &BeatmapCache) {
-    self.beatmap_selection.prepare(core, beatmap_cache, &mut self.beatmap_selector);
+  pub fn prepare(&mut self, core: &mut Core<Client>, beatmap_cache: &BeatmapCache, clock: &mut impl AbstractClock) {
+    self.beatmap_selection.prepare(core, beatmap_cache, &mut self.beatmap_selector, clock);
   }
 
   pub fn beatmap_selector(&self) -> &BeatmapSelector {
