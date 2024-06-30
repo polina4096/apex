@@ -5,7 +5,8 @@ pub enum ClientEvent {
   RetryBeatmap,
   ToggleSettings,
   ShowResultScreen { path: PathBuf },
-  SelectBeatmap { path: PathBuf },
+  PickBeatmap { path: PathBuf },
+  SelectBeatmap,
 
   // TODO: this probably shouldn't be here
   RebuildTaikoRendererInstances,

@@ -55,6 +55,9 @@ pub struct Client {
   /// Configuration and state of the whole game
   pub app_state: AppState,
 
+  prev_audio_path: PathBuf,
+  prev_beatmap_path: PathBuf,
+
   selection_screen: SelectionScreen,
   result_screen: ResultScreen,
   gameplay_screen: GameplayScreen,
@@ -136,6 +139,9 @@ impl Client {
     let gameplay_screen = GameplayScreen::new(event_bus.clone(), &core.graphics, &audio_engine, audio_controller.clone());
     let settings_screen = SettingsScreen::new(event_bus.clone());
 
+    let prev_audio_path = PathBuf::new();
+    let prev_beatmap_path = PathBuf::new();
+
     return Self {
       input,
       audio_engine,
@@ -143,6 +149,8 @@ impl Client {
       event_bus,
       game_state,
       app_state,
+      prev_audio_path,
+      prev_beatmap_path,
       beatmap_cache,
       selection_screen,
       gameplay_screen,
@@ -266,7 +274,7 @@ impl Client {
             self
               .selection_screen
               .beatmap_selector()
-              .select(&self.event_bus, &self.beatmap_cache)
+              .pick(&self.event_bus, &self.beatmap_cache)
               .unwrap_or_else(|err| {
                 error!("Failed to select beatmap: {:?}", err);
               });
@@ -314,9 +322,13 @@ impl Client {
 
   pub fn dispatch(&mut self, core: &mut Core<Self>, event: ClientEvent) {
     match event {
-      ClientEvent::SelectBeatmap { path } => {
+      ClientEvent::PickBeatmap { path } => {
         self.game_state = LogicalState::Playing;
         self.gameplay_screen.play(&path, &core.graphics, &mut self.audio_engine, &self.app_state);
+      }
+
+      ClientEvent::SelectBeatmap => {
+        self.play_beatmap_audio();
       }
 
       ClientEvent::RetryBeatmap => {
@@ -451,17 +463,14 @@ impl Client {
     use std::time::Duration;
 
     let selected = self.selection_screen.beatmap_selector().selected();
-    let previous = self.selection_screen.beatmap_selector().previous();
-
     let Some((path, beatmap)) = self.beatmap_cache.get_index(selected) else {
       return;
     };
 
-    let Some((prev_path, _)) = self.beatmap_cache.get_index(previous) else {
-      return;
-    };
-
-    if path.parent() == prev_path.parent() {
+    if beatmap.audio_path != self.prev_audio_path || path.parent().unwrap() != self.prev_beatmap_path {
+      self.prev_beatmap_path = path.parent().unwrap().to_owned();
+      self.prev_audio_path = beatmap.audio_path.clone();
+    } else {
       return;
     }
 

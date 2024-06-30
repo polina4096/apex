@@ -15,9 +15,8 @@ use crate::{
 pub struct BeatmapSelector {
   matcher: Nucleo<(usize, String)>,
 
-  search_query: String,
   selected_idx: usize,
-  previous_idx: usize,
+  search_query: String,
 
   last_update: Instant,
 }
@@ -40,9 +39,8 @@ impl BeatmapSelector {
 
     return Self {
       matcher,
-      search_query: String::new(),
       selected_idx: 0,
-      previous_idx: 0,
+      search_query: String::new(),
       last_update: Instant::now(),
     };
   }
@@ -70,12 +68,7 @@ impl BeatmapSelector {
     return self.selected_idx;
   }
 
-  pub fn previous(&self) -> usize {
-    return self.previous_idx;
-  }
-
   pub fn set_selected(&mut self, idx: usize) {
-    self.previous_idx = self.selected_idx;
     self.selected_idx = idx;
   }
 
@@ -120,13 +113,11 @@ impl BeatmapSelector {
     let snapshot = self.matcher.snapshot();
     let mut iter = snapshot.matched_items(..);
     let Some(idx) = iter.position(|x| x.data.0 == self.selected_idx) else {
-      self.previous_idx = self.selected_idx;
       self.selected_idx = snapshot.matched_items(..).next().map(|x| x.data.0).unwrap_or(0);
       return;
     };
 
     if let Some(info) = snapshot.get_matched_item(idx as u32 + 1) {
-      self.previous_idx = self.selected_idx;
       self.selected_idx = info.data.0;
     }
   }
@@ -135,21 +126,19 @@ impl BeatmapSelector {
     let snapshot = self.matcher.snapshot();
     let mut iter = snapshot.matched_items(..);
     let Some(idx) = iter.position(|x| x.data.0 == self.selected_idx) else {
-      self.previous_idx = self.selected_idx;
       self.selected_idx = snapshot.matched_items(..).next().map(|x| x.data.0).unwrap_or(0);
       return;
     };
 
     if let Some(info) = snapshot.get_matched_item(idx as u32 - 1) {
-      self.previous_idx = self.selected_idx;
       self.selected_idx = info.data.0;
     }
   }
 
   #[allow(clippy::result_unit_err)]
-  pub fn select(&self, event_bus: &EventBus<ClientEvent>, beatmap_cache: &BeatmapCache) -> Result<(), ()> {
+  pub fn pick(&self, event_bus: &EventBus<ClientEvent>, beatmap_cache: &BeatmapCache) -> Result<(), ()> {
     #[rustfmt::skip] let Some((path, _)) = beatmap_cache.get_index(self.selected_idx) else { return Err(()) };
-    event_bus.send(ClientEvent::SelectBeatmap { path: path.clone() });
+    event_bus.send(ClientEvent::PickBeatmap { path: path.clone() });
 
     return Ok(());
   }

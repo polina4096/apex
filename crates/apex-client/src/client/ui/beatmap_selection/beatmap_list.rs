@@ -102,8 +102,10 @@ impl BeatmapList {
                 if response.interact(egui::Sense::click()).clicked() {
                   new_selected = Some(orig_idx);
 
+                  self.event_bus.send(ClientEvent::SelectBeatmap);
+
                   if is_selected {
-                    self.event_bus.send(ClientEvent::SelectBeatmap { path: path.clone() });
+                    self.event_bus.send(ClientEvent::PickBeatmap { path: path.clone() });
                   }
                 }
               });
