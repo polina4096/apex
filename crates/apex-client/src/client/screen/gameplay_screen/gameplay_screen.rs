@@ -118,12 +118,12 @@ impl GameplayScreen {
     match input {
       TaikoPlayerInput::DonOne | TaikoPlayerInput::DonTwo => {
         let source = SamplesBuffer::<f32>::new(self.channels, self.sample_rate.0, self.don_hitsound.clone());
-        self.audio_controller.play_sound(Box::new(source));
+        self.audio_controller.play_sound(source);
       }
 
       TaikoPlayerInput::KatOne | TaikoPlayerInput::KatTwo => {
         let source = SamplesBuffer::<f32>::new(self.channels, self.sample_rate.0, self.kat_hitsound.clone());
-        self.audio_controller.play_sound(Box::new(source));
+        self.audio_controller.play_sound(source);
       }
     }
 

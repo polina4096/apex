@@ -1,3 +1,4 @@
+use log::error;
 use rodio::{source::SeekError, Device, OutputStream, OutputStreamHandle, Sink, Source};
 
 use crate::core::time::{
@@ -84,7 +85,9 @@ impl AbstractClock for AudioEngine {
 
   fn set_position(&mut self, position: Time) {
     self.clock.set_position(position);
-    _ = self.sink.try_seek(position.into());
+    if let Err(e) = self.sink.try_seek(position.into()) {
+      error!("Failed to seek audio source: {:?}", e);
+    }
   }
 
   fn length(&self) -> Time {

@@ -486,7 +486,7 @@ impl Client {
     self.audio_engine.set_length(length.into());
 
     self.audio_engine.set_playing(false);
-    self.audio_controller.play_audio(Box::new(source));
+    self.audio_controller.play_audio(source);
     self.audio_engine.set_position(Time::from_ms(beatmap.preview_time as f64));
     self.audio_engine.set_playing(true);
   }

@@ -38,7 +38,7 @@ impl BeatmapAudio {
   where
     S: Source<Item = f32> + Send + Sync + 'static,
   {
-    self.audio.play_audio(Box::new(source));
+    self.audio.play_audio(source);
   }
 }
 

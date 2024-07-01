@@ -1,28 +1,30 @@
 use std::{
   collections::VecDeque,
-  sync::mpsc::{Receiver, Sender},
+  sync::{
+    mpsc::{Receiver, Sender},
+    Arc, Mutex,
+  },
 };
 
 use rodio::{Sample as _, Source};
 
 pub enum AudioMixerEvent {
-  AddOneshot(Box<dyn Source<Item = f32> + Send + Sync>),
   SetSource(Box<dyn Source<Item = f32> + Send + Sync>),
 }
 
 pub struct AudioMixer {
-  source: Box<dyn Source<Item = f32> + Send + Sync>,
+  source: Arc<Mutex<Box<dyn Source<Item = f32> + Send + Sync>>>,
   sounds: VecDeque<Box<dyn Source<Item = f32> + Send + Sync>>,
-  rx: Receiver<AudioMixerEvent>,
+  rx: Receiver<Box<dyn Source<Item = f32> + Send + Sync>>,
 }
 
 pub fn mixer(source: impl Source<Item = f32> + Send + Sync + 'static) -> (AudioMixer, AudioController) {
   let (tx, rx) = std::sync::mpsc::channel();
-  let source = Box::new(source);
+  let source = Arc::new(Mutex::new(Box::new(source) as Box<dyn Source<Item = f32> + Send + Sync>));
   let sounds = VecDeque::new();
 
-  let mixer = AudioMixer { source, sounds, rx };
-  let controller = AudioController { tx };
+  let mixer = AudioMixer { source: source.clone(), sounds, rx };
+  let controller = AudioController { tx, source };
 
   return (mixer, controller);
 }
@@ -31,16 +33,8 @@ impl Iterator for AudioMixer {
   type Item = f32;
 
   fn next(&mut self) -> Option<Self::Item> {
-    if let Ok(event) = self.rx.try_recv() {
-      match event {
-        AudioMixerEvent::AddOneshot(sound) => {
-          self.sounds.push_back(sound);
-        }
-
-        AudioMixerEvent::SetSource(source) => {
-          self.source = source;
-        }
-      }
+    if let Ok(sound) = self.rx.try_recv() {
+      self.sounds.push_back(sound);
     }
 
     let mut sample = f32::zero_value();
@@ -54,8 +48,11 @@ impl Iterator for AudioMixer {
       return false;
     });
 
-    if let Some(source_sample) = self.source.next() {
-      sample = source_sample.saturating_add(sample);
+    {
+      let mut lock = self.source.lock().unwrap();
+      if let Some(source_sample) = lock.next() {
+        sample = source_sample.saturating_add(sample);
+      }
     }
 
     return Some(sample);
@@ -68,11 +65,11 @@ impl Source for AudioMixer {
   }
 
   fn channels(&self) -> u16 {
-    return self.source.channels();
+    return self.source.lock().unwrap().channels();
   }
 
   fn sample_rate(&self) -> u32 {
-    return self.source.sample_rate();
+    return self.source.lock().unwrap().sample_rate();
   }
 
   fn total_duration(&self) -> Option<instant::Duration> {
@@ -80,21 +77,22 @@ impl Source for AudioMixer {
   }
 
   fn try_seek(&mut self, pos: instant::Duration) -> Result<(), rodio::source::SeekError> {
-    return self.source.try_seek(pos);
+    return self.source.lock().unwrap().try_seek(pos);
   }
 }
 
 #[derive(Clone)]
 pub struct AudioController {
-  tx: Sender<AudioMixerEvent>,
+  source: Arc<Mutex<Box<dyn Source<Item = f32> + Send + Sync>>>,
+  tx: Sender<Box<dyn Source<Item = f32> + Send + Sync>>,
 }
 
 impl AudioController {
-  pub fn play_sound(&mut self, sound: Box<dyn Source<Item = f32> + Send + Sync>) {
-    self.tx.send(AudioMixerEvent::AddOneshot(sound)).unwrap();
+  pub fn play_sound(&mut self, sound: impl Source<Item = f32> + Send + Sync + 'static) {
+    self.tx.send(Box::new(sound)).unwrap();
   }
 
-  pub fn play_audio(&mut self, source: Box<dyn Source<Item = f32> + Send + Sync>) {
-    self.tx.send(AudioMixerEvent::SetSource(source)).unwrap();
+  pub fn play_audio(&mut self, source: impl Source<Item = f32> + Send + Sync + 'static) {
+    *self.source.lock().unwrap() = Box::new(source);
   }
 }
