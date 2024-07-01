@@ -33,7 +33,7 @@ pub struct BeatmapSelectionView {
 }
 
 impl BeatmapSelectionView {
-  pub fn new(event_bus: EventBus<ClientEvent>, beatmap_cache: &BeatmapCache) -> Self {
+  pub fn new(event_bus: EventBus<ClientEvent>, beatmap_cache: &BeatmapCache, clock: &mut impl AbstractClock) -> Self {
     let mut beatmap_cards = vec![];
     for (path, info) in beatmap_cache.iter() {
       let card = BeatmapCard::new(path, info);
@@ -48,7 +48,7 @@ impl BeatmapSelectionView {
       beatmap_bg: BackgroundComponent::new(""),
       beatmap_list: BeatmapList::new(event_bus.clone(), beatmap_cards),
       beatmap_stats: BeatmapStats::new(event_bus.clone()),
-      action_bar: ActionBar::new(event_bus),
+      action_bar: ActionBar::new(event_bus, clock),
     };
   }
 

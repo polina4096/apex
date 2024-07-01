@@ -11,14 +11,18 @@ use crate::{
 
 pub struct ActionBar {
   event_bus: EventBus<ClientEvent>,
+
+  last_state: bool,
 }
 
 impl ActionBar {
-  pub fn new(event_bus: EventBus<ClientEvent>) -> Self {
-    return Self { event_bus };
+  pub fn new(event_bus: EventBus<ClientEvent>, clock: &mut impl AbstractClock) -> Self {
+    let last_state = clock.is_playing();
+
+    return Self { event_bus, last_state };
   }
 
-  pub fn prepare(&self, ui: &mut egui::Ui, clock: &mut impl AbstractClock) {
+  pub fn prepare(&mut self, ui: &mut egui::Ui, clock: &mut impl AbstractClock) {
     egui::Frame::window(ui.style())
       .outer_margin(egui::Margin {
         left: 12.0,
@@ -49,7 +53,7 @@ impl ActionBar {
           clock.toggle();
         }
 
-        egui::Frame::none() //
+        egui::Frame::none()
           .inner_margin(egui::Margin {
             left: 6.0,
             right: 0.0,
@@ -59,15 +63,27 @@ impl ActionBar {
           .show(ui, |ui| {
             let mut pos = clock.position().to_seconds();
             ui.style_mut().spacing.slider_width = 128.0;
-            if egui::Slider::new(&mut pos, 0.0 ..= clock.length().to_seconds())
+
+            let slider = egui::Slider::new(&mut pos, 0.0 ..= clock.length().to_seconds())
               .handle_shape(egui::style::HandleShape::Rect { aspect_ratio: 0.5 })
               .show_value(false)
               .smart_aim(false)
               .trailing_fill(true)
-              .ui(ui)
-              .changed()
-            {
+              .ui(ui);
+
+            if slider.drag_started() {
+              self.last_state = clock.is_playing();
+              if self.last_state {
+                clock.set_playing(false);
+              }
+            }
+
+            if slider.changed() {
               clock.set_position(Time::from_seconds(pos));
+            }
+
+            if slider.drag_stopped() {
+              clock.set_playing(self.last_state);
             }
 
             ui.with_layout(egui::Layout::left_to_right(egui::Align::Max), |ui| {

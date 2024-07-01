@@ -133,7 +133,7 @@ impl Client {
       cache.load_beatmaps("./beatmaps");
     });
 
-    let selection_screen = SelectionScreen::new(event_bus.clone(), &beatmap_cache);
+    let selection_screen = SelectionScreen::new(event_bus.clone(), &beatmap_cache, &mut audio_engine);
     let result_screen = ResultScreen::new(event_bus.clone(), &beatmap_cache, &PathBuf::new());
     #[rustfmt::skip]
     let gameplay_screen = GameplayScreen::new(event_bus.clone(), &core.graphics, &audio_engine, audio_controller.clone());

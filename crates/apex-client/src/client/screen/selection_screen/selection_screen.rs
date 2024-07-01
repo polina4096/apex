@@ -14,8 +14,8 @@ pub struct SelectionScreen {
 }
 
 impl SelectionScreen {
-  pub fn new(event_bus: EventBus<ClientEvent>, beatmap_cache: &BeatmapCache) -> Self {
-    let beatmap_selection = BeatmapSelectionView::new(event_bus, beatmap_cache);
+  pub fn new(event_bus: EventBus<ClientEvent>, beatmap_cache: &BeatmapCache, clock: &mut impl AbstractClock) -> Self {
+    let beatmap_selection = BeatmapSelectionView::new(event_bus, beatmap_cache, clock);
     let beatmap_selector = BeatmapSelector::new(beatmap_cache);
 
     return Self { beatmap_selection, beatmap_selector };
