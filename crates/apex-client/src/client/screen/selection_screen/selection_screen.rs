@@ -3,9 +3,15 @@ use crate::{
     client::Client,
     event::ClientEvent,
     gameplay::{beatmap_cache::BeatmapCache, beatmap_selector::BeatmapSelector},
+    state::AppState,
     ui::beatmap_selection::BeatmapSelectionView,
   },
-  core::{core::Core, event::EventBus, time::clock::AbstractClock},
+  core::{
+    core::Core,
+    event::EventBus,
+    graphics::{egui::EguiContext, graphics::Graphics},
+    time::clock::AbstractClock,
+  },
 };
 
 pub struct SelectionScreen {
@@ -14,8 +20,15 @@ pub struct SelectionScreen {
 }
 
 impl SelectionScreen {
-  pub fn new(event_bus: EventBus<ClientEvent>, beatmap_cache: &BeatmapCache, clock: &mut impl AbstractClock) -> Self {
-    let beatmap_selection = BeatmapSelectionView::new(event_bus, beatmap_cache, clock);
+  pub fn new(
+    event_bus: EventBus<ClientEvent>,
+    beatmap_cache: &BeatmapCache,
+    clock: &mut impl AbstractClock,
+    graphics: &Graphics,
+    egui_ctx: &mut EguiContext,
+    state: &AppState,
+  ) -> Self {
+    let beatmap_selection = BeatmapSelectionView::new(event_bus, beatmap_cache, clock, graphics, egui_ctx, state);
     let beatmap_selector = BeatmapSelector::new(beatmap_cache);
 
     return Self { beatmap_selection, beatmap_selector };

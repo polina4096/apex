@@ -1,13 +1,17 @@
+use std::path::PathBuf;
+
 use bytemuck::Zeroable;
 use glam::{vec2, vec3, vec4, Quat, Vec4};
 use wgpu::util::DeviceExt;
+use winit::dpi::PhysicalSize;
 
 use crate::{
-  client::{gameplay::beatmap::Beatmap, state::AppState},
+  client::gameplay::beatmap::Beatmap,
   core::{
     graphics::{
       bindable::Bindable,
       camera::{Camera as _, Camera2D, ProjectionOrthographic},
+      color::Color,
       drawable::Drawable,
       graphics::Graphics,
       instance::Instance,
@@ -22,6 +26,21 @@ use crate::{
 };
 
 use super::data::hit_object_model::{BakedHitObjectModel, HitObjectModel};
+
+pub struct TaikoRendererConfig {
+  // Graphics
+  pub width: u32,
+  pub height: u32,
+  pub scale_factor: f64,
+
+  // Taiko
+  pub scale: f64,
+  pub zoom: f64,
+  pub hit_position_x: f32,
+  pub hit_position_y: f32,
+  pub don: Color,
+  pub kat: Color,
+}
 
 #[rustfmt::skip]
 pub struct TaikoRenderer {
@@ -42,14 +61,15 @@ pub struct TaikoRenderer {
   pub instance_buffer : wgpu::Buffer,
   pub instances       : Vec<HitObjectModel>,
 
-  // pub culling : usize,
+  pub config: TaikoRendererConfig,
+  pub beatmap: Beatmap, // TODO: make this some other type which has less useless info
 }
 
 impl TaikoRenderer {
-  pub fn new(graphics: &Graphics) -> Self {
+  pub fn new(graphics: &Graphics, config: TaikoRendererConfig) -> Self {
     #[rustfmt::skip]
     let scene = Scene::<ProjectionOrthographic, Camera2D> {
-      projection : ProjectionOrthographic::new(graphics.config.width, graphics.config.height, -100.0, 100.0),
+      projection : ProjectionOrthographic::new(config.width, config.height, -100.0, 100.0),
       camera     : Camera2D::new(vec3(0.0, 0.0, -50.0), Quat::zeroed(), vec3(graphics.scale as f32, graphics.scale as f32, 1.0)),
       uniform    : Uniform::new(&graphics.device),
     };
@@ -152,6 +172,15 @@ impl TaikoRenderer {
     let circle_overlay_texture = Texture::from_path("./assets/taikohitcircleoverlay.png", graphics).unwrap();
     let finisher_overlaytexture = Texture::from_path("./assets/taikobigcircleoverlay.png", graphics).unwrap();
 
+    let beatmap = Beatmap {
+      hit_objects: vec![],
+      timing_points: vec![],
+      velocity_points: vec![],
+      overall_difficulty: 0.0,
+      velocity_multiplier: 0.0,
+      audio: PathBuf::new(),
+    };
+
     return Self {
       scene,
 
@@ -169,24 +198,16 @@ impl TaikoRenderer {
 
       instance_buffer,
       instances,
-      // culling: 0,
+
+      config,
+      beatmap,
     };
   }
 
-  pub fn prepare(&mut self, graphics: &Graphics, time: Time, state: &AppState) {
-    let taiko_zoom = state.taiko.zoom;
-    let taiko_scale = state.taiko.scale;
-
-    // Update scene matrix
-    let scale = (graphics.scale * taiko_scale) as f32;
-    self.scene.camera.set_scale(vec3(scale, scale, 1.0));
-    self.scene.camera.set_x(state.taiko.hit_position_x / taiko_scale as f32);
-    self.scene.camera.set_y(state.taiko.hit_position_y / taiko_scale as f32);
-    self.scene.update(&graphics.queue);
-
+  pub fn prepare(&mut self, queue: &wgpu::Queue, time: Time) {
     // Update time uniform
-    let time_offset = time.to_seconds() * 1000.0 * taiko_zoom * -1.0;
-    self.time_uniform.update(&graphics.queue, &vec4(time_offset as f32, 0.0, 0.0, 0.0));
+    let time_offset = time.to_seconds() * 1000.0 * self.config.zoom * -1.0;
+    self.time_uniform.update(queue, &vec4(time_offset as f32, 0.0, 0.0, 0.0));
   }
 
   pub fn render<'rpass>(&'rpass self, rpass: &mut wgpu::RenderPass<'rpass>) {
@@ -207,13 +228,11 @@ impl TaikoRenderer {
     // rpass.draw(0 .. self.vertex_buffer_data.len() as u32, 0 .. (self.instances.len() - self.culling) as u32);
   }
 
-  pub fn set_hit(&mut self, graphics: &Graphics, hit_time: Time, hit_idx: usize, state: &AppState) {
-    let taiko_zoom = state.taiko.zoom;
-
+  pub fn set_hit(&mut self, graphics: &Graphics, hit_time: Time, hit_idx: usize) {
     let len = self.instances.len();
     let idx = len - hit_idx;
     let instance = &mut self.instances[idx];
-    instance.hit = hit_time * 1000.0 * taiko_zoom * -1.0;
+    instance.hit = hit_time * 1000.0 * self.config.zoom * -1.0;
 
     let single_baked = [instance.bake()];
     let byte_slice: &[u8] = bytemuck::cast_slice(&single_baked);
@@ -222,7 +241,7 @@ impl TaikoRenderer {
     graphics.queue.write_buffer(&self.instance_buffer, offset as wgpu::BufferAddress, byte_slice);
   }
 
-  pub fn reset_instances(&mut self, graphics: &Graphics) {
+  pub fn restart_beatmap(&mut self, queue: &wgpu::Queue) {
     for inst in &mut self.instances {
       inst.hit = Time::zero();
     }
@@ -231,45 +250,41 @@ impl TaikoRenderer {
     let byte_slice = bytemuck::cast_slice(&instance_data);
     let offset = 0 as wgpu::BufferAddress;
 
-    graphics.queue.write_buffer(&self.instance_buffer, offset, byte_slice);
+    queue.write_buffer(&self.instance_buffer, offset, byte_slice);
   }
 
-  pub fn prepare_instances(&mut self, graphics: &Graphics, beatmap: &Beatmap, state: &AppState) {
+  pub fn prepare_instances(&mut self, device: &wgpu::Device) {
     const OSU_TAIKO_VELOCITY_MULTIPLIER: f64 = 1.4;
     const OSU_TAIKO_CIRCLE_SIZE: f32 = 128.0;
 
     let circle_size = OSU_TAIKO_CIRCLE_SIZE;
 
-    let taiko_zoom = state.taiko.zoom;
-    let don_color = state.taiko.don_color;
-    let kat_color = state.taiko.kat_color;
-
     self.instances.clear();
 
-    let mut idx_t = beatmap.timing_points.len() - 1;
-    let mut idx_v = beatmap.velocity_points.len() - 1;
-    for obj in beatmap.hit_objects.iter().rev() {
+    let mut idx_t = self.beatmap.timing_points.len() - 1;
+    let mut idx_v = self.beatmap.velocity_points.len() - 1;
+    for obj in self.beatmap.hit_objects.iter().rev() {
       #[rustfmt::skip] {
-        while beatmap.timing_points[idx_t].time > obj.time && idx_t != 0 { idx_t -= 1; }
-        while beatmap.velocity_points[idx_v].time > obj.time && idx_v != 0 { idx_v -= 1; }
+        while self.beatmap.timing_points[idx_t].time > obj.time && idx_t != 0 { idx_t -= 1; }
+        while self.beatmap.velocity_points[idx_v].time > obj.time && idx_v != 0 { idx_v -= 1; }
       };
 
       // Timing
-      let beat_length = 60.0 / beatmap.timing_points[idx_t].bpm * 1000.0; // we want ms...
-      let velocity = beatmap.velocity_points[idx_v].velocity;
+      let beat_length = 60.0 / self.beatmap.timing_points[idx_t].bpm * 1000.0; // we want ms...
+      let velocity = self.beatmap.velocity_points[idx_v].velocity;
 
       let base_length = 1000.0;
 
       #[rustfmt::skip]
-      let multiplier = OSU_TAIKO_VELOCITY_MULTIPLIER * velocity * base_length / beat_length * beatmap.velocity_multiplier as f64;
+      let multiplier = OSU_TAIKO_VELOCITY_MULTIPLIER * velocity * base_length / beat_length * self.beatmap.velocity_multiplier as f64;
 
       let size_big = vec2(circle_size * 1.55, circle_size * 1.55);
       let size_small = vec2(circle_size, circle_size);
 
       self.instances.push(HitObjectModel {
-        time: (obj.time.to_seconds() * 1000.0 * taiko_zoom) as f32,
+        time: (obj.time.to_seconds() * 1000.0 * self.config.zoom) as f32,
         size: if obj.big { size_big } else { size_small },
-        color: if obj.color.is_kat() { kat_color } else { don_color },
+        color: if obj.color.is_kat() { self.config.kat } else { self.config.don },
         finisher: obj.big,
         velocity: multiplier as f32,
         hit: Time::zero(),
@@ -277,11 +292,55 @@ impl TaikoRenderer {
     }
 
     let instance_data = self.instances.iter().map(Instance::bake).collect::<Vec<_>>();
-    self.instance_buffer = graphics.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+    self.instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
       label: Some("Instance Buffer"),
       contents: bytemuck::cast_slice(&instance_data),
       usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
     });
+  }
+
+  pub fn load_beatmap(&mut self, device: &wgpu::Device, beatmap: Beatmap) {
+    self.beatmap = beatmap;
+    self.prepare_instances(device);
+  }
+
+  pub fn resize(&mut self, queue: &wgpu::Queue, width: u32, height: u32) {
+    self.config.width = width;
+    self.config.height = height;
+
+    self.scene.resize(PhysicalSize::new(width, height));
+    self.update_camera(queue);
+  }
+
+  pub fn scale(&mut self, queue: &wgpu::Queue, scale_factor: f64) {
+    self.config.scale_factor = scale_factor;
+    self.update_camera(queue);
+  }
+
+  pub fn set_hit_position(&mut self, queue: &wgpu::Queue, x: f32, y: f32) {
+    self.config.hit_position_x = x;
+    self.config.hit_position_y = y;
+    self.update_camera(queue);
+  }
+
+  pub fn set_zoom(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, zoom: f64) {
+    self.config.zoom = zoom;
+    self.update_camera(queue);
+    self.prepare_instances(device);
+  }
+
+  pub fn set_scale(&mut self, queue: &wgpu::Queue, scale: f64) {
+    self.config.scale = scale;
+    self.update_camera(queue);
+  }
+
+  fn update_camera(&mut self, queue: &wgpu::Queue) {
+    // Update scene matrix
+    let camera_scale = (self.config.scale_factor * self.config.scale) as f32;
+    self.scene.camera.set_scale(vec3(camera_scale, camera_scale, 1.0));
+    self.scene.camera.set_x(self.config.hit_position_x / self.config.scale as f32);
+    self.scene.camera.set_y(self.config.hit_position_y / self.config.scale as f32);
+    self.scene.update(queue);
   }
 }
 
@@ -289,7 +348,7 @@ impl Drawable for TaikoRenderer {
   fn recreate(&mut self, graphics: &Graphics) {
     #[rustfmt::skip] {
       self.scene = Scene::<ProjectionOrthographic, Camera2D> {
-        projection: ProjectionOrthographic::new(graphics.config.width, graphics.config.height, -100.0, 100.0),
+        projection: ProjectionOrthographic::new(self.config.width, self.config.height, -100.0, 100.0),
         camera: Camera2D::new(vec3(0.0, 0.0, -50.0), Quat::zeroed(), vec3(graphics.scale as f32, graphics.scale as f32, 1.0)),
         uniform: Uniform::new(&graphics.device),
       };

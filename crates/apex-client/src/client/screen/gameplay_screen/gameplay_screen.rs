@@ -22,7 +22,7 @@ use crate::{
       score_processor::{ScoreProcessor, ScoreProcessorEvent},
       taiko_player::{TaikoPlayer, TaikoPlayerInput},
     },
-    graphics::taiko_renderer::taiko_renderer::TaikoRenderer,
+    graphics::taiko_renderer::taiko_renderer::{TaikoRenderer, TaikoRendererConfig},
     state::AppState,
     ui::ingame_overlay::{HitResult, IngameOverlayView},
   },
@@ -61,9 +61,23 @@ impl GameplayScreen {
     graphics: &Graphics,
     audio_engine: &AudioEngine,
     audio_controller: AudioController,
+    state: &AppState,
   ) -> Self {
-    let taiko_renderer = TaikoRenderer::new(graphics);
     let ingame_overlay = IngameOverlayView::new();
+    let taiko_renderer = TaikoRenderer::new(
+      graphics,
+      TaikoRendererConfig {
+        width: graphics.size.width,
+        height: graphics.size.height,
+        scale_factor: graphics.scale,
+        scale: state.taiko.scale,
+        zoom: state.taiko.zoom,
+        hit_position_x: state.taiko.hit_position_x,
+        hit_position_y: state.taiko.hit_position_y,
+        don: state.taiko.don_color,
+        kat: state.taiko.kat_color,
+      },
+    );
 
     let beatmap_path = PathBuf::new();
 
@@ -108,7 +122,7 @@ impl GameplayScreen {
     };
   }
 
-  pub fn hit(&mut self, input: TaikoPlayerInput, graphics: &Graphics, audio: &mut AudioEngine, state: &AppState) {
+  pub fn hit(&mut self, input: TaikoPlayerInput, graphics: &Graphics, audio: &mut AudioEngine) {
     let Some(beatmap) = &self.beatmap else { return };
     let mut audio = self.audio.borrow(audio);
     let time = audio.position();
@@ -129,13 +143,13 @@ impl GameplayScreen {
 
     self.player.hit(time, input, beatmap, |result, idx| {
       self.score.feed(ScoreProcessorEvent { result });
-      self.taiko_renderer.set_hit(graphics, time, idx, state);
+      self.taiko_renderer.set_hit(graphics, time, idx);
       self.ingame_overlay.show_hit_result(result);
     });
   }
 
   pub fn reset(&mut self, graphics: &Graphics, audio: &mut AudioEngine) {
-    self.taiko_renderer.reset_instances(graphics);
+    self.taiko_renderer.restart_beatmap(&graphics.queue);
     self.player.reset();
 
     std::mem::take(&mut self.score);
@@ -151,7 +165,7 @@ impl GameplayScreen {
     let beatmap = Beatmap::from(data);
     let end_time = beatmap.hit_objects.last().unwrap().time;
 
-    self.taiko_renderer.prepare_instances(graphics, &beatmap, state);
+    self.taiko_renderer.load_beatmap(&graphics.device, beatmap.clone());
     std::mem::take(&mut self.score);
     self.player.reset();
 
@@ -205,7 +219,7 @@ impl GameplayScreen {
       });
     }
 
-    self.taiko_renderer.prepare(&core.graphics, time, state);
+    self.taiko_renderer.prepare(&core.graphics.queue, time);
     self.ingame_overlay.prepare(core, &mut audio, &self.score, state);
   }
 
@@ -213,18 +227,12 @@ impl GameplayScreen {
     self.taiko_renderer.render(rpass);
   }
 
-  pub fn resize(&mut self, size: winit::dpi::PhysicalSize<u32>) {
-    self.taiko_renderer.scene.resize(size);
+  pub fn resize(&mut self, queue: &wgpu::Queue, size: winit::dpi::PhysicalSize<u32>) {
+    self.taiko_renderer.resize(queue, size.width, size.height);
   }
 
-  pub fn scale(&mut self, scale_factor: f64) {
-    self.taiko_renderer.scene.scale(scale_factor);
-  }
-
-  pub fn rebuild_instances(&mut self, graphics: &Graphics, state: &AppState) {
-    if let Some(beatmap) = &self.beatmap {
-      self.taiko_renderer.prepare_instances(graphics, beatmap, state);
-    }
+  pub fn scale(&mut self, queue: &wgpu::Queue, scale_factor: f64) {
+    self.taiko_renderer.scale(queue, scale_factor);
   }
 }
 

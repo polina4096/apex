@@ -3,15 +3,22 @@ use std::path::PathBuf;
 use action_bar::ActionBar;
 use beatmap_card::BeatmapCard;
 use beatmap_list::BeatmapList;
+use beatmap_preview::BeatmapPreview;
 use beatmap_stats::BeatmapStats;
 
 use crate::{
   client::{
     client::Client,
     event::ClientEvent,
-    gameplay::{beatmap_cache::BeatmapCache, beatmap_selector::BeatmapSelector},
+    gameplay::{beatmap::Beatmap, beatmap_cache::BeatmapCache, beatmap_selector::BeatmapSelector},
+    state::AppState,
   },
-  core::{core::Core, event::EventBus, time::clock::AbstractClock},
+  core::{
+    core::Core,
+    event::EventBus,
+    graphics::{egui::EguiContext, graphics::Graphics},
+    time::clock::AbstractClock,
+  },
 };
 
 use super::background_component::BackgroundComponent;
@@ -19,21 +26,28 @@ use super::background_component::BackgroundComponent;
 pub mod action_bar;
 pub mod beatmap_card;
 pub mod beatmap_list;
+pub mod beatmap_preview;
 pub mod beatmap_stats;
 
 pub struct BeatmapSelectionView {
-  event_bus: EventBus<ClientEvent>,
-
   prev_beatmap: PathBuf,
 
   beatmap_bg: BackgroundComponent,
   beatmap_list: BeatmapList,
   beatmap_stats: BeatmapStats,
+  beatmap_preview: BeatmapPreview,
   action_bar: ActionBar,
 }
 
 impl BeatmapSelectionView {
-  pub fn new(event_bus: EventBus<ClientEvent>, beatmap_cache: &BeatmapCache, clock: &mut impl AbstractClock) -> Self {
+  pub fn new(
+    event_bus: EventBus<ClientEvent>,
+    beatmap_cache: &BeatmapCache,
+    clock: &mut impl AbstractClock,
+    graphics: &Graphics,
+    egui_ctx: &mut EguiContext,
+    state: &AppState,
+  ) -> Self {
     let mut beatmap_cards = vec![];
     for (path, info) in beatmap_cache.iter() {
       let card = BeatmapCard::new(path, info);
@@ -41,13 +55,12 @@ impl BeatmapSelectionView {
     }
 
     return Self {
-      event_bus: event_bus.clone(),
-
       prev_beatmap: PathBuf::new(),
 
       beatmap_bg: BackgroundComponent::new(""),
       beatmap_list: BeatmapList::new(event_bus.clone(), beatmap_cards),
-      beatmap_stats: BeatmapStats::new(event_bus.clone()),
+      beatmap_stats: BeatmapStats::new(),
+      beatmap_preview: BeatmapPreview::new(graphics, egui_ctx, state),
       action_bar: ActionBar::new(event_bus, clock),
     };
   }
@@ -75,6 +88,11 @@ impl BeatmapSelectionView {
       let bg_path = path.parent().unwrap().join(&info.bg_path);
       let bg = format!("file://{}", bg_path.to_str().unwrap());
       self.beatmap_bg = BackgroundComponent::new(bg);
+
+      let data = std::fs::read_to_string(path).unwrap();
+      let beatmap = Beatmap::from(data);
+
+      self.beatmap_preview.change_beatmap(&core.graphics, &mut core.egui_ctx, &beatmap);
     }
 
     egui::CentralPanel::default().frame(egui::Frame::none()).show(core.egui_ctx(), |ui| {
@@ -87,6 +105,8 @@ impl BeatmapSelectionView {
 
           ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
             self.beatmap_stats.prepare(ui, info);
+
+            self.beatmap_preview.prepare(ui, clock.position());
 
             // egui::Frame::window(ui.style())
             //   .outer_margin(egui::Margin::same(12.0))

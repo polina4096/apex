@@ -1,17 +1,12 @@
 use egui::Widget;
 
-use crate::{
-  client::{event::ClientEvent, gameplay::beatmap_cache::BeatmapInfo},
-  core::event::EventBus,
-};
+use crate::client::gameplay::beatmap_cache::BeatmapInfo;
 
-pub struct BeatmapStats {
-  event_bus: EventBus<ClientEvent>,
-}
+pub struct BeatmapStats {}
 
 impl BeatmapStats {
-  pub fn new(event_bus: EventBus<ClientEvent>) -> Self {
-    return Self { event_bus };
+  pub fn new() -> Self {
+    return Self {};
   }
 
   pub fn prepare(&mut self, ui: &mut egui::Ui, beatmap: &BeatmapInfo) {

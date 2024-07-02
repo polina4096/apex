@@ -8,6 +8,7 @@ use crate::core::time::time::Time;
 
 use super::taiko_hit_object::{TaikoColor, TaikoHitObject};
 
+#[derive(Clone)]
 pub struct TimingPoint {
   pub time: Time,
   pub bpm: f64,
@@ -19,6 +20,7 @@ impl Default for TimingPoint {
   }
 }
 
+#[derive(Clone)]
 pub struct VelocityPoint {
   pub time: Time,
   pub velocity: f64,
@@ -30,6 +32,7 @@ impl Default for VelocityPoint {
   }
 }
 
+#[derive(Clone)]
 pub struct Beatmap {
   pub hit_objects: Vec<TaikoHitObject>,
   pub timing_points: Vec<TimingPoint>,

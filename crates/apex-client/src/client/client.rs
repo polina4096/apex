@@ -106,11 +106,11 @@ impl App for Client {
   }
 
   fn resize(&mut self, core: &mut Core<Self>, size: winit::dpi::PhysicalSize<u32>) {
-    self.gameplay_screen.resize(size);
+    self.gameplay_screen.resize(&core.graphics.queue, size);
   }
 
   fn scale(&mut self, core: &mut Core<Self>, scale_factor: f64) {
-    self.gameplay_screen.scale(scale_factor);
+    self.gameplay_screen.scale(&core.graphics.queue, scale_factor);
   }
 }
 
@@ -121,6 +121,7 @@ impl Drawable for Client {
 }
 
 impl Client {
+  #[rustfmt::skip]
   pub fn new(core: &mut Core<Self>, app_state: AppState, event_bus: EventBus<ClientEvent>) -> Self {
     let input = Client::default_input();
     let (audio_mixer, audio_controller) = audio::mixer(Empty::new());
@@ -133,10 +134,9 @@ impl Client {
       cache.load_beatmaps("./beatmaps");
     });
 
-    let selection_screen = SelectionScreen::new(event_bus.clone(), &beatmap_cache, &mut audio_engine);
+    let selection_screen = SelectionScreen::new(event_bus.clone(), &beatmap_cache, &mut audio_engine, &core.graphics, &mut core.egui_ctx, &app_state);
     let result_screen = ResultScreen::new(event_bus.clone(), &beatmap_cache, &PathBuf::new());
-    #[rustfmt::skip]
-    let gameplay_screen = GameplayScreen::new(event_bus.clone(), &core.graphics, &audio_engine, audio_controller.clone());
+    let gameplay_screen = GameplayScreen::new(event_bus.clone(), &core.graphics, &audio_engine, audio_controller.clone(), &app_state);
     let settings_screen = SettingsScreen::new(event_bus.clone());
 
     let prev_audio_path = PathBuf::new();
@@ -286,33 +286,25 @@ impl Client {
 
       ClientAction::KatOne if !repeat => {
         if self.game_state == LogicalState::Playing {
-          self
-            .gameplay_screen
-            .hit(TaikoPlayerInput::KatOne, &core.graphics, &mut self.audio_engine, &self.app_state);
+          self.gameplay_screen.hit(TaikoPlayerInput::KatOne, &core.graphics, &mut self.audio_engine);
         }
       }
 
       ClientAction::KatTwo if !repeat => {
         if self.game_state == LogicalState::Playing {
-          self
-            .gameplay_screen
-            .hit(TaikoPlayerInput::KatTwo, &core.graphics, &mut self.audio_engine, &self.app_state);
+          self.gameplay_screen.hit(TaikoPlayerInput::KatTwo, &core.graphics, &mut self.audio_engine);
         }
       }
 
       ClientAction::DonOne if !repeat => {
         if self.game_state == LogicalState::Playing {
-          self
-            .gameplay_screen
-            .hit(TaikoPlayerInput::DonOne, &core.graphics, &mut self.audio_engine, &self.app_state);
+          self.gameplay_screen.hit(TaikoPlayerInput::DonOne, &core.graphics, &mut self.audio_engine);
         }
       }
 
       ClientAction::DonTwo if !repeat => {
         if self.game_state == LogicalState::Playing {
-          self
-            .gameplay_screen
-            .hit(TaikoPlayerInput::DonTwo, &core.graphics, &mut self.audio_engine, &self.app_state);
+          self.gameplay_screen.hit(TaikoPlayerInput::DonTwo, &core.graphics, &mut self.audio_engine);
         }
       }
 
@@ -337,10 +329,6 @@ impl Client {
 
       ClientEvent::ToggleSettings => {
         self.settings_screen.toggle_settings();
-      }
-
-      ClientEvent::RebuildTaikoRendererInstances => {
-        self.gameplay_screen.rebuild_instances(&core.graphics, &self.app_state);
       }
 
       ClientEvent::ShowResultScreen { path } => {

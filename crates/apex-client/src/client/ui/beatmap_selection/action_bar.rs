@@ -1,5 +1,4 @@
 use egui::Widget as _;
-use tap::Tap;
 
 use crate::{
   client::event::ClientEvent,
