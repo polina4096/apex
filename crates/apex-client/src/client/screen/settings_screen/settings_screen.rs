@@ -1,9 +1,6 @@
 use crate::{
-  client::{
-    client::Client, event::ClientEvent, input::client_action::ClientAction, state::AppState,
-    ui::game_settings::GameSettingsView,
-  },
-  core::{core::Core, event::EventBus, input::Input},
+  client::{client::Client, input::client_action::ClientAction, state::AppState, ui::game_settings::GameSettingsView},
+  core::{core::Core, input::Input},
 };
 
 pub struct SettingsScreen {
@@ -11,8 +8,8 @@ pub struct SettingsScreen {
 }
 
 impl SettingsScreen {
-  pub fn new(event_bus: EventBus<ClientEvent>) -> Self {
-    let game_settings = GameSettingsView::new(event_bus);
+  pub fn new() -> Self {
+    let game_settings = GameSettingsView::new();
 
     return Self { game_settings };
   }

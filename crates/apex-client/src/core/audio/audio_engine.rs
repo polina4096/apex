@@ -1,5 +1,5 @@
 use log::error;
-use rodio::{source::SeekError, Device, OutputStream, OutputStreamHandle, Sink, Source};
+use rodio::{Device, OutputStream, OutputStreamHandle, Sink, Source};
 
 use crate::core::time::{
   clock::{AbstractClock, Clock},

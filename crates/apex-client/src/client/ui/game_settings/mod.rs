@@ -3,10 +3,9 @@ use log::debug;
 use tap::Tap;
 
 use crate::{
-  client::{client::Client, event::ClientEvent, input::client_action::ClientAction, state::AppState},
+  client::{client::Client, input::client_action::ClientAction, state::AppState},
   core::{
     core::Core,
-    event::EventBus,
     input::{
       bind::{Bind, KeyCombination},
       Input,
@@ -27,20 +26,16 @@ pub struct GameSettingsView {
   pub tab: GameSettingsTab,
   pub is_open: bool,
 
-  event_bus: EventBus<ClientEvent>,
-
   buffer: String,
   current_bind: Option<KeyCombination>,
   bind_cache: Vec<(KeyCombination, Bind<ClientAction>)>,
 }
 
 impl GameSettingsView {
-  pub fn new(event_bus: EventBus<ClientEvent>) -> Self {
+  pub fn new() -> Self {
     return Self {
       tab: GameSettingsTab::General,
       is_open: false,
-
-      event_bus,
 
       buffer: String::new(),
       current_bind: None,

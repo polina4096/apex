@@ -22,7 +22,7 @@ impl PlayResultsView {
     return Self { preview, background };
   }
 
-  pub fn prepare(&mut self, core: &Core<Client>, state: &mut AppState) {
+  pub fn prepare(&mut self, core: &Core<Client>, _state: &mut AppState) {
     let frame = egui::Frame::none() //
       .inner_margin(egui::Margin::ZERO);
 

@@ -13,7 +13,7 @@ pub struct ResultScreen {
 }
 
 impl ResultScreen {
-  pub fn new(event_bus: EventBus<ClientEvent>, beatmap_cache: &BeatmapCache, beatmap: &Path) -> Self {
+  pub fn new(_event_bus: EventBus<ClientEvent>, _beatmap_cache: &BeatmapCache, _beatmap: &Path) -> Self {
     let play_results = PlayResultsView::new("");
 
     return Self { play_results };
@@ -26,7 +26,7 @@ impl ResultScreen {
     self.play_results = PlayResultsView::new(bg);
   }
 
-  pub fn prepare(&mut self, core: &mut Core<Client>, state: &mut AppState, beatmap_cache: &BeatmapCache) {
+  pub fn prepare(&mut self, core: &mut Core<Client>, state: &mut AppState, _beatmap_cache: &BeatmapCache) {
     self.play_results.prepare(core, state);
   }
 }

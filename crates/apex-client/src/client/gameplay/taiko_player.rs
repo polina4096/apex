@@ -42,7 +42,7 @@ impl TaikoPlayer {
 
   pub fn tick(&mut self, curr_time: Time, beatmap: &Beatmap, mut on_miss: impl FnMut(usize)) {
     let od = beatmap.overall_difficulty;
-    let hit_window_300 = Time::from_ms(50.0 - 3.0 * od);
+    // let hit_window_300 = Time::from_ms(50.0 - 3.0 * od);
     let hit_window_100 = Time::from_ms(if od <= 5.0 { 120.0 - 8.0 * od } else { 110.0 - 6.0 * od });
     let tolerance = hit_window_100;
 

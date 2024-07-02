@@ -137,7 +137,7 @@ impl Client {
     let selection_screen = SelectionScreen::new(event_bus.clone(), &beatmap_cache, &mut audio_engine, &core.graphics, &mut core.egui_ctx, &app_state);
     let result_screen = ResultScreen::new(event_bus.clone(), &beatmap_cache, &PathBuf::new());
     let gameplay_screen = GameplayScreen::new(event_bus.clone(), &core.graphics, &audio_engine, audio_controller.clone(), &app_state);
-    let settings_screen = SettingsScreen::new(event_bus.clone());
+    let settings_screen = SettingsScreen::new();
 
     let prev_audio_path = PathBuf::new();
     let prev_beatmap_path = PathBuf::new();
@@ -338,7 +338,7 @@ impl Client {
     }
   }
 
-  pub fn file(&mut self, core: &mut Core<Self>, path: PathBuf, file: Vec<u8>) {
+  pub fn file(&mut self, _core: &mut Core<Self>, path: PathBuf, file: Vec<u8>) {
     // TODO: this logic should be moved to the beatmap manager or whatever
     // TODO: properly parse beatmapset id
     let beatmapset_id = path.file_name().unwrap().to_str().unwrap().split_whitespace().next().unwrap();
