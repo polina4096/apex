@@ -228,7 +228,7 @@ impl TaikoRenderer {
     // rpass.draw(0 .. self.vertex_buffer_data.len() as u32, 0 .. (self.instances.len() - self.culling) as u32);
   }
 
-  pub fn set_hit(&mut self, graphics: &Graphics, hit_time: Time, hit_idx: usize) {
+  pub fn set_hit(&mut self, queue: &wgpu::Queue, hit_time: Time, hit_idx: usize) {
     let len = self.instances.len();
     let idx = len - hit_idx;
     let instance = &mut self.instances[idx];
@@ -236,9 +236,21 @@ impl TaikoRenderer {
 
     let single_baked = [instance.bake()];
     let byte_slice: &[u8] = bytemuck::cast_slice(&single_baked);
-    let offset = std::mem::size_of::<BakedHitObjectModel>() * idx;
+    let offset = (std::mem::size_of::<BakedHitObjectModel>() * idx) as wgpu::BufferAddress;
 
-    graphics.queue.write_buffer(&self.instance_buffer, offset as wgpu::BufferAddress, byte_slice);
+    queue.write_buffer(&self.instance_buffer, offset, byte_slice);
+  }
+
+  pub fn set_hit_all(&mut self, queue: &wgpu::Queue) {
+    for instance in self.instances.iter_mut() {
+      instance.hit = Time::from_seconds(instance.time * -1.0);
+    }
+
+    let instance_data = self.instances.iter().map(Instance::bake).collect::<Vec<_>>();
+    let byte_slice: &[u8] = bytemuck::cast_slice(&instance_data);
+    let offset = 0 as wgpu::BufferAddress;
+
+    queue.write_buffer(&self.instance_buffer, offset, byte_slice);
   }
 
   pub fn restart_beatmap(&mut self, queue: &wgpu::Queue) {
@@ -253,7 +265,55 @@ impl TaikoRenderer {
     queue.write_buffer(&self.instance_buffer, offset, byte_slice);
   }
 
-  pub fn prepare_instances(&mut self, device: &wgpu::Device) {
+  pub fn set_hit_scoped(&mut self, queue: &wgpu::Queue, f: impl FnOnce(&mut [HitObjectModel], f32)) {
+    let multiplier = 1000.0 * self.config.zoom as f32 * -1.0;
+    f(&mut self.instances, multiplier);
+
+    let instance_data = self.instances.iter().map(Instance::bake).collect::<Vec<_>>();
+    let byte_slice = bytemuck::cast_slice(&instance_data);
+    let offset = 0 as wgpu::BufferAddress;
+
+    queue.write_buffer(&self.instance_buffer, offset, byte_slice);
+  }
+
+  pub fn load_beatmap(&mut self, device: &wgpu::Device, beatmap: Beatmap) {
+    self.beatmap = beatmap;
+    self.prepare_instances(device);
+  }
+
+  pub fn resize(&mut self, queue: &wgpu::Queue, width: u32, height: u32) {
+    self.config.width = width;
+    self.config.height = height;
+
+    self.scene.resize(PhysicalSize::new(width, height));
+    self.update_camera(queue);
+  }
+
+  pub fn scale(&mut self, queue: &wgpu::Queue, scale_factor: f64) {
+    self.config.scale_factor = scale_factor;
+    self.update_camera(queue);
+  }
+
+  pub fn set_hit_position(&mut self, queue: &wgpu::Queue, x: f32, y: f32) {
+    self.config.hit_position_x = x;
+    self.config.hit_position_y = y;
+    self.update_camera(queue);
+  }
+
+  pub fn set_zoom(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, zoom: f64) {
+    self.config.zoom = zoom;
+    self.update_camera(queue);
+    self.prepare_instances(device);
+  }
+
+  pub fn set_scale(&mut self, queue: &wgpu::Queue, scale: f64) {
+    self.config.scale = scale;
+    self.update_camera(queue);
+  }
+}
+
+impl TaikoRenderer {
+  fn prepare_instances(&mut self, device: &wgpu::Device) {
     const OSU_TAIKO_VELOCITY_MULTIPLIER: f64 = 1.4;
     const OSU_TAIKO_CIRCLE_SIZE: f32 = 128.0;
 
@@ -297,41 +357,6 @@ impl TaikoRenderer {
       contents: bytemuck::cast_slice(&instance_data),
       usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
     });
-  }
-
-  pub fn load_beatmap(&mut self, device: &wgpu::Device, beatmap: Beatmap) {
-    self.beatmap = beatmap;
-    self.prepare_instances(device);
-  }
-
-  pub fn resize(&mut self, queue: &wgpu::Queue, width: u32, height: u32) {
-    self.config.width = width;
-    self.config.height = height;
-
-    self.scene.resize(PhysicalSize::new(width, height));
-    self.update_camera(queue);
-  }
-
-  pub fn scale(&mut self, queue: &wgpu::Queue, scale_factor: f64) {
-    self.config.scale_factor = scale_factor;
-    self.update_camera(queue);
-  }
-
-  pub fn set_hit_position(&mut self, queue: &wgpu::Queue, x: f32, y: f32) {
-    self.config.hit_position_x = x;
-    self.config.hit_position_y = y;
-    self.update_camera(queue);
-  }
-
-  pub fn set_zoom(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, zoom: f64) {
-    self.config.zoom = zoom;
-    self.update_camera(queue);
-    self.prepare_instances(device);
-  }
-
-  pub fn set_scale(&mut self, queue: &wgpu::Queue, scale: f64) {
-    self.config.scale = scale;
-    self.update_camera(queue);
   }
 
   fn update_camera(&mut self, queue: &wgpu::Queue) {

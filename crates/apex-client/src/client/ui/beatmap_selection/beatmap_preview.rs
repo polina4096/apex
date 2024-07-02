@@ -12,7 +12,7 @@ use crate::{
   },
 };
 
-pub const PREVIEW_HEIGHT: u32 = 128;
+pub const PREVIEW_HEIGHT: u32 = 160;
 
 pub struct BeatmapPreviewCallback {
   time: Time,
@@ -53,10 +53,16 @@ impl egui_wgpu::CallbackTrait for BeatmapPreviewCallback {
 
 pub struct BeatmapPreview {
   prev_width: u32,
+  hit_pos: f32,
 }
 
 impl BeatmapPreview {
   pub fn new(graphics: &Graphics, egui_ctx: &mut EguiContext, state: &AppState) -> Self {
+    let beatmap_preview = Self {
+      prev_width: 0,
+      hit_pos: PREVIEW_HEIGHT as f32 / 2.0,
+    };
+
     // Because the graphics pipeline must have the same lifetime as the egui render pass,
     // instead of storing the pipeline in our `Custom3D` struct, we insert it into the
     // `paint_callback_resources` type map, which is stored alongside the render pass.
@@ -68,23 +74,31 @@ impl BeatmapPreview {
         scale_factor: graphics.scale,
         scale: 0.4,
         zoom: state.taiko.zoom,
-        hit_position_x: 64.0,
-        hit_position_y: (PREVIEW_HEIGHT as f32 / 2.0) / graphics.scale as f32,
+        hit_position_x: beatmap_preview.hit_pos / graphics.scale as f32,
+        hit_position_y: beatmap_preview.hit_pos / graphics.scale as f32,
         don: state.taiko.don_color,
         kat: state.taiko.kat_color,
       },
     ));
 
-    return Self { prev_width: 0 };
+    return beatmap_preview;
   }
 
   pub fn prepare(&mut self, ui: &mut egui::Ui, time: Time) {
     egui::Frame::canvas(ui.style())
       .outer_margin(egui::Margin::symmetric(12.0, 0.0))
+      // .inner_margin(egui::Margin::ZERO)
       .rounding(6.0)
       .show(ui, |ui| {
         let width = ui.available_width();
         let rect = ui.allocate_space(egui::vec2(width, PREVIEW_HEIGHT as f32)).1;
+
+        ui.painter().circle_stroke(
+          rect.min + egui::vec2(self.hit_pos, self.hit_pos),
+          56.0,
+          egui::Stroke::new(2.0, egui::Color32::from_gray(100)),
+        );
+
         let callback = egui_wgpu::Callback::new_paint_callback(
           rect,
           BeatmapPreviewCallback {
@@ -106,5 +120,6 @@ impl BeatmapPreview {
   pub fn change_beatmap(&mut self, graphics: &Graphics, egui_ctx: &mut EguiContext, beatmap: &Beatmap) {
     let resources: &mut TaikoRenderer = egui_ctx.renderer.callback_resources.get_mut().unwrap();
     resources.load_beatmap(&graphics.device, beatmap.clone());
+    resources.set_hit_all(&graphics.queue);
   }
 }

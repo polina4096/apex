@@ -143,7 +143,7 @@ impl GameplayScreen {
 
     self.player.hit(time, input, beatmap, |result, idx| {
       self.score.feed(ScoreProcessorEvent { result });
-      self.taiko_renderer.set_hit(graphics, time, idx);
+      self.taiko_renderer.set_hit(&graphics.queue, time, idx);
       self.ingame_overlay.show_hit_result(result);
     });
   }
