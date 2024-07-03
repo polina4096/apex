@@ -72,7 +72,7 @@ impl BeatmapPreview {
         width: graphics.size.width,
         height: graphics.size.height,
         scale_factor: graphics.scale,
-        scale: 0.4,
+        scale: 0.425,
         zoom: state.taiko.zoom,
         hit_position_x: beatmap_preview.hit_pos / graphics.scale as f32,
         hit_position_y: beatmap_preview.hit_pos / graphics.scale as f32,

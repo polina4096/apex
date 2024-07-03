@@ -122,7 +122,7 @@ impl GameplayScreen {
     };
   }
 
-  pub fn hit(&mut self, input: TaikoPlayerInput, graphics: &Graphics, audio: &mut AudioEngine) {
+  pub fn hit(&mut self, input: TaikoPlayerInput, graphics: &Graphics, audio: &mut AudioEngine, state: &AppState) {
     let Some(beatmap) = &self.beatmap else { return };
     let mut audio = self.audio.borrow(audio);
     let time = audio.position();
@@ -132,12 +132,18 @@ impl GameplayScreen {
     match input {
       TaikoPlayerInput::DonOne | TaikoPlayerInput::DonTwo => {
         let source = SamplesBuffer::<f32>::new(self.channels, self.sample_rate.0, self.don_hitsound.clone());
-        self.audio_controller.play_sound(source);
+
+        if state.taiko.hitsounds {
+          self.audio_controller.play_sound(source);
+        }
       }
 
       TaikoPlayerInput::KatOne | TaikoPlayerInput::KatTwo => {
         let source = SamplesBuffer::<f32>::new(self.channels, self.sample_rate.0, self.kat_hitsound.clone());
-        self.audio_controller.play_sound(source);
+
+        if state.taiko.hitsounds {
+          self.audio_controller.play_sound(source);
+        }
       }
     }
 

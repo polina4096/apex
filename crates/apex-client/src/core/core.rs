@@ -62,8 +62,8 @@ impl<'a, A: App> Core<'a, A> {
     }
 
     // submit work
-    self.window.pre_present_notify();
     self.graphics.queue.submit(std::iter::once(encoder.finish()));
+    self.window.pre_present_notify();
     output.present();
 
     return Ok(());

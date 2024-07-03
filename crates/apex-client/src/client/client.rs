@@ -16,7 +16,7 @@ use crate::core::{
   audio::{self, audio_engine::AudioEngine, audio_mixer::AudioController},
   core::Core,
   event::EventBus,
-  graphics::{drawable::Drawable, graphics::Graphics},
+  graphics::{color::Color, drawable::Drawable, graphics::Graphics},
   input::{
     bind::{Bind, KeyCombination},
     Input,
@@ -26,7 +26,11 @@ use crate::core::{
 
 use super::{
   event::ClientEvent,
-  gameplay::{beatmap_cache::BeatmapCache, taiko_player::TaikoPlayerInput},
+  gameplay::{beatmap::Beatmap, beatmap_cache::BeatmapCache, taiko_player::TaikoPlayerInput},
+  graphics::{
+    taiko_renderer::taiko_renderer::{TaikoRenderer, TaikoRendererConfig},
+    // video_exporter::VideoExporter,
+  },
   input::client_action::ClientAction,
   screen::{
     gameplay_screen::gameplay_screen::GameplayScreen, result_screen::result_screen::ResultScreen,
@@ -121,7 +125,6 @@ impl Drawable for Client {
 }
 
 impl Client {
-  #[rustfmt::skip]
   pub fn new(core: &mut Core<Self>, app_state: AppState, event_bus: EventBus<ClientEvent>) -> Self {
     let input = Client::default_input();
     let (audio_mixer, audio_controller) = audio::mixer(Empty::new());
@@ -134,13 +137,82 @@ impl Client {
       cache.load_beatmaps("./beatmaps");
     });
 
-    let selection_screen = SelectionScreen::new(event_bus.clone(), &beatmap_cache, &mut audio_engine, &core.graphics, &mut core.egui_ctx, &app_state);
-    let result_screen = ResultScreen::new(event_bus.clone(), &beatmap_cache, &PathBuf::new());
-    let gameplay_screen = GameplayScreen::new(event_bus.clone(), &core.graphics, &audio_engine, audio_controller.clone(), &app_state);
-    let settings_screen = SettingsScreen::new();
+    #[rustfmt::skip] let selection_screen = SelectionScreen::new(event_bus.clone(), &beatmap_cache, &mut audio_engine, &core.graphics, &mut core.egui_ctx, &app_state);
+    #[rustfmt::skip] let result_screen = ResultScreen::new(event_bus.clone(), &beatmap_cache, &PathBuf::new());
+    #[rustfmt::skip] let gameplay_screen = GameplayScreen::new(event_bus.clone(), &core.graphics, &audio_engine, audio_controller.clone(), &app_state);
+    #[rustfmt::skip] let settings_screen = SettingsScreen::new();
 
     let prev_audio_path = PathBuf::new();
     let prev_beatmap_path = PathBuf::new();
+
+    // render a play
+    // {
+    //   let mut video_exporter = VideoExporter::new(&core.graphics.device, core.graphics.format);
+
+    //   let mut taiko_renderer = TaikoRenderer::new(
+    //     &core.graphics,
+    //     TaikoRendererConfig {
+    //       width: 2048,
+    //       height: 2048,
+    //       scale_factor: 2.0,
+    //       scale: 0.85,
+    //       zoom: 0.235,
+    //       hit_position_x: 128.0,
+    //       hit_position_y: 256.0,
+    //       don: Color::new(0.92, 0.00, 0.27, 1.00),
+    //       kat: Color::new(0.00, 0.47, 0.67, 1.00),
+    //     },
+    //   );
+
+    //   // let beatmap_path = beatmap_cache.get_index(0).unwrap().0;
+    //   let data = std::fs::read_to_string("/Users/polina4096/dev/apex/debug/beatmaps/1796495/Envy - LIVING LIFE IN THE NIGHT (Genjuro) [SLEEP DEPRIVED].osu").unwrap();
+    //   let beatmap = Beatmap::from(data);
+    //   let info = beatmap_cache
+    //     .get(&PathBuf::from("./beatmaps/1796495/Envy - LIVING LIFE IN THE NIGHT (Genjuro) [SLEEP DEPRIVED].osu"))
+    //     .unwrap();
+
+    //   taiko_renderer.load_beatmap(&core.graphics.device, beatmap);
+    //   taiko_renderer.set_hit_all(&core.graphics.queue);
+
+    //   video_exporter.export(&core.graphics, 0 .. (120 * 8), |rpass, graphics, i| {
+    //     let time = Time::from_ms(i as f64 / 120.0 * 1000.0 + info.preview_time as f64);
+    //     taiko_renderer.prepare(&graphics.queue, time);
+
+    //     taiko_renderer.render(rpass);
+    //   });
+
+    //   // let (tx_data, rx_data) = std::sync::mpsc::sync_channel::<(i32, Vec<u8>)>(100);
+
+    //   // std::thread::spawn(move || {
+    //   //   let mut buffer = vec![0u8; 2048 * 2048 * 4];
+
+    //   //   loop {
+    //   //     let (i, data) = rx_data.recv().unwrap();
+    //   //     for (i, chunk) in data.iter().copied().array_chunks::<16>().enumerate() {
+    //   //       buffer[i * 12 .. (i + 1) * 12].copy_from_slice(&convert_swizzle(chunk));
+    //   //     }
+
+    //   //     pub fn convert_swizzle(bgra: [u8; 16]) -> [u8; 12] {
+    //   //       use std::simd::{simd_swizzle, Simd};
+    //   //       let bgra = Simd::from_array(bgra);
+    //   //       #[rustfmt::skip]
+    //   //       const IDXS: [usize; 16] = [
+    //   //           2, 1, 0,
+    //   //           6, 5, 4,
+    //   //           10, 9, 8,
+    //   //           14, 13, 12,
+    //   //           3, 7, 11, 15,
+    //   //       ];
+    //   //       let rgb = simd_swizzle!(bgra, IDXS);
+    //   //       return rgb.to_array().as_chunks().0[0];
+    //   //     }
+
+    //   //     use image::{ImageBuffer, Rgb};
+    //   //     let buffer = ImageBuffer::<Rgb<u8>, _>::from_raw(2048, 2048, buffer.clone()).unwrap();
+    //   //     buffer.save(format!("/Users/polina4096/Desktop/apex/image{:08}.bmp", i)).unwrap();
+    //   //   }
+    //   // });
+    // }
 
     return Self {
       input,
@@ -286,25 +358,33 @@ impl Client {
 
       ClientAction::KatOne if !repeat => {
         if self.game_state == LogicalState::Playing {
-          self.gameplay_screen.hit(TaikoPlayerInput::KatOne, &core.graphics, &mut self.audio_engine);
+          self
+            .gameplay_screen
+            .hit(TaikoPlayerInput::KatOne, &core.graphics, &mut self.audio_engine, &self.app_state);
         }
       }
 
       ClientAction::KatTwo if !repeat => {
         if self.game_state == LogicalState::Playing {
-          self.gameplay_screen.hit(TaikoPlayerInput::KatTwo, &core.graphics, &mut self.audio_engine);
+          self
+            .gameplay_screen
+            .hit(TaikoPlayerInput::KatTwo, &core.graphics, &mut self.audio_engine, &self.app_state);
         }
       }
 
       ClientAction::DonOne if !repeat => {
         if self.game_state == LogicalState::Playing {
-          self.gameplay_screen.hit(TaikoPlayerInput::DonOne, &core.graphics, &mut self.audio_engine);
+          self
+            .gameplay_screen
+            .hit(TaikoPlayerInput::DonOne, &core.graphics, &mut self.audio_engine, &self.app_state);
         }
       }
 
       ClientAction::DonTwo if !repeat => {
         if self.game_state == LogicalState::Playing {
-          self.gameplay_screen.hit(TaikoPlayerInput::DonTwo, &core.graphics, &mut self.audio_engine);
+          self
+            .gameplay_screen
+            .hit(TaikoPlayerInput::DonTwo, &core.graphics, &mut self.audio_engine, &self.app_state);
         }
       }
 

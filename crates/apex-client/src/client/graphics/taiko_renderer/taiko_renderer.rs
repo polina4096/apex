@@ -181,7 +181,7 @@ impl TaikoRenderer {
       audio: PathBuf::new(),
     };
 
-    return Self {
+    let mut renderer = Self {
       scene,
 
       pipeline,
@@ -202,6 +202,10 @@ impl TaikoRenderer {
       config,
       beatmap,
     };
+
+    renderer.update_camera(&graphics.queue);
+
+    return renderer;
   }
 
   pub fn prepare(&mut self, queue: &wgpu::Queue, time: Time) {

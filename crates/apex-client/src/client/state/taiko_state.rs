@@ -21,6 +21,9 @@ pub struct TaikoState {
 
   /// Color of the kat hit object
   pub kat_color: Color,
+
+  /// Toggle hitsounds (TODO: implement proper volume control)
+  pub hitsounds: bool,
 }
 
 impl Default for TaikoState {
@@ -32,6 +35,7 @@ impl Default for TaikoState {
       hit_position_y: 192.0,
       don_color: Color::new(0.92, 0.00, 0.27, 1.00),
       kat_color: Color::new(0.00, 0.47, 0.67, 1.00),
+      hitsounds: true,
     };
   }
 }

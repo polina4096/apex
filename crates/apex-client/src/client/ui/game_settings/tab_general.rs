@@ -254,5 +254,15 @@ impl GameSettingsView {
         }
       });
     });
+
+    body.row(text_height, |mut row| {
+      row.col(|ui| {
+        ui.label("Enable hitsounds");
+      });
+
+      row.col(|ui| {
+        ui.checkbox(&mut state.taiko.hitsounds, "Enable hitsounds");
+      });
+    });
   }
 }
