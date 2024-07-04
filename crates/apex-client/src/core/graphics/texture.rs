@@ -165,7 +165,7 @@ impl Texture {
 }
 
 impl Drawable for Texture {
-  fn recreate(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, format: wgpu::TextureFormat) {
+  fn recreate(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, _: wgpu::TextureFormat) {
     // TODO: optimize/refactor DRY
     *self = Self::from_bytes(&self.data, (self.texture.width(), self.texture.height()), device, queue)
   }

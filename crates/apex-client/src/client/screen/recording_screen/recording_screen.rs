@@ -1,33 +1,20 @@
 use std::path::PathBuf;
 
-use pollster::FutureExt as _;
-use tap::Tap as _;
-
 use crate::{
-  client::{
-    client::Client,
-    gameplay::beatmap_cache::BeatmapCache,
-    graphics::taiko_renderer::taiko_renderer::{TaikoRenderer, TaikoRendererConfig},
-    ui::recording_panel::RecordingPanelView,
-  },
-  core::{
-    core::Core,
-    graphics::{color::Color, graphics::Graphics, video_exporter::VideoExporterConfig},
-  },
+  client::{client::Client, gameplay::beatmap_cache::BeatmapCache, ui::recording_panel::RecordingPanelView},
+  core::{core::Core, graphics::video_exporter::VideoExporterConfig},
 };
 
 pub struct RecordingScreen {
   recording_panel: RecordingPanelView,
   exporter_config: VideoExporterConfig,
-
   beatmap_path: PathBuf,
 }
 
 impl RecordingScreen {
-  pub fn new(graphics: &Graphics) -> Self {
+  pub fn new() -> Self {
     let recording_panel = RecordingPanelView::new();
     let exporter_config = VideoExporterConfig::default();
-
     let beatmap_path = PathBuf::new();
 
     return Self {
@@ -37,7 +24,14 @@ impl RecordingScreen {
     };
   }
 
-  pub fn prepare(&mut self, core: &Core<Client>, beatmap_cache: &BeatmapCache) {
+  pub fn prepare(&mut self, core: &Core<Client>, beatmap_idx: usize, beatmap_cache: &BeatmapCache) {
+    if let Some(path) = beatmap_cache.get_index(beatmap_idx).map(|x| x.0) {
+      if self.beatmap_path != *path {
+        self.beatmap_path = path.clone();
+      }
+    }
+
+    self.exporter_config = VideoExporterConfig::default();
     self.recording_panel.prepare(
       core.egui_ctx.egui_ctx(),
       &core.graphics.adapter,
@@ -54,9 +48,5 @@ impl RecordingScreen {
 
   pub fn toggle(&mut self) {
     self.recording_panel.is_open = !self.recording_panel.is_open;
-  }
-
-  pub fn set_beatmap(&mut self, path: PathBuf) {
-    self.beatmap_path = path;
   }
 }

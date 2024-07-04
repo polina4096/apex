@@ -1,7 +1,6 @@
 use std::path::Path;
 
 use egui::Widget;
-use tap::Tap;
 
 use crate::{
   client::{event::ClientEvent, gameplay::beatmap_cache::BeatmapInfo, ui::card_component::CardComponent},
@@ -43,10 +42,17 @@ impl BeatmapCard {
 
       const FONT_SIZE: f32 = 13.0;
 
-      let text = egui::RichText::new("Record").size(FONT_SIZE);
+      let text = egui::RichText::new("Play").size(FONT_SIZE);
       if ui.button(text).clicked() {
         let path = path.to_owned();
-        bus.send(ClientEvent::OpenRecordingWindow { path });
+        bus.send(ClientEvent::PickBeatmap { path });
+
+        ui.close_menu();
+      }
+
+      let text = egui::RichText::new("Record").size(FONT_SIZE);
+      if ui.button(text).clicked() {
+        bus.send(ClientEvent::ToggleRecordingWindow);
 
         ui.close_menu();
       }

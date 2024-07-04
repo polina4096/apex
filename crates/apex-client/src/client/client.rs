@@ -20,7 +20,7 @@ use crate::core::{
   audio::{self, audio_engine::AudioEngine, audio_mixer::AudioController},
   core::Core,
   event::EventBus,
-  graphics::{color::Color, drawable::Drawable, graphics::Graphics, video_exporter::VideoExporter},
+  graphics::drawable::Drawable,
   input::{
     bind::{Bind, KeyCombination},
     Input,
@@ -31,11 +31,9 @@ use crate::core::{
 use super::{
   event::ClientEvent,
   gameplay::{
-    beatmap::Beatmap,
     beatmap_cache::{BeatmapCache, BeatmapInfo},
     taiko_player::TaikoPlayerInput,
   },
-  graphics::taiko_renderer::taiko_renderer::{TaikoRenderer, TaikoRendererConfig},
   input::client_action::ClientAction,
   screen::{
     gameplay_screen::gameplay_screen::GameplayScreen, recording_screen::recording_screen::RecordingScreen,
@@ -95,8 +93,9 @@ impl App for Client {
       }
     }
 
+    let beatmap_idx = self.selection_screen.beatmap_selector().selected();
     self.settings_screen.prepare(core, &mut self.input, &mut self.app_state);
-    self.recording_screen.prepare(core, &self.beatmap_cache);
+    self.recording_screen.prepare(core, beatmap_idx, &self.beatmap_cache);
 
     core.egui_ctx.end_frame(&core.graphics, encoder);
   }
@@ -149,7 +148,7 @@ impl Client {
     #[rustfmt::skip] let result_screen = ResultScreen::new(event_bus.clone(), &beatmap_cache, &PathBuf::new());
     #[rustfmt::skip] let gameplay_screen = GameplayScreen::new(event_bus.clone(), &core.graphics, &audio_engine, audio_controller.clone(), &app_state);
     #[rustfmt::skip] let settings_screen = SettingsScreen::new(event_bus.clone());
-    #[rustfmt::skip] let recording_screen = RecordingScreen::new(&core.graphics);
+    #[rustfmt::skip] let recording_screen = RecordingScreen::new();
 
     let prev_audio_path = PathBuf::new();
     let prev_beatmap_path = PathBuf::new();
@@ -267,12 +266,6 @@ impl Client {
       }
 
       ClientAction::Recording => {
-        let selected = self.selection_screen.beatmap_selector().selected();
-        let Some((path, _)) = self.beatmap_cache.get_index(selected) else {
-          return;
-        };
-
-        self.recording_screen.set_beatmap(path.to_owned());
         self.recording_screen.toggle();
       }
 
@@ -378,9 +371,8 @@ impl Client {
         self.result_screen.finish(&self.beatmap_cache, &path);
       }
 
-      ClientEvent::OpenRecordingWindow { path } => {
+      ClientEvent::ToggleRecordingWindow => {
         if !self.recording_screen.is_open() {
-          self.recording_screen.set_beatmap(path);
           self.recording_screen.toggle();
         }
       }

@@ -1,9 +1,8 @@
 use std::{
   fmt::Display,
-  io::{Read, Write as _},
+  io::Write as _,
   path::PathBuf,
   process::{Command, Stdio},
-  sync::RwLock,
 };
 
 use log::error;
@@ -121,6 +120,8 @@ impl VideoExporter {
     return Self { view, texture, output_buffer };
   }
 
+  // TODO: refactor
+  #[allow(clippy::too_many_arguments)]
   pub fn export<I, C>(
     &self,
     cfg: &VideoExporterConfig,

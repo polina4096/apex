@@ -13,7 +13,6 @@ use crate::{
       camera::{Camera as _, Camera2D, ProjectionOrthographic},
       color::Color,
       drawable::Drawable,
-      graphics::Graphics,
       instance::Instance,
       layout::Layout,
       quad_renderer::data::quad_vertex::QuadVertex,
@@ -76,7 +75,7 @@ impl TaikoRenderer {
     let scene = Scene::<ProjectionOrthographic, Camera2D> {
       projection : ProjectionOrthographic::new(config.width, config.height, -100.0, 100.0),
       camera     : Camera2D::new(vec3(0.0, 0.0, -50.0), Quat::zeroed(), vec3(config.scale_factor as f32, config.scale_factor as f32, 1.0)),
-      uniform    : Uniform::new(&device),
+      uniform    : Uniform::new(device),
     };
 
     let texture_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -101,7 +100,7 @@ impl TaikoRenderer {
       label: Some("default_texture_bind_group_layout"),
     });
 
-    let time_uniform = Uniform::new(&device);
+    let time_uniform = Uniform::new(device);
 
     let shader = device.create_shader_module(wgpu::include_wgsl!("taiko_shader.wgsl"));
     let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -210,7 +209,7 @@ impl TaikoRenderer {
       beatmap,
     };
 
-    renderer.update_camera(&queue);
+    renderer.update_camera(queue);
 
     return renderer;
   }
@@ -322,12 +321,12 @@ impl TaikoRenderer {
     self.update_camera(queue);
   }
 
-  pub fn set_don_color(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, color: Color) {
+  pub fn set_don_color(&mut self, device: &wgpu::Device, color: Color) {
     self.config.don = color;
     self.prepare_instances(device);
   }
 
-  pub fn set_kat_color(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, color: Color) {
+  pub fn set_kat_color(&mut self, device: &wgpu::Device, color: Color) {
     self.config.kat = color;
     self.prepare_instances(device);
   }
@@ -396,7 +395,7 @@ impl Drawable for TaikoRenderer {
       self.scene = Scene::<ProjectionOrthographic, Camera2D> {
         projection: ProjectionOrthographic::new(self.config.width, self.config.height, -100.0, 100.0),
         camera: Camera2D::new(vec3(0.0, 0.0, -50.0), Quat::zeroed(), vec3(self.config.scale as f32, self.config.scale as f32, 1.0)),
-        uniform: Uniform::new(&device),
+        uniform: Uniform::new(device),
       };
     };
 
@@ -422,7 +421,7 @@ impl Drawable for TaikoRenderer {
       label: Some("default_texture_bind_group_layout"),
     });
 
-    self.time_uniform = Uniform::new(&device);
+    self.time_uniform = Uniform::new(device);
 
     let shader = device.create_shader_module(wgpu::include_wgsl!("taiko_shader.wgsl"));
     let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {

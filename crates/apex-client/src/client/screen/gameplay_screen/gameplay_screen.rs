@@ -261,11 +261,11 @@ impl GameplayScreen {
     }
 
     if state.taiko.don_color != self.taiko_renderer.config.don {
-      self.taiko_renderer.set_don_color(&graphics.device, &graphics.queue, state.taiko.don_color);
+      self.taiko_renderer.set_don_color(&graphics.device, state.taiko.don_color);
     }
 
     if state.taiko.kat_color != self.taiko_renderer.config.kat {
-      self.taiko_renderer.set_kat_color(&graphics.device, &graphics.queue, state.taiko.kat_color);
+      self.taiko_renderer.set_kat_color(&graphics.device, state.taiko.kat_color);
     }
   }
 

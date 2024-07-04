@@ -1,6 +1,5 @@
 use egui::Widget;
 use log::debug;
-use tap::Tap;
 
 use crate::{
   client::{client::Client, event::ClientEvent, input::client_action::ClientAction, state::AppState},
