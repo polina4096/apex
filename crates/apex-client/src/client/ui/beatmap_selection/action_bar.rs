@@ -72,6 +72,7 @@ impl ActionBar {
 
             if slider.drag_started() {
               self.last_state = clock.is_playing();
+
               if self.last_state {
                 clock.set_playing(false);
               }

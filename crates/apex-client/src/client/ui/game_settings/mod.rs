@@ -3,9 +3,10 @@ use log::debug;
 use tap::Tap;
 
 use crate::{
-  client::{client::Client, input::client_action::ClientAction, state::AppState},
+  client::{client::Client, event::ClientEvent, input::client_action::ClientAction, state::AppState},
   core::{
     core::Core,
+    event::EventBus,
     input::{
       bind::{Bind, KeyCombination},
       Input,
@@ -23,6 +24,8 @@ pub enum GameSettingsTab {
 }
 
 pub struct GameSettingsView {
+  event_bus: EventBus<ClientEvent>,
+
   pub tab: GameSettingsTab,
   pub is_open: bool,
 
@@ -32,8 +35,9 @@ pub struct GameSettingsView {
 }
 
 impl GameSettingsView {
-  pub fn new() -> Self {
+  pub fn new(event_bus: EventBus<ClientEvent>) -> Self {
     return Self {
+      event_bus,
       tab: GameSettingsTab::General,
       is_open: false,
 
@@ -53,10 +57,6 @@ impl GameSettingsView {
       debug!("Rebuilding bind cache");
       self.bind_cache = input.keybinds.as_vec();
     }
-
-    core.egui_ctx().set_visuals(egui::Visuals::dark().tap_mut(|vis| {
-      vis.window_highlight_topmost = false;
-    }));
 
     egui::Window::new("Settings")
       .fixed_size(egui::vec2(384.0, 512.0))

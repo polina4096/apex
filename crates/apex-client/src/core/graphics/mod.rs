@@ -10,3 +10,4 @@ pub mod quad_renderer;
 pub mod scene;
 pub mod texture;
 pub mod uniform;
+pub mod video_exporter;

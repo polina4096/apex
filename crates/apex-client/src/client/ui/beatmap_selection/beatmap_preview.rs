@@ -67,7 +67,9 @@ impl BeatmapPreview {
     // instead of storing the pipeline in our `Custom3D` struct, we insert it into the
     // `paint_callback_resources` type map, which is stored alongside the render pass.
     egui_ctx.renderer.callback_resources.insert(TaikoRenderer::new(
-      graphics,
+      &graphics.device,
+      &graphics.queue,
+      graphics.config.format,
       TaikoRendererConfig {
         width: graphics.size.width,
         height: graphics.size.height,

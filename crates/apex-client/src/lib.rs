@@ -1,4 +1,7 @@
 #![feature(map_many_mut)]
+#![feature(portable_simd)]
+#![feature(slice_as_chunks)]
+#![feature(iter_array_chunks)]
 
 use core::{
   core::Core,
@@ -81,7 +84,7 @@ pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> col
 
             let display_handle = elwt.display_handle().unwrap();
             core.egui_ctx = EguiContext::new(&display_handle, &core.graphics);
-            client.recreate(&core.graphics);
+            client.recreate(&core.graphics.device, &core.graphics.queue, core.graphics.config.format);
           }
 
           CoreEvent::ReconfigureSurfaceTexture => {
@@ -119,9 +122,14 @@ pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> col
       }
 
       Event::WindowEvent { event, .. } => {
+        let is_context_open = core.egui_ctx().is_context_menu_open();
+
+        // TODO: this might not be the best way to capture (disable) unwanted scrolling
         let winit_state = &mut core.egui_ctx.winit_state;
-        let result = winit_state.on_window_event(&window, &event);
-        #[rustfmt::skip] if result.consumed { return };
+        if !(is_context_open && matches!(event, WindowEvent::MouseWheel { .. })) {
+          let result = winit_state.on_window_event(&window, &event);
+          #[rustfmt::skip] if result.consumed { return };
+        }
 
         match event {
           WindowEvent::CloseRequested => {
@@ -133,6 +141,10 @@ pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> col
           }
 
           WindowEvent::KeyboardInput { event, .. } => {
+            if core.egui_ctx().is_context_menu_open() {
+              return;
+            }
+
             client.input(&mut core, event);
           }
 

@@ -66,15 +66,20 @@ pub struct TaikoRenderer {
 }
 
 impl TaikoRenderer {
-  pub fn new(graphics: &Graphics, config: TaikoRendererConfig) -> Self {
+  pub fn new(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    format: wgpu::TextureFormat,
+    config: TaikoRendererConfig,
+  ) -> Self {
     #[rustfmt::skip]
     let scene = Scene::<ProjectionOrthographic, Camera2D> {
       projection : ProjectionOrthographic::new(config.width, config.height, -100.0, 100.0),
-      camera     : Camera2D::new(vec3(0.0, 0.0, -50.0), Quat::zeroed(), vec3(graphics.scale as f32, graphics.scale as f32, 1.0)),
-      uniform    : Uniform::new(&graphics.device),
+      camera     : Camera2D::new(vec3(0.0, 0.0, -50.0), Quat::zeroed(), vec3(config.scale_factor as f32, config.scale_factor as f32, 1.0)),
+      uniform    : Uniform::new(&device),
     };
 
-    let texture_layout = graphics.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+    let texture_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
       entries: &[
         wgpu::BindGroupLayoutEntry {
           binding: 0,
@@ -96,10 +101,10 @@ impl TaikoRenderer {
       label: Some("default_texture_bind_group_layout"),
     });
 
-    let time_uniform = Uniform::new(&graphics.device);
+    let time_uniform = Uniform::new(&device);
 
-    let shader = graphics.device.create_shader_module(wgpu::include_wgsl!("taiko_shader.wgsl"));
-    let render_pipeline_layout = graphics.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+    let shader = device.create_shader_module(wgpu::include_wgsl!("taiko_shader.wgsl"));
+    let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
       label: Some("Render Pipeline Layout"),
       bind_group_layouts: &[
         scene.layout(),
@@ -112,7 +117,7 @@ impl TaikoRenderer {
       push_constant_ranges: &[],
     });
 
-    let pipeline = graphics.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+    let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
       label: Some("Render Pipeline"),
       layout: Some(&render_pipeline_layout),
 
@@ -120,15 +125,17 @@ impl TaikoRenderer {
         module: &shader,
         entry_point: "vs_main",
         buffers: &[QuadVertex::describe(), HitObjectModel::describe()],
+        compilation_options: wgpu::PipelineCompilationOptions::default(),
       },
       fragment: Some(wgpu::FragmentState {
         module: &shader,
         entry_point: "fs_main",
         targets: &[Some(wgpu::ColorTargetState {
-          format: graphics.config.format,
+          format: format,
           blend: Some(wgpu::BlendState::ALPHA_BLENDING),
           write_mask: wgpu::ColorWrites::ALL,
         })],
+        compilation_options: wgpu::PipelineCompilationOptions::default(),
       }),
 
       primitive: wgpu::PrimitiveState {
@@ -152,7 +159,7 @@ impl TaikoRenderer {
     });
 
     let vertex_buffer_data = QuadVertex::vertices_quad(-0.5, 0.5);
-    let vertex_buffer = graphics.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+    let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
       label: Some("Vertex Buffer"),
       contents: bytemuck::cast_slice(&vertex_buffer_data),
       usage: wgpu::BufferUsages::VERTEX,
@@ -161,16 +168,16 @@ impl TaikoRenderer {
     // Circle instances
     let instances = vec![];
     let instance_data = instances.iter().map(Instance::bake).collect::<Vec<_>>();
-    let instance_buffer = graphics.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+    let instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
       label: Some("Instance Buffer"),
       contents: bytemuck::cast_slice(&instance_data),
       usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
     });
 
-    let circle_texture = Texture::from_path("./assets/taikohitcircle.png", graphics).unwrap();
-    let finisher_texture = Texture::from_path("./assets/taikobigcircle.png", graphics).unwrap();
-    let circle_overlay_texture = Texture::from_path("./assets/taikohitcircleoverlay.png", graphics).unwrap();
-    let finisher_overlaytexture = Texture::from_path("./assets/taikobigcircleoverlay.png", graphics).unwrap();
+    let circle_texture = Texture::from_path("./assets/taikohitcircle.png", device, queue).unwrap();
+    let finisher_texture = Texture::from_path("./assets/taikobigcircle.png", device, queue).unwrap();
+    let circle_overlay_texture = Texture::from_path("./assets/taikohitcircleoverlay.png", device, queue).unwrap();
+    let finisher_overlaytexture = Texture::from_path("./assets/taikobigcircleoverlay.png", device, queue).unwrap();
 
     let beatmap = Beatmap {
       hit_objects: vec![],
@@ -203,7 +210,7 @@ impl TaikoRenderer {
       beatmap,
     };
 
-    renderer.update_camera(&graphics.queue);
+    renderer.update_camera(&queue);
 
     return renderer;
   }
@@ -314,6 +321,16 @@ impl TaikoRenderer {
     self.config.scale = scale;
     self.update_camera(queue);
   }
+
+  pub fn set_don_color(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, color: Color) {
+    self.config.don = color;
+    self.prepare_instances(device);
+  }
+
+  pub fn set_kat_color(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, color: Color) {
+    self.config.kat = color;
+    self.prepare_instances(device);
+  }
 }
 
 impl TaikoRenderer {
@@ -374,16 +391,16 @@ impl TaikoRenderer {
 }
 
 impl Drawable for TaikoRenderer {
-  fn recreate(&mut self, graphics: &Graphics) {
+  fn recreate(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, format: wgpu::TextureFormat) {
     #[rustfmt::skip] {
       self.scene = Scene::<ProjectionOrthographic, Camera2D> {
         projection: ProjectionOrthographic::new(self.config.width, self.config.height, -100.0, 100.0),
-        camera: Camera2D::new(vec3(0.0, 0.0, -50.0), Quat::zeroed(), vec3(graphics.scale as f32, graphics.scale as f32, 1.0)),
-        uniform: Uniform::new(&graphics.device),
+        camera: Camera2D::new(vec3(0.0, 0.0, -50.0), Quat::zeroed(), vec3(self.config.scale as f32, self.config.scale as f32, 1.0)),
+        uniform: Uniform::new(&device),
       };
     };
 
-    let texture_layout = graphics.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+    let texture_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
       entries: &[
         wgpu::BindGroupLayoutEntry {
           binding: 0,
@@ -405,10 +422,10 @@ impl Drawable for TaikoRenderer {
       label: Some("default_texture_bind_group_layout"),
     });
 
-    self.time_uniform = Uniform::new(&graphics.device);
+    self.time_uniform = Uniform::new(&device);
 
-    let shader = graphics.device.create_shader_module(wgpu::include_wgsl!("taiko_shader.wgsl"));
-    let render_pipeline_layout = graphics.device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+    let shader = device.create_shader_module(wgpu::include_wgsl!("taiko_shader.wgsl"));
+    let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
       label: Some("Render Pipeline Layout"),
       bind_group_layouts: &[
         self.scene.layout(),
@@ -421,7 +438,7 @@ impl Drawable for TaikoRenderer {
       push_constant_ranges: &[],
     });
 
-    self.pipeline = graphics.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+    self.pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
       label: Some("Render Pipeline"),
       layout: Some(&render_pipeline_layout),
 
@@ -429,15 +446,17 @@ impl Drawable for TaikoRenderer {
         module: &shader,
         entry_point: "vs_main",
         buffers: &[QuadVertex::describe(), HitObjectModel::describe()],
+        compilation_options: wgpu::PipelineCompilationOptions::default(),
       },
       fragment: Some(wgpu::FragmentState {
         module: &shader,
         entry_point: "fs_main",
         targets: &[Some(wgpu::ColorTargetState {
-          format: graphics.config.format,
+          format: format,
           blend: Some(wgpu::BlendState::ALPHA_BLENDING),
           write_mask: wgpu::ColorWrites::ALL,
         })],
+        compilation_options: wgpu::PipelineCompilationOptions::default(),
       }),
 
       primitive: wgpu::PrimitiveState {
@@ -461,7 +480,7 @@ impl Drawable for TaikoRenderer {
     });
 
     let vertex_buffer_data = QuadVertex::vertices_quad(-0.5, 0.5);
-    self.vertex_buffer = graphics.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+    self.vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
       label: Some("Vertex Buffer"),
       contents: bytemuck::cast_slice(&vertex_buffer_data),
       usage: wgpu::BufferUsages::VERTEX,
@@ -469,15 +488,15 @@ impl Drawable for TaikoRenderer {
 
     // Circle instances
     let instance_data = self.instances.iter().map(Instance::bake).collect::<Vec<_>>();
-    self.instance_buffer = graphics.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+    self.instance_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
       label: Some("Instance Buffer"),
       contents: bytemuck::cast_slice(&instance_data),
       usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
     });
 
-    self.circle_texture.recreate(graphics);
-    self.finisher_texture.recreate(graphics);
-    self.circle_overlay_texture.recreate(graphics);
-    self.finisher_overlay_texture.recreate(graphics);
+    self.circle_texture.recreate(device, queue, format);
+    self.finisher_texture.recreate(device, queue, format);
+    self.circle_overlay_texture.recreate(device, queue, format);
+    self.finisher_overlay_texture.recreate(device, queue, format);
   }
 }

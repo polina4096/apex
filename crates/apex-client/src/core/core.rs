@@ -1,4 +1,5 @@
 use pollster::FutureExt;
+use tap::Tap as _;
 use winit::{
   dpi::PhysicalSize,
   event_loop::{EventLoop, EventLoopProxy},
@@ -30,6 +31,9 @@ impl<'a, A: App> Core<'a, A> {
     let graphics = Graphics::new(window, backend.into(), app_state.graphics.present_mode.into()).block_on();
 
     let egui_ctx = EguiContext::new(event_loop, &graphics);
+    egui_ctx.egui_ctx().set_visuals(egui::Visuals::dark().tap_mut(|vis| {
+      vis.window_highlight_topmost = false;
+    }));
 
     return Self { proxy, window, graphics, egui_ctx };
   }

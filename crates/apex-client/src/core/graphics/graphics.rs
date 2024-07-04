@@ -6,6 +6,7 @@ use winit::window::Window;
 
 #[rustfmt::skip]
 pub struct Graphics {
+  pub adapter  : wgpu::Adapter,
   pub instance : wgpu::Instance,
   pub device   : wgpu::Device,
   pub surface  : wgpu::Surface<'static>,
@@ -114,6 +115,7 @@ impl Graphics {
     let scale = window.scale_factor();
 
     return Graphics {
+      adapter,
       instance,
       device,
       surface,

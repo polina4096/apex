@@ -1,8 +1,12 @@
 use std::path::Path;
 
 use egui::Widget;
+use tap::Tap;
 
-use crate::client::{gameplay::beatmap_cache::BeatmapInfo, ui::card_component::CardComponent};
+use crate::{
+  client::{event::ClientEvent, gameplay::beatmap_cache::BeatmapInfo, ui::card_component::CardComponent},
+  core::event::EventBus,
+};
 
 pub struct BeatmapCard {
   card: CardComponent,
@@ -20,11 +24,60 @@ impl BeatmapCard {
     return Self { card, title };
   }
 
-  pub fn prepare(&mut self, ui: &mut egui::Ui, selected: bool) -> egui::Response {
+  pub fn prepare(
+    &mut self,
+    ui: &mut egui::Ui,
+    selected: bool,
+    path: &Path,
+    bus: &EventBus<ClientEvent>,
+  ) -> egui::Response {
     self.card.selected = selected;
 
-    return self.card.prepare(ui, |ui| {
+    let card = self.card.prepare(ui, |ui| {
       egui::Label::new(self.title.clone()).selectable(false).ui(ui);
     });
+
+    card.context_menu(|ui| {
+      ui.set_max_width(128.0);
+      ui.style_mut().spacing.button_padding = egui::vec2(6.0, 2.0);
+
+      const FONT_SIZE: f32 = 13.0;
+
+      let text = egui::RichText::new("Record").size(FONT_SIZE);
+      if ui.button(text).clicked() {
+        let path = path.to_owned();
+        bus.send(ClientEvent::OpenRecordingWindow { path });
+
+        ui.close_menu();
+      }
+
+      ui.add_enabled_ui(false, |ui| {
+        let text = egui::RichText::new("Export").size(FONT_SIZE);
+        if ui.button(text).clicked() {
+          ui.close_menu();
+        }
+      });
+
+      ui.separator();
+
+      ui.add_enabled_ui(false, |ui| {
+        let text = egui::RichText::new("Edit").size(FONT_SIZE);
+        if ui.button(text).clicked() {
+          ui.close_menu();
+        }
+
+        let text = egui::RichText::new("Copy").size(FONT_SIZE);
+        if ui.button(text).clicked() {
+          ui.close_menu();
+        }
+
+        let text = egui::RichText::new("Delete").size(FONT_SIZE);
+        if ui.button(text).clicked() {
+          ui.close_menu();
+        }
+      });
+    });
+
+    return card;
   }
 }

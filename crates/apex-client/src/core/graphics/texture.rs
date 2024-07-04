@@ -16,24 +16,24 @@ pub struct Texture {
 #[allow(clippy::result_unit_err)]
 impl Texture {
   // TODO: proper error handling
-  pub fn from_memory(bytes: &[u8], graphics: &Graphics) -> Result<Self, ()> {
+  pub fn from_memory(bytes: &[u8], device: &wgpu::Device, queue: &wgpu::Queue) -> Result<Self, ()> {
     #[rustfmt::skip] let Ok(image) = image::load_from_memory(bytes) else { Err(())? };
-    return Ok(Self::from_image(image, graphics));
+    return Ok(Self::from_image(image, device, queue));
   }
 
-  pub fn from_path(path: impl AsRef<Path>, graphics: &Graphics) -> Result<Self, ()> {
+  pub fn from_path(path: impl AsRef<Path>, device: &wgpu::Device, queue: &wgpu::Queue) -> Result<Self, ()> {
     let Ok(image) = image::open(path) else { Err(())? };
-    return Ok(Self::from_image(image, graphics));
+    return Ok(Self::from_image(image, device, queue));
   }
 
-  pub fn from_image(image: DynamicImage, graphics: &Graphics) -> Self {
+  pub fn from_image(image: DynamicImage, device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
     let dimensions = image.dimensions();
     let rgba_data = image.to_rgba8();
 
-    return Self::from_bytes(&rgba_data, dimensions, graphics);
+    return Self::from_bytes(&rgba_data, dimensions, device, queue);
   }
 
-  pub fn from_bytes(data: &[u8], dimensions: (u32, u32), graphics: &Graphics) -> Self {
+  pub fn from_bytes(data: &[u8], dimensions: (u32, u32), device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
     let size = wgpu::Extent3d {
       width: dimensions.0,
       height: dimensions.1,
@@ -41,7 +41,7 @@ impl Texture {
     };
 
     // Instantiate the texture resource on the GPU side
-    let texture = graphics.device.create_texture(&wgpu::TextureDescriptor {
+    let texture = device.create_texture(&wgpu::TextureDescriptor {
       size,
       mip_level_count: 1,
       sample_count: 1,
@@ -53,7 +53,7 @@ impl Texture {
     });
 
     // Upload texture to GPU
-    graphics.queue.write_texture(
+    queue.write_texture(
       wgpu::ImageCopyTexture {
         texture: &texture,
         mip_level: 0,
@@ -75,7 +75,7 @@ impl Texture {
       ..Default::default()
     });
 
-    let sampler = graphics.device.create_sampler(&wgpu::SamplerDescriptor {
+    let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
       address_mode_u: wgpu::AddressMode::ClampToEdge,
       address_mode_v: wgpu::AddressMode::ClampToEdge,
       address_mode_w: wgpu::AddressMode::ClampToEdge,
@@ -85,7 +85,7 @@ impl Texture {
       ..Default::default()
     });
 
-    let texture_layout = graphics.device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+    let texture_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
       entries: &[
         wgpu::BindGroupLayoutEntry {
           binding: 0,
@@ -108,7 +108,7 @@ impl Texture {
     });
 
     // Bind group
-    let bind_group = graphics.device.create_bind_group(&wgpu::BindGroupDescriptor {
+    let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
       layout: &texture_layout,
       entries: &[
         wgpu::BindGroupEntry {
@@ -132,8 +132,8 @@ impl Texture {
     };
   }
 
-  pub fn default(graphics: &Graphics) -> Self {
-    return Self::from_bytes(&[0xf8, 0x06, 0x6d, 0xFF], (1, 1), graphics);
+  pub fn dummy(device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
+    return Self::from_bytes(&[0xf8, 0x06, 0x6d, 0xFF], (1, 1), device, queue);
   }
 
   pub fn update(&mut self, graphics: &Graphics, image: DynamicImage) {
@@ -165,9 +165,9 @@ impl Texture {
 }
 
 impl Drawable for Texture {
-  fn recreate(&mut self, graphics: &Graphics) {
+  fn recreate(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, format: wgpu::TextureFormat) {
     // TODO: optimize/refactor DRY
-    *self = Self::from_bytes(&self.data, (self.texture.width(), self.texture.height()), graphics)
+    *self = Self::from_bytes(&self.data, (self.texture.width(), self.texture.height()), device, queue)
   }
 }
 

@@ -65,7 +65,9 @@ impl GameplayScreen {
   ) -> Self {
     let ingame_overlay = IngameOverlayView::new();
     let taiko_renderer = TaikoRenderer::new(
-      graphics,
+      &graphics.device,
+      &graphics.queue,
+      graphics.config.format,
       TaikoRendererConfig {
         width: graphics.size.width,
         height: graphics.size.height,
@@ -240,10 +242,40 @@ impl GameplayScreen {
   pub fn scale(&mut self, queue: &wgpu::Queue, scale_factor: f64) {
     self.taiko_renderer.scale(queue, scale_factor);
   }
+
+  pub fn sync_settings(&mut self, graphics: &Graphics, state: &AppState) {
+    if state.taiko.zoom != self.taiko_renderer.config.zoom {
+      self.taiko_renderer.set_zoom(&graphics.device, &graphics.queue, state.taiko.zoom);
+    }
+
+    if state.taiko.scale != self.taiko_renderer.config.scale {
+      self.taiko_renderer.set_scale(&graphics.queue, state.taiko.scale);
+    }
+
+    if state.taiko.hit_position_x != self.taiko_renderer.config.hit_position_x
+      || state.taiko.hit_position_y != self.taiko_renderer.config.hit_position_y
+    {
+      self
+        .taiko_renderer
+        .set_hit_position(&graphics.queue, state.taiko.hit_position_x, state.taiko.hit_position_y);
+    }
+
+    if state.taiko.don_color != self.taiko_renderer.config.don {
+      self.taiko_renderer.set_don_color(&graphics.device, &graphics.queue, state.taiko.don_color);
+    }
+
+    if state.taiko.kat_color != self.taiko_renderer.config.kat {
+      self.taiko_renderer.set_kat_color(&graphics.device, &graphics.queue, state.taiko.kat_color);
+    }
+  }
+
+  pub fn audio(&mut self) -> &mut BeatmapAudio {
+    return &mut self.audio;
+  }
 }
 
 impl Drawable for GameplayScreen {
-  fn recreate(&mut self, graphics: &Graphics) {
-    self.taiko_renderer.recreate(graphics);
+  fn recreate(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, format: wgpu::TextureFormat) {
+    self.taiko_renderer.recreate(device, queue, format);
   }
 }

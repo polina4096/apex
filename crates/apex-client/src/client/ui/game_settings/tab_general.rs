@@ -3,6 +3,7 @@ use egui::Widget as _;
 use crate::{
   client::{
     client::Client,
+    event::ClientEvent,
     state::{
       graphics_state::{FrameLimiterOptions, PresentModeOptions, RenderingBackend, WgpuBackend},
       AppState,
@@ -186,7 +187,7 @@ impl GameSettingsView {
         let slider = egui::Slider::new(&mut state.taiko.zoom, 0.0 ..= 1.0).step_by(0.001).ui(ui);
 
         if slider.changed() {
-          // self.event_bus.send(ClientEvent::RebuildTaikoRendererInstances);
+          self.event_bus.send(ClientEvent::SyncSettings);
         }
       });
     });
@@ -197,7 +198,11 @@ impl GameSettingsView {
       });
 
       row.col(|ui| {
-        egui::Slider::new(&mut state.taiko.scale, 0.0 ..= 2.0).ui(ui);
+        let slider = egui::Slider::new(&mut state.taiko.scale, 0.0 ..= 2.0).ui(ui);
+
+        if slider.changed() {
+          self.event_bus.send(ClientEvent::SyncSettings);
+        }
       });
     });
 
@@ -207,7 +212,11 @@ impl GameSettingsView {
       });
 
       row.col(|ui| {
-        egui::DragValue::new(&mut state.taiko.hit_position_x).ui(ui);
+        let drag = egui::DragValue::new(&mut state.taiko.hit_position_x).ui(ui);
+
+        if drag.changed() {
+          self.event_bus.send(ClientEvent::SyncSettings);
+        }
       });
     });
 
@@ -217,7 +226,11 @@ impl GameSettingsView {
       });
 
       row.col(|ui| {
-        egui::DragValue::new(&mut state.taiko.hit_position_y).ui(ui);
+        let drag = egui::DragValue::new(&mut state.taiko.hit_position_y).ui(ui);
+
+        if drag.changed() {
+          self.event_bus.send(ClientEvent::SyncSettings);
+        }
       });
     });
 
@@ -233,7 +246,7 @@ impl GameSettingsView {
         let mut color = egui::Rgba::from_rgba_unmultiplied(r, g, b, a);
         if color_edit_button_rgba(ui, &mut color, Alpha::Opaque).changed() {
           state.taiko.don_color = color.into();
-          // self.event_bus.send(ClientEvent::RebuildTaikoRendererInstances);
+          self.event_bus.send(ClientEvent::SyncSettings);
         }
       });
     });
@@ -250,7 +263,7 @@ impl GameSettingsView {
         let mut color = egui::Rgba::from_rgba_unmultiplied(r, g, b, a);
         if color_edit_button_rgba(ui, &mut color, Alpha::Opaque).changed() {
           state.taiko.kat_color = color.into();
-          // self.event_bus.send(ClientEvent::RebuildTaikoRendererInstances);
+          self.event_bus.send(ClientEvent::SyncSettings);
         }
       });
     });

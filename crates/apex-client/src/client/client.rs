@@ -1,4 +1,8 @@
-use std::{fs::File, io::BufReader, path::PathBuf};
+use std::{
+  fs::File,
+  io::BufReader,
+  path::{Path, PathBuf},
+};
 
 use log::error;
 use rodio::{
@@ -16,7 +20,7 @@ use crate::core::{
   audio::{self, audio_engine::AudioEngine, audio_mixer::AudioController},
   core::Core,
   event::EventBus,
-  graphics::{color::Color, drawable::Drawable, graphics::Graphics},
+  graphics::{color::Color, drawable::Drawable, graphics::Graphics, video_exporter::VideoExporter},
   input::{
     bind::{Bind, KeyCombination},
     Input,
@@ -26,15 +30,17 @@ use crate::core::{
 
 use super::{
   event::ClientEvent,
-  gameplay::{beatmap::Beatmap, beatmap_cache::BeatmapCache, taiko_player::TaikoPlayerInput},
-  graphics::{
-    taiko_renderer::taiko_renderer::{TaikoRenderer, TaikoRendererConfig},
-    // video_exporter::VideoExporter,
+  gameplay::{
+    beatmap::Beatmap,
+    beatmap_cache::{BeatmapCache, BeatmapInfo},
+    taiko_player::TaikoPlayerInput,
   },
+  graphics::taiko_renderer::taiko_renderer::{TaikoRenderer, TaikoRendererConfig},
   input::client_action::ClientAction,
   screen::{
-    gameplay_screen::gameplay_screen::GameplayScreen, result_screen::result_screen::ResultScreen,
-    selection_screen::selection_screen::SelectionScreen, settings_screen::settings_screen::SettingsScreen,
+    gameplay_screen::gameplay_screen::GameplayScreen, recording_screen::recording_screen::RecordingScreen,
+    result_screen::result_screen::ResultScreen, selection_screen::selection_screen::SelectionScreen,
+    settings_screen::settings_screen::SettingsScreen,
   },
   state::AppState,
 };
@@ -63,9 +69,10 @@ pub struct Client {
   prev_beatmap_path: PathBuf,
 
   selection_screen: SelectionScreen,
-  result_screen: ResultScreen,
   gameplay_screen: GameplayScreen,
+  result_screen: ResultScreen,
   settings_screen: SettingsScreen,
+  recording_screen: RecordingScreen,
 }
 
 impl App for Client {
@@ -89,6 +96,7 @@ impl App for Client {
     }
 
     self.settings_screen.prepare(core, &mut self.input, &mut self.app_state);
+    self.recording_screen.prepare(core, &self.beatmap_cache);
 
     core.egui_ctx.end_frame(&core.graphics, encoder);
   }
@@ -119,8 +127,8 @@ impl App for Client {
 }
 
 impl Drawable for Client {
-  fn recreate(&mut self, graphics: &Graphics) {
-    self.gameplay_screen.recreate(graphics);
+  fn recreate(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, format: wgpu::TextureFormat) {
+    self.gameplay_screen.recreate(device, queue, format);
   }
 }
 
@@ -140,79 +148,11 @@ impl Client {
     #[rustfmt::skip] let selection_screen = SelectionScreen::new(event_bus.clone(), &beatmap_cache, &mut audio_engine, &core.graphics, &mut core.egui_ctx, &app_state);
     #[rustfmt::skip] let result_screen = ResultScreen::new(event_bus.clone(), &beatmap_cache, &PathBuf::new());
     #[rustfmt::skip] let gameplay_screen = GameplayScreen::new(event_bus.clone(), &core.graphics, &audio_engine, audio_controller.clone(), &app_state);
-    #[rustfmt::skip] let settings_screen = SettingsScreen::new();
+    #[rustfmt::skip] let settings_screen = SettingsScreen::new(event_bus.clone());
+    #[rustfmt::skip] let recording_screen = RecordingScreen::new(&core.graphics);
 
     let prev_audio_path = PathBuf::new();
     let prev_beatmap_path = PathBuf::new();
-
-    // render a play
-    // {
-    //   let mut video_exporter = VideoExporter::new(&core.graphics.device, core.graphics.format);
-
-    //   let mut taiko_renderer = TaikoRenderer::new(
-    //     &core.graphics,
-    //     TaikoRendererConfig {
-    //       width: 2048,
-    //       height: 2048,
-    //       scale_factor: 2.0,
-    //       scale: 0.85,
-    //       zoom: 0.235,
-    //       hit_position_x: 128.0,
-    //       hit_position_y: 256.0,
-    //       don: Color::new(0.92, 0.00, 0.27, 1.00),
-    //       kat: Color::new(0.00, 0.47, 0.67, 1.00),
-    //     },
-    //   );
-
-    //   // let beatmap_path = beatmap_cache.get_index(0).unwrap().0;
-    //   let data = std::fs::read_to_string("/Users/polina4096/dev/apex/debug/beatmaps/1796495/Envy - LIVING LIFE IN THE NIGHT (Genjuro) [SLEEP DEPRIVED].osu").unwrap();
-    //   let beatmap = Beatmap::from(data);
-    //   let info = beatmap_cache
-    //     .get(&PathBuf::from("./beatmaps/1796495/Envy - LIVING LIFE IN THE NIGHT (Genjuro) [SLEEP DEPRIVED].osu"))
-    //     .unwrap();
-
-    //   taiko_renderer.load_beatmap(&core.graphics.device, beatmap);
-    //   taiko_renderer.set_hit_all(&core.graphics.queue);
-
-    //   video_exporter.export(&core.graphics, 0 .. (120 * 8), |rpass, graphics, i| {
-    //     let time = Time::from_ms(i as f64 / 120.0 * 1000.0 + info.preview_time as f64);
-    //     taiko_renderer.prepare(&graphics.queue, time);
-
-    //     taiko_renderer.render(rpass);
-    //   });
-
-    //   // let (tx_data, rx_data) = std::sync::mpsc::sync_channel::<(i32, Vec<u8>)>(100);
-
-    //   // std::thread::spawn(move || {
-    //   //   let mut buffer = vec![0u8; 2048 * 2048 * 4];
-
-    //   //   loop {
-    //   //     let (i, data) = rx_data.recv().unwrap();
-    //   //     for (i, chunk) in data.iter().copied().array_chunks::<16>().enumerate() {
-    //   //       buffer[i * 12 .. (i + 1) * 12].copy_from_slice(&convert_swizzle(chunk));
-    //   //     }
-
-    //   //     pub fn convert_swizzle(bgra: [u8; 16]) -> [u8; 12] {
-    //   //       use std::simd::{simd_swizzle, Simd};
-    //   //       let bgra = Simd::from_array(bgra);
-    //   //       #[rustfmt::skip]
-    //   //       const IDXS: [usize; 16] = [
-    //   //           2, 1, 0,
-    //   //           6, 5, 4,
-    //   //           10, 9, 8,
-    //   //           14, 13, 12,
-    //   //           3, 7, 11, 15,
-    //   //       ];
-    //   //       let rgb = simd_swizzle!(bgra, IDXS);
-    //   //       return rgb.to_array().as_chunks().0[0];
-    //   //     }
-
-    //   //     use image::{ImageBuffer, Rgb};
-    //   //     let buffer = ImageBuffer::<Rgb<u8>, _>::from_raw(2048, 2048, buffer.clone()).unwrap();
-    //   //     buffer.save(format!("/Users/polina4096/Desktop/apex/image{:08}.bmp", i)).unwrap();
-    //   //   }
-    //   // });
-    // }
 
     return Self {
       input,
@@ -226,8 +166,9 @@ impl Client {
       beatmap_cache,
       selection_screen,
       gameplay_screen,
-      settings_screen,
       result_screen,
+      settings_screen,
+      recording_screen,
     };
   }
 
@@ -261,7 +202,8 @@ impl Client {
           }
 
           PhysicalKey::Code(KeyCode::Escape) | PhysicalKey::Code(KeyCode::Enter) => {}
-          PhysicalKey::Code(KeyCode::Comma) if self.input.state.modifiers.contains(ModifiersState::SUPER) => {}
+          PhysicalKey::Code(KeyCode::Comma) | PhysicalKey::Code(KeyCode::KeyR)
+            if self.input.state.modifiers.contains(ModifiersState::SUPER) => {}
 
           _ => {
             if let Some(c) = event.logical_key.to_text().and_then(|x| x.chars().next()) {
@@ -287,8 +229,8 @@ impl Client {
       ClientAction::Back => {
         match self.game_state {
           LogicalState::Selection => {
-            if self.settings_screen.is_settings_open() {
-              self.settings_screen.toggle_settings();
+            if self.settings_screen.is_open() {
+              self.settings_screen.toggle();
             } else if self.selection_screen.beatmap_selector().has_query() {
               self.selection_screen.beatmap_selector_mut().clear_query();
             } else {
@@ -297,9 +239,19 @@ impl Client {
           }
 
           LogicalState::Playing => {
-            if self.settings_screen.is_settings_open() {
-              self.settings_screen.toggle_settings();
+            if self.settings_screen.is_open() {
+              self.settings_screen.toggle();
             } else {
+              let lead_in = Time::from_ms(self.app_state.gameplay.lead_in as f64);
+              let delay_adjusted_position = self.audio_engine.position() - lead_in;
+              let delay_adjusted_position = delay_adjusted_position.max(Time::zero());
+
+              let selected = self.selection_screen.beatmap_selector().selected();
+              if let Some((path, beatmap)) = self.beatmap_cache.get_index(selected) {
+                Self::play_beatmap_audio_unchecked(&mut self.audio_engine, &mut self.audio_controller, path, beatmap);
+                self.audio_engine.set_position(delay_adjusted_position);
+              };
+
               self.game_state = LogicalState::Selection;
             }
           }
@@ -311,7 +263,17 @@ impl Client {
       }
 
       ClientAction::Settings => {
-        self.settings_screen.toggle_settings();
+        self.settings_screen.toggle();
+      }
+
+      ClientAction::Recording => {
+        let selected = self.selection_screen.beatmap_selector().selected();
+        let Some((path, _)) = self.beatmap_cache.get_index(selected) else {
+          return;
+        };
+
+        self.recording_screen.set_beatmap(path.to_owned());
+        self.recording_screen.toggle();
       }
 
       ClientAction::Next => {
@@ -408,12 +370,23 @@ impl Client {
       }
 
       ClientEvent::ToggleSettings => {
-        self.settings_screen.toggle_settings();
+        self.settings_screen.toggle();
       }
 
       ClientEvent::ShowResultScreen { path } => {
         self.game_state = LogicalState::Results;
         self.result_screen.finish(&self.beatmap_cache, &path);
+      }
+
+      ClientEvent::OpenRecordingWindow { path } => {
+        if !self.recording_screen.is_open() {
+          self.recording_screen.set_beatmap(path);
+          self.recording_screen.toggle();
+        }
+      }
+
+      ClientEvent::SyncSettings => {
+        self.gameplay_screen.sync_settings(&core.graphics, &self.app_state);
       }
     }
   }
@@ -439,6 +412,15 @@ impl Client {
         id: ClientAction::Settings,
         name: String::from("Settings"),
         description: String::from("Open settings menu"),
+      },
+    );
+
+    input.keybinds.add(
+      KeyCombination::new(PhysicalKey::Code(KeyCode::KeyR), ModifiersState::SUPER),
+      Bind {
+        id: ClientAction::Recording,
+        name: String::from("Recording"),
+        description: String::from("Open recording menu"),
       },
     );
 
@@ -528,8 +510,6 @@ impl Client {
   }
 
   pub fn play_beatmap_audio(&mut self) {
-    use std::time::Duration;
-
     let selected = self.selection_screen.beatmap_selector().selected();
     let Some((path, beatmap)) = self.beatmap_cache.get_index(selected) else {
       return;
@@ -542,20 +522,31 @@ impl Client {
       return;
     }
 
+    Self::play_beatmap_audio_unchecked(&mut self.audio_engine, &mut self.audio_controller, path, beatmap);
+  }
+
+  pub fn play_beatmap_audio_unchecked(
+    audio_engine: &mut AudioEngine,
+    audio_controller: &mut AudioController,
+    path: &Path,
+    beatmap: &BeatmapInfo,
+  ) {
+    use std::time::Duration;
+
     let audio_path = path.parent().unwrap().join(&beatmap.audio_path);
     let file = BufReader::new(File::open(audio_path).unwrap());
     let source = Decoder::new(file).unwrap();
 
-    let config = self.audio_engine.device().default_output_config().unwrap();
+    let config = audio_engine.device().default_output_config().unwrap();
     let source = UniformSourceIterator::new(source, config.channels(), config.sample_rate().0);
 
     // TODO: calculate length of the audio
     let length = source.total_duration().unwrap_or(Duration::from_secs(0));
-    self.audio_engine.set_length(length.into());
+    audio_engine.set_length(length.into());
 
-    self.audio_engine.set_playing(false);
-    self.audio_controller.play_audio(source);
-    self.audio_engine.set_position(Time::from_ms(beatmap.preview_time as f64));
-    self.audio_engine.set_playing(true);
+    audio_engine.set_playing(false);
+    audio_controller.play_audio(source);
+    audio_engine.set_position(Time::from_ms(beatmap.preview_time as f64));
+    audio_engine.set_playing(true);
   }
 }

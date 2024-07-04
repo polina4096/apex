@@ -26,6 +26,14 @@ impl Time {
   pub fn to_ms(&self) -> i64 {
     return (self.0 * 1000.0).round() as i64;
   }
+
+  pub fn max(self, other: Self) -> Self {
+    return Time(self.0.max(other.0));
+  }
+
+  pub fn min(self, other: Self) -> Self {
+    return Time(self.0.min(other.0));
+  }
 }
 
 impl From<Instant> for Time {

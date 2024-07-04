@@ -1,6 +1,10 @@
+use std::hash::BuildHasherDefault;
+
+use ahash::AHashMap;
 use egui::Widget;
 use instant::Instant;
 use log::debug;
+use nohash_hasher::{BuildNoHashHasher, NoHashHasher};
 
 use crate::{
   client::{
@@ -15,6 +19,7 @@ use super::beatmap_card::BeatmapCard;
 pub struct BeatmapList {
   event_bus: EventBus<ClientEvent>,
   beatmap_cards: Vec<BeatmapCard>,
+  response_cache: AHashMap<usize, egui::Response, BuildHasherDefault<NoHashHasher<usize>>>,
   prev_selected: usize,
 
   last_update: Instant,
@@ -26,6 +31,7 @@ impl BeatmapList {
       event_bus,
       beatmap_cards,
       prev_selected: 0,
+      response_cache: AHashMap::with_hasher(BuildNoHashHasher::<usize>::default()),
       last_update: Instant::now(),
     };
   }
@@ -86,25 +92,29 @@ impl BeatmapList {
 
             let mut new_selected = None;
             let selected_idx = selector.selected();
+
             for orig_idx in selector.matched() {
               let card = &mut self.beatmap_cards[orig_idx];
               let (path, _) = beatmap_cache.get_index(orig_idx).unwrap();
 
               ui.push_id(orig_idx, |ui| {
                 let is_selected = orig_idx == selected_idx;
-                let response = card.prepare(ui, is_selected);
+                let response = card.prepare(ui, is_selected, path, &self.event_bus);
+                let sense = response.interact(egui::Sense::click());
+                self.response_cache.insert(orig_idx, response);
 
-                if is_selected && self.prev_selected != selected_idx {
-                  self.prev_selected = selected_idx;
-                  response.scroll_to_me(Some(egui::Align::Center));
+                let clicked_secondary = sense.clicked_by(egui::PointerButton::Secondary);
+
+                if clicked_secondary {
+                  self.prev_selected = orig_idx;
                 }
 
-                if response.interact(egui::Sense::click()).clicked() {
+                if sense.clicked() || clicked_secondary {
                   new_selected = Some(orig_idx);
 
                   self.event_bus.send(ClientEvent::SelectBeatmap);
 
-                  if is_selected {
+                  if is_selected && !clicked_secondary {
                     self.event_bus.send(ClientEvent::PickBeatmap { path: path.clone() });
                   }
                 }
@@ -113,6 +123,15 @@ impl BeatmapList {
 
             if let Some(new_selected) = new_selected {
               selector.set_selected(new_selected);
+            }
+
+            let selected_idx = selector.selected();
+            if self.prev_selected != selected_idx {
+              self.prev_selected = selected_idx;
+
+              if let Some(response) = self.response_cache.get(&selected_idx) {
+                response.scroll_to_me(Some(egui::Align::Center));
+              }
             }
 
             ui.add_space(4.0);

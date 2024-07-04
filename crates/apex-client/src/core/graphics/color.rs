@@ -3,7 +3,7 @@ use glam::{vec3, vec4, Vec3, Vec4};
 use serde::{Deserialize, Serialize};
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, Pod, Zeroable, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Pod, Zeroable, Serialize, Deserialize)]
 pub struct Color {
   pub r: f32,
   pub g: f32,
