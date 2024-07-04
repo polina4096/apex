@@ -62,24 +62,22 @@ impl AbstractClock for AudioEngine {
 
     if !playing {
       self.sink.pause();
+    } else {
+      self.sink.play();
     }
   }
 
   fn toggle(&mut self) {
     if !self.clock.is_playing() {
       self.clock.set_playing(true);
+      self.sink.play();
     } else {
-      self.sink.pause();
-
       self.clock.set_playing(false);
+      self.sink.pause();
     }
   }
 
   fn position(&mut self) -> Time {
-    if self.sink.is_paused() && self.clock.is_playing() {
-      self.sink.play();
-    }
-
     return self.clock.position();
   }
 
