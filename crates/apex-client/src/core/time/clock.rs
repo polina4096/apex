@@ -64,23 +64,21 @@ impl AbstractClock for Clock {
   }
 
   fn set_playing(&mut self, playing: bool) {
-    self.playing = playing;
-
     let now = instant::Instant::now();
     let diff = now.duration_since(self.last_pause);
     let time = self.last_time + diff.into();
-    self.last_pause = now;
-    self.last_time = time;
+
+    if playing {
+      self.last_pause = now;
+    } else if self.playing {
+      self.last_time = time;
+    }
+
+    self.playing = playing;
   }
 
   fn toggle(&mut self) {
-    self.playing = !self.playing;
-
-    let now = instant::Instant::now();
-    let diff = now.duration_since(self.last_pause);
-    let time = self.last_time + diff.into();
-    self.last_pause = now;
-    self.last_time = time;
+    self.set_playing(!self.playing);
   }
 
   fn set_length(&mut self, value: Time) {
