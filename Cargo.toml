@@ -9,6 +9,10 @@ new_without_default = "allow"
 module_inception = "allow"
 single_match = "allow"
 
+[profile.release]
+codegen-units = 1
+lto = "fat"
+
 [profile.dev]
 opt-level = 1
 lto = "off"

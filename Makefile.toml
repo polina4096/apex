@@ -12,6 +12,13 @@ args = ["run", "--bin", "apex-client"]
 cwd = "./debug/"
 env = { "RUST_LOG" = "apex_client=debug" }
 
+[tasks.run-opt]
+dependencies = ["copy-assets"]
+command = "cargo"
+args = ["run", "--bin", "apex-client", "--release", "--", "-C", "target-cpu=native"]
+cwd = "./debug/"
+env = { "RUST_LOG" = "apex_client=debug" }
+
 [tasks.make-dev-dirs]
 script = '''
 #!@duckscript
