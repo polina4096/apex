@@ -91,6 +91,11 @@ impl<T: AsRef<str>> From<T> for Beatmap {
               time: Time::from_ms(time_ms),
               bpm: (60.0 * 1000.0) / beat_length,
             });
+
+            velocity_points.push(VelocityPoint {
+              time: Time::from_ms(time_ms),
+              velocity: 1.0,
+            });
           } else {
             velocity_points.push(VelocityPoint {
               time: Time::from_ms(time_ms),
