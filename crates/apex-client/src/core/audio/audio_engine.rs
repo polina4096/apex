@@ -35,6 +35,16 @@ impl AudioEngine {
     };
   }
 
+  pub fn with_source<S>(source: S) -> Self
+  where
+    S: Source<Item = f32> + Send + 'static,
+  {
+    let mut engine = Self::new();
+    engine.set_source(source);
+
+    return engine;
+  }
+
   pub fn set_source<S>(&mut self, source: S)
   where
     S: Source<Item = f32> + Send + 'static,

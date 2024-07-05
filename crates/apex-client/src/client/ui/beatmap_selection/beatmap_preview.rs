@@ -4,7 +4,7 @@ use crate::{
   client::{
     gameplay::beatmap::Beatmap,
     graphics::taiko_renderer::taiko_renderer::{TaikoRenderer, TaikoRendererConfig},
-    state::AppState,
+    settings::settings::Settings,
   },
   core::{
     graphics::{egui::EguiContext, graphics::Graphics},
@@ -57,7 +57,7 @@ pub struct BeatmapPreview {
 }
 
 impl BeatmapPreview {
-  pub fn new(graphics: &Graphics, egui_ctx: &mut EguiContext, state: &AppState) -> Self {
+  pub fn new(graphics: &Graphics, egui_ctx: &mut EguiContext, settings: &Settings) -> Self {
     let beatmap_preview = Self {
       prev_width: 0,
       hit_pos: PREVIEW_HEIGHT as f32 / 2.0,
@@ -75,11 +75,11 @@ impl BeatmapPreview {
         height: graphics.size.height,
         scale_factor: graphics.scale,
         scale: 0.425,
-        zoom: state.taiko.zoom,
+        zoom: settings.taiko.zoom(),
         hit_position_x: beatmap_preview.hit_pos / graphics.scale as f32,
         hit_position_y: beatmap_preview.hit_pos / graphics.scale as f32,
-        don: state.taiko.don_color,
-        kat: state.taiko.kat_color,
+        don: settings.taiko.don_color(),
+        kat: settings.taiko.kat_color(),
       },
     ));
 

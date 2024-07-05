@@ -173,6 +173,7 @@ dependencies = [
  "log",
  "nohash-hasher",
  "nucleo",
+ "paste",
  "pollster",
  "pretty_env_logger",
  "rodio",

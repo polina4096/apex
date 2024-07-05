@@ -1,7 +1,6 @@
 #![feature(map_many_mut)]
-#![feature(portable_simd)]
-#![feature(slice_as_chunks)]
-#![feature(iter_array_chunks)]
+#![feature(adt_const_params)]
+#![allow(incomplete_features)]
 
 use core::{
   core::Core,
@@ -13,9 +12,9 @@ use std::sync::Arc;
 use client::{
   client::Client,
   event::ClientEvent,
-  state::{
-    graphics_state::{FrameLimiterOptions, RenderingBackend},
-    AppState,
+  settings::{
+    graphics::{FrameLimiterOptions, RenderingBackend},
+    settings::Settings,
   },
   util::frame_limiter::FrameLimiter,
 };
@@ -50,13 +49,13 @@ pub fn setup() -> (EventLoop<CoreEvent<ClientEvent>>, Window) {
 
 pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> color_eyre::Result<()> {
   let window = Arc::new(window);
-  let app_state = AppState::default();
-  let mut core = Core::new(&event_loop, &window, &app_state);
-  let mut client = Client::new(&mut core, app_state, EventBus::new(event_loop.create_proxy()));
+  let settings = Settings::default();
+  let mut core = Core::new(&event_loop, &window, &settings);
+  let mut client = Client::new(&mut core, settings, EventBus::new(event_loop.create_proxy()));
 
-  let external_sync = client.app_state.graphics.frame_limiter == FrameLimiterOptions::DisplayLink;
-  let is_unlimited = client.app_state.graphics.frame_limiter == FrameLimiterOptions::Unlimited;
-  let target_fps = match client.app_state.graphics.frame_limiter {
+  let external_sync = client.settings.graphics.frame_limiter() == FrameLimiterOptions::DisplayLink;
+  let is_unlimited = client.settings.graphics.frame_limiter() == FrameLimiterOptions::Unlimited;
+  let target_fps = match client.settings.graphics.frame_limiter() {
     FrameLimiterOptions::Custom(fps) => fps as u16,
     _ => 120,
   };
@@ -74,8 +73,8 @@ pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> col
           }
 
           CoreEvent::RecreateGraphicsContext => {
-            let present_mode = client.app_state.graphics.present_mode;
-            let backend = client.app_state.graphics.rendering_backend;
+            let present_mode = client.settings.graphics.present_mode();
+            let backend = client.settings.graphics.rendering_backend();
 
             #[rustfmt::skip]
             let RenderingBackend::Wgpu(backend) = backend else { todo!() };
@@ -87,13 +86,8 @@ pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> col
             client.recreate(&core.graphics.device, &core.graphics.queue, core.graphics.config.format);
           }
 
-          CoreEvent::ReconfigureSurfaceTexture => {
-            core.graphics.config.present_mode = client.app_state.graphics.present_mode.into();
-            core.graphics.surface.configure(&core.graphics.device, &core.graphics.config);
-          }
-
           CoreEvent::UpdateFrameLimiterConfiguration => {
-            match client.app_state.graphics.frame_limiter {
+            match client.settings.graphics.frame_limiter() {
               FrameLimiterOptions::Custom(fps) => {
                 frame_limiter.disable_external_sync();
                 frame_limiter.set_unlimited(false);

@@ -2,14 +2,13 @@ use egui::Widget;
 use log::debug;
 
 use crate::{
-  client::{client::Client, event::ClientEvent, input::client_action::ClientAction, state::AppState},
-  core::{
-    core::Core,
-    event::EventBus,
-    input::{
-      bind::{Bind, KeyCombination},
-      Input,
-    },
+  client::{
+    input::client_action::ClientAction,
+    settings::settings::{Settings, SettingsProxy},
+  },
+  core::input::{
+    bind::{Bind, KeyCombination},
+    Input,
   },
 };
 
@@ -23,8 +22,6 @@ pub enum GameSettingsTab {
 }
 
 pub struct GameSettingsView {
-  event_bus: EventBus<ClientEvent>,
-
   pub tab: GameSettingsTab,
   pub is_open: bool,
 
@@ -34,9 +31,8 @@ pub struct GameSettingsView {
 }
 
 impl GameSettingsView {
-  pub fn new(event_bus: EventBus<ClientEvent>) -> Self {
+  pub fn new() -> Self {
     return Self {
-      event_bus,
       tab: GameSettingsTab::General,
       is_open: false,
 
@@ -46,7 +42,13 @@ impl GameSettingsView {
     };
   }
 
-  pub fn prepare(&mut self, core: &Core<Client>, input: &mut Input<ClientAction>, state: &mut AppState) {
+  pub fn prepare(
+    &mut self,
+    ctx: &egui::Context,
+    input: &mut Input<ClientAction>,
+    settings: &mut Settings,
+    proxy: &mut impl SettingsProxy,
+  ) {
     let mut is_open = self.is_open;
 
     // TODO: the cache won't be rebuilt if the keybinds are changed while the,
@@ -62,7 +64,7 @@ impl GameSettingsView {
       .resizable(false)
       .collapsible(false)
       .open(&mut is_open)
-      .show(core.egui_ctx.egui_ctx(), |ui| {
+      .show(ctx, |ui| {
         ui.horizontal(|ui| {
           let active = ui.style().visuals.widgets.active.bg_fill;
           let default = egui::Color32::TRANSPARENT;
@@ -91,7 +93,7 @@ impl GameSettingsView {
         ui.separator();
 
         match self.tab {
-          GameSettingsTab::General => self.general_tab(ui, core, state),
+          GameSettingsTab::General => self.general_tab(ui, settings, proxy),
           GameSettingsTab::Controls => self.controls_tab(ui, input),
         }
       });

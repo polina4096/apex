@@ -11,7 +11,7 @@ use crate::{
     client::Client,
     event::ClientEvent,
     gameplay::{beatmap::Beatmap, beatmap_cache::BeatmapCache, beatmap_selector::BeatmapSelector},
-    state::AppState,
+    settings::settings::Settings,
   },
   core::{
     core::Core,
@@ -46,7 +46,7 @@ impl BeatmapSelectionView {
     clock: &mut impl AbstractClock,
     graphics: &Graphics,
     egui_ctx: &mut EguiContext,
-    state: &AppState,
+    settings: &Settings,
   ) -> Self {
     let mut beatmap_cards = vec![];
     for (path, info) in beatmap_cache.iter() {
@@ -60,7 +60,7 @@ impl BeatmapSelectionView {
       beatmap_bg: BackgroundComponent::new(""),
       beatmap_list: BeatmapList::new(event_bus.clone(), beatmap_cards),
       beatmap_stats: BeatmapStats::new(),
-      beatmap_preview: BeatmapPreview::new(graphics, egui_ctx, state),
+      beatmap_preview: BeatmapPreview::new(graphics, egui_ctx, settings),
       action_bar: ActionBar::new(event_bus, clock),
     };
   }

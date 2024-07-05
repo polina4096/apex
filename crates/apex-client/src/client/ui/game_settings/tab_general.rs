@@ -1,21 +1,14 @@
 use egui::Widget as _;
 
-use crate::{
-  client::{
-    client::Client,
-    event::ClientEvent,
-    state::{
-      graphics_state::{FrameLimiterOptions, PresentModeOptions, RenderingBackend, WgpuBackend},
-      AppState,
-    },
-  },
-  core::core::Core,
+use crate::client::settings::{
+  graphics::{FrameLimiterOptions, PresentModeOptions, RenderingBackend, WgpuBackend},
+  settings::{Settings, SettingsProxy},
 };
 
 use super::GameSettingsView;
 
 impl GameSettingsView {
-  pub(super) fn general_tab(&mut self, ui: &mut egui::Ui, core: &Core<Client>, state: &mut AppState) {
+  pub(super) fn general_tab(&mut self, ui: &mut egui::Ui, settings: &mut Settings, proxy: &mut impl SettingsProxy) {
     use egui_extras::{Column, TableBuilder};
 
     let text_height = egui::TextStyle::Body.resolve(ui.style()).size.max(ui.spacing().interact_size.y);
@@ -29,18 +22,79 @@ impl GameSettingsView {
       .column(Column::exact(128.0))
       .column(Column::remainder())
       .body(|mut body| {
-        self.gameplay_category(&mut body, text_height, state);
-        self.graphics_category(&mut body, text_height, core, state);
-        self.taiko_category(&mut body, text_height, state);
+        self.audio_category(&mut body, text_height, settings, proxy);
+        self.graphics_category(&mut body, text_height, settings, proxy);
+        self.gameplay_category(&mut body, text_height, settings, proxy);
+        self.taiko_category(&mut body, text_height, settings, proxy);
       });
+  }
+
+  fn audio_category(
+    &mut self,
+    body: &mut egui_extras::TableBody,
+    text_height: f32,
+    settings: &mut Settings,
+    proxy: &mut impl SettingsProxy,
+  ) {
+    body.row(text_height + 8.0, |mut row| {
+      row.col(|ui| {
+        ui.label("Master Volume");
+      });
+
+      row.col(|ui| {
+        let mut value = settings.audio.master_volume();
+        if egui::Slider::new(&mut value, 0.0 ..= 1.0).clamp_to_range(true).ui(ui).changed() {
+          settings.audio.set_master_volume(value, proxy);
+        }
+      });
+    });
+
+    body.row(text_height + 8.0, |mut row| {
+      row.col(|ui| {
+        ui.label("Music Volume");
+      });
+
+      row.col(|ui| {
+        let mut value = settings.audio.music_volume();
+        if egui::Slider::new(&mut value, 0.0 ..= 1.0).clamp_to_range(true).ui(ui).changed() {
+          settings.audio.set_music_volume(value, proxy);
+        }
+      });
+    });
+
+    body.row(text_height + 8.0, |mut row| {
+      row.col(|ui| {
+        ui.label("Effect Volume");
+      });
+
+      row.col(|ui| {
+        let mut value = settings.audio.effect_volume();
+        if egui::Slider::new(&mut value, 0.0 ..= 1.0).clamp_to_range(true).ui(ui).changed() {
+          settings.audio.set_effect_volume(value, proxy);
+        }
+      });
+    });
+
+    body.row(text_height + 8.0, |mut row| {
+      row.col(|ui| {
+        ui.label("Enable hitsounds");
+      });
+
+      row.col(|ui| {
+        let mut value = settings.audio.hitsounds();
+        if egui::Checkbox::without_text(&mut value).ui(ui).changed() {
+          settings.audio.set_hitsounds(value, proxy);
+        }
+      });
+    });
   }
 
   fn graphics_category(
     &mut self,
     body: &mut egui_extras::TableBody,
     text_height: f32,
-    core: &Core<Client>,
-    state: &mut AppState,
+    settings: &mut Settings,
+    proxy: &mut impl SettingsProxy,
   ) {
     body.row(text_height + 8.0, |mut row| {
       row.col(|ui| {
@@ -57,18 +111,19 @@ impl GameSettingsView {
       });
 
       row.col(|ui| {
-        let selected = &mut state.graphics.present_mode;
         let available_width = ui.available_width() - 192.0;
 
+        let mut selected = settings.graphics.present_mode();
         egui::ComboBox::new("present_mode", "")
           .selected_text(format!("{:?}", selected))
           .width(available_width)
           .show_ui(ui, |ui| {
-            if ui.selectable_value(selected, PresentModeOptions::VSync, "VSync").changed()
-              || ui.selectable_value(selected, PresentModeOptions::Immediate, "Immediate").changed()
+            if { false }
+              || ui.selectable_value(&mut selected, PresentModeOptions::VSync, "VSync").changed()
+              || ui.selectable_value(&mut selected, PresentModeOptions::Immediate, "Immediate").changed()
             {
-              core.reconfigure_surface_texture();
-            };
+              settings.graphics.set_present_mode(selected, proxy);
+            }
           });
       });
     });
@@ -79,22 +134,22 @@ impl GameSettingsView {
       });
 
       row.col(|ui| {
-        let selected = &mut state.graphics.frame_limiter;
         let available_width = ui.available_width() - 192.0;
 
+        let mut selected = settings.graphics.frame_limiter();
         egui::ComboBox::new("frame_limiter", "")
           .selected_text(format!("{:?}", selected))
           .width(available_width)
           .show_ui(ui, |ui| {
             if { false }
-              || ui.selectable_value(selected, FrameLimiterOptions::Custom(240), "240 fps").changed()
-              || ui.selectable_value(selected, FrameLimiterOptions::Custom(480), "480 fps").changed()
-              || ui.selectable_value(selected, FrameLimiterOptions::Custom(960), "960 fps").changed()
-              || ui.selectable_value(selected, FrameLimiterOptions::Unlimited, "Unlimited").changed()
-              || ui.selectable_value(selected, FrameLimiterOptions::DisplayLink, "Display Link").changed()
+              || ui.selectable_value(&mut selected, FrameLimiterOptions::Custom(240), "240 fps").changed()
+              || ui.selectable_value(&mut selected, FrameLimiterOptions::Custom(480), "480 fps").changed()
+              || ui.selectable_value(&mut selected, FrameLimiterOptions::Custom(960), "960 fps").changed()
+              || ui.selectable_value(&mut selected, FrameLimiterOptions::Unlimited, "Unlimited").changed()
+              || ui.selectable_value(&mut selected, FrameLimiterOptions::DisplayLink, "Display Link").changed()
             {
-              core.update_frame_limiter_configuration();
-            };
+              settings.graphics.set_frame_limiter(selected, proxy);
+            }
           });
       });
     });
@@ -105,29 +160,35 @@ impl GameSettingsView {
       });
 
       row.col(|ui| {
-        let selected = &mut state.graphics.rendering_backend;
         let available_width = ui.available_width() - 192.0;
 
+        let mut selected = settings.graphics.rendering_backend();
         egui::ComboBox::new("renderer_backend", "")
           .selected_text(format!("{:?}", selected))
           .width(available_width)
           .show_ui(ui, |ui| {
             if { false }
-              || ui.selectable_value(selected, RenderingBackend::Wgpu(WgpuBackend::Auto), "Auto").changed()
-              || ui.selectable_value(selected, RenderingBackend::Wgpu(WgpuBackend::Vulkan), "Vulkan").changed()
-              || ui.selectable_value(selected, RenderingBackend::Wgpu(WgpuBackend::Metal), "Metal").changed()
-              || ui.selectable_value(selected, RenderingBackend::Wgpu(WgpuBackend::Dx12), "DirectX 12").changed()
-              || ui.selectable_value(selected, RenderingBackend::Wgpu(WgpuBackend::Gl), "OpenGL").changed()
-              || ui.selectable_value(selected, RenderingBackend::Wgpu(WgpuBackend::WebGpu), "WebGPU").changed()
+              || ui.selectable_value(&mut selected, RenderingBackend::Wgpu(WgpuBackend::Auto), "Auto").changed()
+              || ui.selectable_value(&mut selected, RenderingBackend::Wgpu(WgpuBackend::Vulkan), "Vulkan").changed()
+              || ui.selectable_value(&mut selected, RenderingBackend::Wgpu(WgpuBackend::Metal), "Metal").changed()
+              || ui.selectable_value(&mut selected, RenderingBackend::Wgpu(WgpuBackend::Dx12), "DX 12").changed()
+              || ui.selectable_value(&mut selected, RenderingBackend::Wgpu(WgpuBackend::Gl), "OpenGL").changed()
+              || ui.selectable_value(&mut selected, RenderingBackend::Wgpu(WgpuBackend::WebGpu), "WebGPU").changed()
             {
-              core.recreate_graphics_context();
-            };
+              settings.graphics.set_rendering_backend(selected, proxy);
+            }
           });
       });
     });
   }
 
-  fn gameplay_category(&mut self, body: &mut egui_extras::TableBody, text_height: f32, state: &mut AppState) {
+  fn gameplay_category(
+    &mut self,
+    body: &mut egui_extras::TableBody,
+    text_height: f32,
+    settings: &mut Settings,
+    proxy: &mut impl SettingsProxy,
+  ) {
     body.row(text_height + 8.0, |mut row| {
       row.col(|ui| {
         let text = egui::RichText::new("Gameplay").strong().heading();
@@ -139,36 +200,51 @@ impl GameSettingsView {
 
     body.row(text_height, |mut row| {
       row.col(|ui| {
-        ui.label("Audio Offset");
+        ui.label("Universal Offset");
       });
 
       row.col(|ui| {
-        egui::Slider::new(&mut state.gameplay.audio_offset, -100 ..= 100).clamp_to_range(false).ui(ui);
-      });
-    });
-
-    body.row(text_height, |mut row| {
-      row.col(|ui| {
-        ui.label("Lead in");
-      });
-
-      row.col(|ui| {
-        egui::Slider::new(&mut state.gameplay.lead_in, 0 ..= 100).clamp_to_range(false).ui(ui);
+        let mut value = settings.gameplay.universal_offset();
+        if egui::Slider::new(&mut value, -500 ..= 500).clamp_to_range(false).ui(ui).changed() {
+          settings.gameplay.set_universal_offset(value, proxy);
+        }
       });
     });
 
     body.row(text_height, |mut row| {
       row.col(|ui| {
-        ui.label("Lead out");
+        ui.label("Lead In");
       });
 
       row.col(|ui| {
-        egui::Slider::new(&mut state.gameplay.lead_out, 0 ..= 100).clamp_to_range(false).ui(ui);
+        let mut value = settings.gameplay.lead_in();
+        if egui::Slider::new(&mut value, 0 ..= 100).clamp_to_range(false).ui(ui).changed() {
+          settings.gameplay.set_lead_in(value, proxy);
+        }
+      });
+    });
+
+    body.row(text_height, |mut row| {
+      row.col(|ui| {
+        ui.label("Lead Out");
+      });
+
+      row.col(|ui| {
+        let mut value = settings.gameplay.lead_out();
+        if egui::Slider::new(&mut value, 0 ..= 100).clamp_to_range(false).ui(ui).changed() {
+          settings.gameplay.set_lead_out(value, proxy);
+        }
       });
     });
   }
 
-  fn taiko_category(&mut self, body: &mut egui_extras::TableBody, text_height: f32, state: &mut AppState) {
+  fn taiko_category(
+    &mut self,
+    body: &mut egui_extras::TableBody,
+    text_height: f32,
+    settings: &mut Settings,
+    proxy: &mut impl SettingsProxy,
+  ) {
     body.row(text_height + 8.0, |mut row| {
       row.col(|ui| {
         let text = egui::RichText::new("Taiko").strong().heading();
@@ -184,10 +260,9 @@ impl GameSettingsView {
       });
 
       row.col(|ui| {
-        let slider = egui::Slider::new(&mut state.taiko.zoom, 0.0 ..= 1.0).step_by(0.001).ui(ui);
-
-        if slider.changed() {
-          self.event_bus.send(ClientEvent::SyncSettings);
+        let mut value = settings.taiko.zoom();
+        if egui::Slider::new(&mut value, 0.0 ..= 1.0).step_by(0.001).ui(ui).changed() {
+          settings.taiko.set_zoom(value, proxy);
         }
       });
     });
@@ -198,10 +273,9 @@ impl GameSettingsView {
       });
 
       row.col(|ui| {
-        let slider = egui::Slider::new(&mut state.taiko.scale, 0.0 ..= 2.0).ui(ui);
-
-        if slider.changed() {
-          self.event_bus.send(ClientEvent::SyncSettings);
+        let mut value = settings.taiko.scale();
+        if egui::Slider::new(&mut value, 0.0 ..= 2.0).ui(ui).changed() {
+          settings.taiko.set_scale(value, proxy);
         }
       });
     });
@@ -212,10 +286,9 @@ impl GameSettingsView {
       });
 
       row.col(|ui| {
-        let drag = egui::DragValue::new(&mut state.taiko.hit_position_x).ui(ui);
-
-        if drag.changed() {
-          self.event_bus.send(ClientEvent::SyncSettings);
+        let mut value = settings.taiko.hit_position_x();
+        if egui::DragValue::new(&mut value).ui(ui).changed() {
+          settings.taiko.set_hit_position_x(value, proxy);
         }
       });
     });
@@ -226,10 +299,9 @@ impl GameSettingsView {
       });
 
       row.col(|ui| {
-        let drag = egui::DragValue::new(&mut state.taiko.hit_position_y).ui(ui);
-
-        if drag.changed() {
-          self.event_bus.send(ClientEvent::SyncSettings);
+        let mut value = settings.taiko.hit_position_y();
+        if egui::DragValue::new(&mut value).ui(ui).changed() {
+          settings.taiko.set_hit_position_y(value, proxy);
         }
       });
     });
@@ -242,11 +314,10 @@ impl GameSettingsView {
       });
 
       row.col(|ui| {
-        let (r, g, b, a) = state.taiko.don_color.as_rgba();
+        let (r, g, b, a) = settings.taiko.don_color().as_rgba();
         let mut color = egui::Rgba::from_rgba_unmultiplied(r, g, b, a);
         if color_edit_button_rgba(ui, &mut color, Alpha::Opaque).changed() {
-          state.taiko.don_color = color.into();
-          self.event_bus.send(ClientEvent::SyncSettings);
+          settings.taiko.set_don_color(color.into(), proxy);
         }
       });
     });
@@ -259,22 +330,11 @@ impl GameSettingsView {
       });
 
       row.col(|ui| {
-        let (r, g, b, a) = state.taiko.kat_color.as_rgba();
+        let (r, g, b, a) = settings.taiko.kat_color().as_rgba();
         let mut color = egui::Rgba::from_rgba_unmultiplied(r, g, b, a);
         if color_edit_button_rgba(ui, &mut color, Alpha::Opaque).changed() {
-          state.taiko.kat_color = color.into();
-          self.event_bus.send(ClientEvent::SyncSettings);
+          settings.taiko.set_kat_color(color.into(), proxy);
         }
-      });
-    });
-
-    body.row(text_height, |mut row| {
-      row.col(|ui| {
-        ui.label("Enable hitsounds");
-      });
-
-      row.col(|ui| {
-        ui.checkbox(&mut state.taiko.hitsounds, "Enable hitsounds");
       });
     });
   }

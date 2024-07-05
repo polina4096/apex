@@ -2,7 +2,7 @@ use std::path::Path;
 
 use crate::{
   client::{
-    client::Client, event::ClientEvent, gameplay::beatmap_cache::BeatmapCache, state::AppState,
+    client::Client, event::ClientEvent, gameplay::beatmap_cache::BeatmapCache, settings::settings::Settings,
     ui::play_results::PlayResultsView,
   },
   core::{core::Core, event::EventBus},
@@ -26,7 +26,7 @@ impl ResultScreen {
     self.play_results = PlayResultsView::new(bg);
   }
 
-  pub fn prepare(&mut self, core: &mut Core<Client>, state: &mut AppState, _beatmap_cache: &BeatmapCache) {
-    self.play_results.prepare(core, state);
+  pub fn prepare(&mut self, core: &mut Core<Client>, settings: &mut Settings, _beatmap_cache: &BeatmapCache) {
+    self.play_results.prepare(core, settings);
   }
 }

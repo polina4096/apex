@@ -6,7 +6,7 @@ use winit::{
   window::Window,
 };
 
-use crate::client::state::{graphics_state::RenderingBackend, AppState};
+use crate::client::settings::{graphics::RenderingBackend, settings::Settings};
 
 use super::{
   app::App,
@@ -23,12 +23,12 @@ pub struct Core<'a, A: App> {
 }
 
 impl<'a, A: App> Core<'a, A> {
-  pub fn new(event_loop: &EventLoop<CoreEvent<A::Event>>, window: &'a Window, app_state: &AppState) -> Self {
+  pub fn new(event_loop: &EventLoop<CoreEvent<A::Event>>, window: &'a Window, settings: &Settings) -> Self {
     let proxy = event_loop.create_proxy();
 
     #[rustfmt::skip]
-    let RenderingBackend::Wgpu(backend) = app_state.graphics.rendering_backend else { todo!() };
-    let graphics = Graphics::new(window, backend.into(), app_state.graphics.present_mode.into()).block_on();
+    let RenderingBackend::Wgpu(backend) = settings.graphics.rendering_backend() else { todo!() };
+    let graphics = Graphics::new(window, backend.into(), settings.graphics.present_mode().into()).block_on();
 
     let egui_ctx = EguiContext::new(event_loop, &graphics);
     egui_ctx.egui_ctx().set_visuals(egui::Visuals::dark().tap_mut(|vis| {
@@ -99,17 +99,5 @@ impl<'a, A: App> Core<'a, A> {
 
   pub fn exit(&self) {
     self.proxy.send_event(CoreEvent::Exit).unwrap();
-  }
-
-  pub fn recreate_graphics_context(&self) {
-    self.proxy.send_event(CoreEvent::RecreateGraphicsContext).unwrap();
-  }
-
-  pub fn reconfigure_surface_texture(&self) {
-    self.proxy.send_event(CoreEvent::ReconfigureSurfaceTexture).unwrap();
-  }
-
-  pub fn update_frame_limiter_configuration(&self) {
-    self.proxy.send_event(CoreEvent::UpdateFrameLimiterConfiguration).unwrap();
   }
 }

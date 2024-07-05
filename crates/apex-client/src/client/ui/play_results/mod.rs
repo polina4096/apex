@@ -1,7 +1,7 @@
 use egui::ImageSource;
 
 use crate::{
-  client::{client::Client, state::AppState},
+  client::{client::Client, settings::settings::Settings},
   core::core::Core,
 };
 
@@ -22,7 +22,7 @@ impl PlayResultsView {
     return Self { preview, background };
   }
 
-  pub fn prepare(&mut self, core: &Core<Client>, _state: &mut AppState) {
+  pub fn prepare(&mut self, core: &Core<Client>, _settings: &mut Settings) {
     let frame = egui::Frame::none() //
       .inner_margin(egui::Margin::ZERO);
 

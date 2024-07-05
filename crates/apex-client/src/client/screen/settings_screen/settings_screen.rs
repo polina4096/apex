@@ -1,9 +1,10 @@
 use crate::{
   client::{
-    client::Client, event::ClientEvent, input::client_action::ClientAction, state::AppState,
+    input::client_action::ClientAction,
+    settings::settings::{Settings, SettingsProxy},
     ui::game_settings::GameSettingsView,
   },
-  core::{core::Core, event::EventBus, input::Input},
+  core::input::Input,
 };
 
 pub struct SettingsScreen {
@@ -11,14 +12,20 @@ pub struct SettingsScreen {
 }
 
 impl SettingsScreen {
-  pub fn new(event_bus: EventBus<ClientEvent>) -> Self {
-    let game_settings = GameSettingsView::new(event_bus);
+  pub fn new() -> Self {
+    let game_settings = GameSettingsView::new();
 
     return Self { game_settings };
   }
 
-  pub fn prepare(&mut self, core: &Core<Client>, input: &mut Input<ClientAction>, state: &mut AppState) {
-    self.game_settings.prepare(core, input, state);
+  pub fn prepare(
+    &mut self,
+    ctx: &egui::Context,
+    input: &mut Input<ClientAction>,
+    settings: &mut Settings,
+    proxy: &mut impl SettingsProxy,
+  ) {
+    self.game_settings.prepare(ctx, input, settings, proxy);
   }
 
   pub fn is_open(&self) -> bool {

@@ -299,35 +299,39 @@ impl TaikoRenderer {
     self.update_camera(queue);
   }
 
-  pub fn scale(&mut self, queue: &wgpu::Queue, scale_factor: f64) {
-    self.config.scale_factor = scale_factor;
+  pub fn scale(&mut self, queue: &wgpu::Queue, value: f64) {
+    self.config.scale_factor = value;
     self.update_camera(queue);
   }
 
-  pub fn set_hit_position(&mut self, queue: &wgpu::Queue, x: f32, y: f32) {
-    self.config.hit_position_x = x;
-    self.config.hit_position_y = y;
+  pub fn set_hit_position_x(&mut self, queue: &wgpu::Queue, value: f32) {
+    self.config.hit_position_x = value;
     self.update_camera(queue);
   }
 
-  pub fn set_zoom(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, zoom: f64) {
-    self.config.zoom = zoom;
+  pub fn set_hit_position_y(&mut self, queue: &wgpu::Queue, value: f32) {
+    self.config.hit_position_y = value;
+    self.update_camera(queue);
+  }
+
+  pub fn set_zoom(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, value: f64) {
+    self.config.zoom = value;
     self.update_camera(queue);
     self.prepare_instances(device);
   }
 
-  pub fn set_scale(&mut self, queue: &wgpu::Queue, scale: f64) {
-    self.config.scale = scale;
+  pub fn set_scale(&mut self, queue: &wgpu::Queue, value: f64) {
+    self.config.scale = value;
     self.update_camera(queue);
   }
 
-  pub fn set_don_color(&mut self, device: &wgpu::Device, color: Color) {
-    self.config.don = color;
+  pub fn set_don_color(&mut self, device: &wgpu::Device, value: Color) {
+    self.config.don = value;
     self.prepare_instances(device);
   }
 
-  pub fn set_kat_color(&mut self, device: &wgpu::Device, color: Color) {
-    self.config.kat = color;
+  pub fn set_kat_color(&mut self, device: &wgpu::Device, value: Color) {
+    self.config.kat = value;
     self.prepare_instances(device);
   }
 }

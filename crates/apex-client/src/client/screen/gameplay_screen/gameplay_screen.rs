@@ -23,14 +23,14 @@ use crate::{
       taiko_player::{TaikoPlayer, TaikoPlayerInput},
     },
     graphics::taiko_renderer::taiko_renderer::{TaikoRenderer, TaikoRendererConfig},
-    state::AppState,
+    settings::settings::Settings,
     ui::ingame_overlay::{HitResult, IngameOverlayView},
   },
   core::{
     audio::{audio_engine::AudioEngine, audio_mixer::AudioController},
     core::Core,
     event::EventBus,
-    graphics::{drawable::Drawable, graphics::Graphics},
+    graphics::{color::Color, drawable::Drawable, graphics::Graphics},
     time::{clock::AbstractClock, time::Time},
   },
 };
@@ -61,7 +61,7 @@ impl GameplayScreen {
     graphics: &Graphics,
     audio_engine: &AudioEngine,
     audio_controller: AudioController,
-    state: &AppState,
+    settings: &Settings,
   ) -> Self {
     let ingame_overlay = IngameOverlayView::new();
     let taiko_renderer = TaikoRenderer::new(
@@ -72,12 +72,12 @@ impl GameplayScreen {
         width: graphics.size.width,
         height: graphics.size.height,
         scale_factor: graphics.scale,
-        scale: state.taiko.scale,
-        zoom: state.taiko.zoom,
-        hit_position_x: state.taiko.hit_position_x,
-        hit_position_y: state.taiko.hit_position_y,
-        don: state.taiko.don_color,
-        kat: state.taiko.kat_color,
+        scale: settings.taiko.scale(),
+        zoom: settings.taiko.zoom(),
+        hit_position_x: settings.taiko.hit_position_x(),
+        hit_position_y: settings.taiko.hit_position_y(),
+        don: settings.taiko.don_color(),
+        kat: settings.taiko.kat_color(),
       },
     );
 
@@ -124,7 +124,7 @@ impl GameplayScreen {
     };
   }
 
-  pub fn hit(&mut self, input: TaikoPlayerInput, graphics: &Graphics, audio: &mut AudioEngine, state: &AppState) {
+  pub fn hit(&mut self, input: TaikoPlayerInput, graphics: &Graphics, audio: &mut AudioEngine, settings: &Settings) {
     let Some(beatmap) = &self.beatmap else { return };
     let mut audio = self.audio.borrow(audio);
     let time = audio.position();
@@ -135,7 +135,7 @@ impl GameplayScreen {
       TaikoPlayerInput::DonOne | TaikoPlayerInput::DonTwo => {
         let source = SamplesBuffer::<f32>::new(self.channels, self.sample_rate.0, self.don_hitsound.clone());
 
-        if state.taiko.hitsounds {
+        if settings.audio.hitsounds() {
           self.audio_controller.play_sound(source);
         }
       }
@@ -143,7 +143,7 @@ impl GameplayScreen {
       TaikoPlayerInput::KatOne | TaikoPlayerInput::KatTwo => {
         let source = SamplesBuffer::<f32>::new(self.channels, self.sample_rate.0, self.kat_hitsound.clone());
 
-        if state.taiko.hitsounds {
+        if settings.audio.hitsounds() {
           self.audio_controller.play_sound(source);
         }
       }
@@ -168,7 +168,7 @@ impl GameplayScreen {
     audio.set_playing(true);
   }
 
-  pub fn play(&mut self, beatmap_path: &Path, graphics: &Graphics, audio: &mut AudioEngine, state: &AppState) {
+  pub fn play(&mut self, beatmap_path: &Path, graphics: &Graphics, audio: &mut AudioEngine, settings: &Settings) {
     let data = std::fs::read_to_string(beatmap_path).unwrap();
     let beatmap = Beatmap::from(data);
     let end_time = beatmap.hit_objects.last().unwrap().time;
@@ -181,7 +181,7 @@ impl GameplayScreen {
 
     let audio_path = beatmap_path.parent().unwrap().join(&beatmap.audio);
     let file = BufReader::new(File::open(audio_path).unwrap());
-    let source = Decoder::new(file).unwrap().delay(std::time::Duration::from_millis(state.gameplay.lead_in));
+    let source = Decoder::new(file).unwrap().delay(std::time::Duration::from_millis(settings.gameplay.lead_in()));
 
     let config = audio.device().default_output_config().unwrap();
     let source = UniformSourceIterator::new(source, config.channels(), config.sample_rate().0);
@@ -198,20 +198,20 @@ impl GameplayScreen {
     audio.set_playing(true);
   }
 
-  pub fn prepare(&mut self, core: &mut Core<Client>, audio: &mut AudioEngine, state: &AppState) {
+  pub fn prepare(&mut self, core: &mut Core<Client>, audio: &mut AudioEngine, settings: &Settings) {
     let mut audio = self.audio.borrow(audio);
     let time = audio.position();
 
-    if audio.lead_in.to_ms() != state.gameplay.lead_in as i64 {
-      audio.lead_in = Time::from_ms(state.gameplay.lead_in as f64);
+    if audio.lead_in.to_ms() != settings.gameplay.lead_in() as i64 {
+      audio.lead_in = Time::from_ms(settings.gameplay.lead_in() as f64);
     }
 
-    if audio.lead_out.to_ms() != state.gameplay.lead_out as i64 {
-      audio.lead_out = Time::from_ms(state.gameplay.lead_out as f64);
+    if audio.lead_out.to_ms() != settings.gameplay.lead_out() as i64 {
+      audio.lead_out = Time::from_ms(settings.gameplay.lead_out() as f64);
     }
 
-    if audio.audio_offset.to_ms() != state.gameplay.audio_offset {
-      audio.audio_offset = Time::from_ms(state.gameplay.audio_offset as f64);
+    if audio.audio_offset.to_ms() != settings.gameplay.universal_offset() {
+      audio.audio_offset = Time::from_ms(settings.gameplay.universal_offset() as f64);
     }
 
     // delay after the last hit object before result screen
@@ -228,7 +228,7 @@ impl GameplayScreen {
     }
 
     self.taiko_renderer.prepare(&core.graphics.queue, time);
-    self.ingame_overlay.prepare(core, &mut audio, &self.score, state);
+    self.ingame_overlay.prepare(core, &mut audio, &self.score, settings);
   }
 
   pub fn render<'rpass>(&'rpass self, rpass: &mut wgpu::RenderPass<'rpass>) {
@@ -243,30 +243,28 @@ impl GameplayScreen {
     self.taiko_renderer.scale(queue, scale_factor);
   }
 
-  pub fn sync_settings(&mut self, graphics: &Graphics, state: &AppState) {
-    if state.taiko.zoom != self.taiko_renderer.config.zoom {
-      self.taiko_renderer.set_zoom(&graphics.device, &graphics.queue, state.taiko.zoom);
-    }
+  pub fn set_taiko_zoom(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, zoom: f64) {
+    self.taiko_renderer.set_zoom(device, queue, zoom);
+  }
 
-    if state.taiko.scale != self.taiko_renderer.config.scale {
-      self.taiko_renderer.set_scale(&graphics.queue, state.taiko.scale);
-    }
+  pub fn set_taiko_scale(&mut self, queue: &wgpu::Queue, scale: f64) {
+    self.taiko_renderer.set_scale(queue, scale);
+  }
 
-    if state.taiko.hit_position_x != self.taiko_renderer.config.hit_position_x
-      || state.taiko.hit_position_y != self.taiko_renderer.config.hit_position_y
-    {
-      self
-        .taiko_renderer
-        .set_hit_position(&graphics.queue, state.taiko.hit_position_x, state.taiko.hit_position_y);
-    }
+  pub fn set_taiko_hit_position_x(&mut self, queue: &wgpu::Queue, value: f32) {
+    self.taiko_renderer.set_hit_position_x(queue, value);
+  }
 
-    if state.taiko.don_color != self.taiko_renderer.config.don {
-      self.taiko_renderer.set_don_color(&graphics.device, state.taiko.don_color);
-    }
+  pub fn set_taiko_hit_position_y(&mut self, queue: &wgpu::Queue, value: f32) {
+    self.taiko_renderer.set_hit_position_y(queue, value);
+  }
 
-    if state.taiko.kat_color != self.taiko_renderer.config.kat {
-      self.taiko_renderer.set_kat_color(&graphics.device, state.taiko.kat_color);
-    }
+  pub fn set_taiko_don_color(&mut self, device: &wgpu::Device, color: Color) {
+    self.taiko_renderer.set_don_color(device, color);
+  }
+
+  pub fn set_taiko_kat_color(&mut self, device: &wgpu::Device, color: Color) {
+    self.taiko_renderer.set_kat_color(device, color);
   }
 
   pub fn audio(&mut self) -> &mut BeatmapAudio {

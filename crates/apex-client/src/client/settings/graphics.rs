@@ -59,30 +59,3 @@ impl From<WgpuBackend> for Backends {
     };
   }
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GraphicsState {
-  /// Controls the frame pacing
-  pub frame_limiter: FrameLimiterOptions,
-
-  /// Graphics API presentation mode
-  pub present_mode: PresentModeOptions,
-
-  /// Rendering backend to use
-  pub rendering_backend: RenderingBackend,
-}
-
-impl Default for GraphicsState {
-  fn default() -> Self {
-    return Self {
-      #[cfg(not(target_os = "macos"))]
-      frame_limiter: FrameLimiterOptions::Unlimited,
-
-      #[cfg(target_os = "macos")]
-      frame_limiter: FrameLimiterOptions::DisplayLink,
-
-      present_mode: PresentModeOptions::VSync,
-      rendering_backend: RenderingBackend::Wgpu(WgpuBackend::Auto),
-    };
-  }
-}

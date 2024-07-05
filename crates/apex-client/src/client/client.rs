@@ -40,11 +40,11 @@ use super::{
     result_screen::result_screen::ResultScreen, selection_screen::selection_screen::SelectionScreen,
     settings_screen::settings_screen::SettingsScreen,
   },
-  state::AppState,
+  settings::{proxy::ClientSettingsProxy, settings::Settings},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LogicalState {
+pub enum GameState {
   Selection,
   Playing,
   Results,
@@ -56,12 +56,12 @@ pub struct Client {
   audio_controller: AudioController,
   event_bus: EventBus<ClientEvent>,
 
-  game_state: LogicalState,
+  game_state: GameState,
 
   beatmap_cache: BeatmapCache,
 
   /// Configuration and state of the whole game
-  pub app_state: AppState,
+  pub settings: Settings,
 
   prev_audio_path: PathBuf,
   prev_beatmap_path: PathBuf,
@@ -79,23 +79,38 @@ impl App for Client {
   fn prepare(&mut self, core: &mut Core<Self>, encoder: &mut wgpu::CommandEncoder) {
     core.egui_ctx.begin_frame(core.window);
 
+    let beatmap_idx = self.selection_screen.beatmap_selector().selected();
+    self.recording_screen.prepare(core, beatmap_idx, &self.beatmap_cache);
+
+    self.settings_screen.prepare(
+      core.egui_ctx.egui_ctx(),
+      &mut self.input,
+      &mut self.settings,
+      &mut ClientSettingsProxy {
+        proxy: &core.proxy,
+
+        gameplay_screen: &mut self.gameplay_screen,
+
+        device: &core.graphics.device,
+        queue: &core.graphics.queue,
+        surface: &core.graphics.surface,
+        config: &mut core.graphics.config,
+      },
+    );
+
     match self.game_state {
-      LogicalState::Selection => {
+      GameState::Selection => {
         self.selection_screen.prepare(core, &self.beatmap_cache, &mut self.audio_engine);
       }
 
-      LogicalState::Playing => {
-        self.gameplay_screen.prepare(core, &mut self.audio_engine, &self.app_state);
+      GameState::Playing => {
+        self.gameplay_screen.prepare(core, &mut self.audio_engine, &self.settings);
       }
 
-      LogicalState::Results => {
-        self.result_screen.prepare(core, &mut self.app_state, &self.beatmap_cache);
+      GameState::Results => {
+        self.result_screen.prepare(core, &mut self.settings, &self.beatmap_cache);
       }
     }
-
-    let beatmap_idx = self.selection_screen.beatmap_selector().selected();
-    self.settings_screen.prepare(core, &mut self.input, &mut self.app_state);
-    self.recording_screen.prepare(core, beatmap_idx, &self.beatmap_cache);
 
     core.egui_ctx.end_frame(&core.graphics, encoder);
   }
@@ -103,13 +118,13 @@ impl App for Client {
   fn render<'rpass>(&'rpass self, core: &'rpass mut Core<Self>, rpass: &mut wgpu::RenderPass<'rpass>) {
     // Draw wgpu
     match self.game_state {
-      LogicalState::Selection => {}
+      GameState::Selection => {}
 
-      LogicalState::Playing => {
+      GameState::Playing => {
         self.gameplay_screen.render(rpass);
       }
 
-      LogicalState::Results => {}
+      GameState::Results => {}
     }
 
     // Draw egui
@@ -132,22 +147,24 @@ impl Drawable for Client {
 }
 
 impl Client {
-  pub fn new(core: &mut Core<Self>, app_state: AppState, event_bus: EventBus<ClientEvent>) -> Self {
+  pub fn new(core: &mut Core<Self>, settings: Settings, event_bus: EventBus<ClientEvent>) -> Self {
     let input = Client::default_input();
-    let (audio_mixer, audio_controller) = audio::mixer(Empty::new());
+
+    let (m, a, s) = (settings.audio.master_volume(), settings.audio.music_volume(), settings.audio.effect_volume());
+    let (audio_mixer, audio_controller) = audio::mixer(Empty::new(), m, a, s);
     let mut audio_engine = AudioEngine::new();
     audio_engine.set_source(audio_mixer);
 
-    let game_state = LogicalState::Selection;
+    let game_state = GameState::Selection;
 
     let beatmap_cache = BeatmapCache::new().tap_mut(|cache| {
       cache.load_beatmaps("./beatmaps");
     });
 
-    #[rustfmt::skip] let selection_screen = SelectionScreen::new(event_bus.clone(), &beatmap_cache, &mut audio_engine, &core.graphics, &mut core.egui_ctx, &app_state);
+    #[rustfmt::skip] let selection_screen = SelectionScreen::new(event_bus.clone(), &beatmap_cache, &mut audio_engine, &core.graphics, &mut core.egui_ctx, &settings);
     #[rustfmt::skip] let result_screen = ResultScreen::new(event_bus.clone(), &beatmap_cache, &PathBuf::new());
-    #[rustfmt::skip] let gameplay_screen = GameplayScreen::new(event_bus.clone(), &core.graphics, &audio_engine, audio_controller.clone(), &app_state);
-    #[rustfmt::skip] let settings_screen = SettingsScreen::new(event_bus.clone());
+    #[rustfmt::skip] let gameplay_screen = GameplayScreen::new(event_bus.clone(), &core.graphics, &audio_engine, audio_controller.clone(), &settings);
+    #[rustfmt::skip] let settings_screen = SettingsScreen::new();
     #[rustfmt::skip] let recording_screen = RecordingScreen::new();
 
     let prev_audio_path = PathBuf::new();
@@ -159,7 +176,7 @@ impl Client {
       audio_controller,
       event_bus,
       game_state,
-      app_state,
+      settings,
       prev_audio_path,
       prev_beatmap_path,
       beatmap_cache,
@@ -191,7 +208,7 @@ impl Client {
     }
 
     if event.state.is_pressed() {
-      if self.game_state == LogicalState::Selection {
+      if self.game_state == GameState::Selection {
         match event.physical_key {
           PhysicalKey::Code(KeyCode::Backspace) => {
             if self.selection_screen.beatmap_selector().has_query() {
@@ -227,7 +244,7 @@ impl Client {
     match action {
       ClientAction::Back => {
         match self.game_state {
-          LogicalState::Selection => {
+          GameState::Selection => {
             if self.settings_screen.is_open() {
               self.settings_screen.toggle();
             } else if self.selection_screen.beatmap_selector().has_query() {
@@ -237,11 +254,11 @@ impl Client {
             }
           }
 
-          LogicalState::Playing => {
+          GameState::Playing => {
             if self.settings_screen.is_open() {
               self.settings_screen.toggle();
             } else {
-              let lead_in = Time::from_ms(self.app_state.gameplay.lead_in as f64);
+              let lead_in = Time::from_ms(self.settings.gameplay.lead_in() as f64);
               let delay_adjusted_position = self.audio_engine.position() - lead_in;
               let delay_adjusted_position = delay_adjusted_position.max(Time::zero());
 
@@ -251,12 +268,12 @@ impl Client {
                 self.audio_engine.set_position(delay_adjusted_position);
               };
 
-              self.game_state = LogicalState::Selection;
+              self.game_state = GameState::Selection;
             }
           }
 
-          LogicalState::Results => {
-            self.game_state = LogicalState::Selection;
+          GameState::Results => {
+            self.game_state = GameState::Selection;
           }
         }
       }
@@ -271,7 +288,7 @@ impl Client {
 
       ClientAction::Next => {
         match self.game_state {
-          LogicalState::Selection => {
+          GameState::Selection => {
             self.selection_screen.beatmap_selector_mut().select_next();
             self.play_beatmap_audio();
           }
@@ -282,7 +299,7 @@ impl Client {
 
       ClientAction::Prev => {
         match self.game_state {
-          LogicalState::Selection => {
+          GameState::Selection => {
             self.selection_screen.beatmap_selector_mut().select_prev();
             self.play_beatmap_audio();
           }
@@ -297,7 +314,7 @@ impl Client {
 
       ClientAction::Select => {
         match self.game_state {
-          LogicalState::Selection => {
+          GameState::Selection => {
             self
               .selection_screen
               .beatmap_selector()
@@ -312,34 +329,34 @@ impl Client {
       }
 
       ClientAction::KatOne if !repeat => {
-        if self.game_state == LogicalState::Playing {
+        if self.game_state == GameState::Playing {
           self
             .gameplay_screen
-            .hit(TaikoPlayerInput::KatOne, &core.graphics, &mut self.audio_engine, &self.app_state);
+            .hit(TaikoPlayerInput::KatOne, &core.graphics, &mut self.audio_engine, &self.settings);
         }
       }
 
       ClientAction::KatTwo if !repeat => {
-        if self.game_state == LogicalState::Playing {
+        if self.game_state == GameState::Playing {
           self
             .gameplay_screen
-            .hit(TaikoPlayerInput::KatTwo, &core.graphics, &mut self.audio_engine, &self.app_state);
+            .hit(TaikoPlayerInput::KatTwo, &core.graphics, &mut self.audio_engine, &self.settings);
         }
       }
 
       ClientAction::DonOne if !repeat => {
-        if self.game_state == LogicalState::Playing {
+        if self.game_state == GameState::Playing {
           self
             .gameplay_screen
-            .hit(TaikoPlayerInput::DonOne, &core.graphics, &mut self.audio_engine, &self.app_state);
+            .hit(TaikoPlayerInput::DonOne, &core.graphics, &mut self.audio_engine, &self.settings);
         }
       }
 
       ClientAction::DonTwo if !repeat => {
-        if self.game_state == LogicalState::Playing {
+        if self.game_state == GameState::Playing {
           self
             .gameplay_screen
-            .hit(TaikoPlayerInput::DonTwo, &core.graphics, &mut self.audio_engine, &self.app_state);
+            .hit(TaikoPlayerInput::DonTwo, &core.graphics, &mut self.audio_engine, &self.settings);
         }
       }
 
@@ -350,8 +367,8 @@ impl Client {
   pub fn dispatch(&mut self, core: &mut Core<Self>, event: ClientEvent) {
     match event {
       ClientEvent::PickBeatmap { path } => {
-        self.game_state = LogicalState::Playing;
-        self.gameplay_screen.play(&path, &core.graphics, &mut self.audio_engine, &self.app_state);
+        self.game_state = GameState::Playing;
+        self.gameplay_screen.play(&path, &core.graphics, &mut self.audio_engine, &self.settings);
       }
 
       ClientEvent::SelectBeatmap => {
@@ -367,7 +384,7 @@ impl Client {
       }
 
       ClientEvent::ShowResultScreen { path } => {
-        self.game_state = LogicalState::Results;
+        self.game_state = GameState::Results;
         self.result_screen.finish(&self.beatmap_cache, &path);
       }
 
@@ -375,10 +392,6 @@ impl Client {
         if !self.recording_screen.is_open() {
           self.recording_screen.toggle();
         }
-      }
-
-      ClientEvent::SyncSettings => {
-        self.gameplay_screen.sync_settings(&core.graphics, &self.app_state);
       }
     }
   }

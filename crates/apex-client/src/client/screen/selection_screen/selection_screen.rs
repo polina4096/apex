@@ -3,7 +3,7 @@ use crate::{
     client::Client,
     event::ClientEvent,
     gameplay::{beatmap_cache::BeatmapCache, beatmap_selector::BeatmapSelector},
-    state::AppState,
+    settings::settings::Settings,
     ui::beatmap_selection::BeatmapSelectionView,
   },
   core::{
@@ -26,9 +26,9 @@ impl SelectionScreen {
     clock: &mut impl AbstractClock,
     graphics: &Graphics,
     egui_ctx: &mut EguiContext,
-    state: &AppState,
+    settings: &Settings,
   ) -> Self {
-    let beatmap_selection = BeatmapSelectionView::new(event_bus, beatmap_cache, clock, graphics, egui_ctx, state);
+    let beatmap_selection = BeatmapSelectionView::new(event_bus, beatmap_cache, clock, graphics, egui_ctx, settings);
     let beatmap_selector = BeatmapSelector::new(beatmap_cache);
 
     return Self { beatmap_selection, beatmap_selector };

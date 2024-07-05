@@ -4,7 +4,7 @@ use crate::{
   client::{
     client::Client,
     gameplay::{score_processor::ScoreProcessor, taiko_player::TaikoPlayerInput},
-    state::AppState,
+    settings::settings::Settings,
   },
   core::{core::Core, time::clock::AbstractClock},
 };
@@ -72,7 +72,7 @@ impl IngameOverlayView {
     core: &mut Core<Client>,
     clock: &mut impl AbstractClock,
     score: &ScoreProcessor,
-    state: &AppState,
+    settings: &Settings,
   ) {
     egui::CentralPanel::default().frame(egui::Frame::none().inner_margin(egui::Margin::same(8.0))).show(
       core.egui_ctx(),
@@ -81,7 +81,7 @@ impl IngameOverlayView {
 
         let painter = ui.painter();
 
-        let pos = egui::pos2(state.taiko.hit_position_x, state.taiko.hit_position_y);
+        let pos = egui::pos2(settings.taiko.hit_position_x(), settings.taiko.hit_position_y());
         let fill = egui::Color32::TRANSPARENT;
         let stroke = egui::Stroke::new(4.0, egui::Color32::GRAY);
         painter.circle(pos, 64.0 * 0.85, fill, stroke);
@@ -94,8 +94,8 @@ impl IngameOverlayView {
 
           let size = egui::vec2(32.0, 32.0);
           let pos = egui::pos2(
-            state.taiko.hit_position_x + i * (4.0 + size.x) - 2.0 * (4.0 + size.x),
-            state.taiko.hit_position_y + 70.0,
+            settings.taiko.hit_position_x() + i * (4.0 + size.x) - 2.0 * (4.0 + size.x),
+            settings.taiko.hit_position_y() + 70.0,
           );
 
           painter.rect(
@@ -134,7 +134,7 @@ impl IngameOverlayView {
           let value = 1.05 + value;
 
           painter.circle(
-            egui::pos2(state.taiko.hit_position_x, state.taiko.hit_position_y),
+            egui::pos2(settings.taiko.hit_position_x(), settings.taiko.hit_position_y()),
             64.0 * 0.55 * value,
             color,
             egui::Stroke::NONE,

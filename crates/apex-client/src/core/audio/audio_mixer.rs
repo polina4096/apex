@@ -1,4 +1,5 @@
 use std::{
+  cell::Cell,
   collections::VecDeque,
   sync::{
     mpsc::{Receiver, Sender},
@@ -18,13 +19,25 @@ pub struct AudioMixer {
   rx: Receiver<Box<dyn Source<Item = f32> + Send + Sync>>,
 }
 
-pub fn mixer(source: impl Source<Item = f32> + Send + Sync + 'static) -> (AudioMixer, AudioController) {
+pub fn mixer(
+  source: impl Source<Item = f32> + Send + Sync + 'static,
+  master_volume: f32,
+  audio_volume: f32,
+  sound_volume: f32,
+) -> (AudioMixer, AudioController) {
   let (tx, rx) = std::sync::mpsc::channel();
   let source = Arc::new(Mutex::new(Box::new(source) as Box<dyn Source<Item = f32> + Send + Sync>));
   let sounds = VecDeque::new();
 
   let mixer = AudioMixer { source: source.clone(), sounds, rx };
-  let controller = AudioController { tx, source };
+
+  let controller = AudioController {
+    tx,
+    source,
+    master_volume: Cell::new(master_volume),
+    audio_volume: Cell::new(audio_volume),
+    sound_volume: Cell::new(sound_volume),
+  };
 
   return (mixer, controller);
 }
@@ -85,6 +98,10 @@ impl Source for AudioMixer {
 pub struct AudioController {
   source: Arc<Mutex<Box<dyn Source<Item = f32> + Send + Sync>>>,
   tx: Sender<Box<dyn Source<Item = f32> + Send + Sync>>,
+
+  master_volume: Cell<f32>,
+  audio_volume: Cell<f32>,
+  sound_volume: Cell<f32>,
 }
 
 impl AudioController {
@@ -94,5 +111,17 @@ impl AudioController {
 
   pub fn play_audio(&mut self, source: impl Source<Item = f32> + Send + Sync + 'static) {
     *self.source.lock().unwrap() = Box::new(source);
+  }
+
+  pub fn set_master_volume(&self, volume: f32) {
+    self.master_volume.set(volume);
+  }
+
+  pub fn set_audio_volume(&self, volume: f32) {
+    self.audio_volume.set(volume);
+  }
+
+  pub fn set_sound_volume(&self, volume: f32) {
+    self.sound_volume.set(volume);
   }
 }
