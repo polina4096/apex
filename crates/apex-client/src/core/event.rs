@@ -6,6 +6,7 @@ use winit::event_loop::EventLoopProxy;
 pub enum CoreEvent<T> {
   Exit,
   RecreateGraphicsContext,
+  ReconfigureSurface,
   UpdateFrameLimiterConfiguration,
   User(T),
 }

@@ -72,6 +72,10 @@ pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> col
             elwt.exit();
           }
 
+          CoreEvent::ReconfigureSurface => {
+            core.graphics.surface.configure(&core.graphics.device, &core.graphics.config);
+          }
+
           CoreEvent::RecreateGraphicsContext => {
             let present_mode = client.settings.graphics.present_mode();
             let backend = client.settings.graphics.rendering_backend();

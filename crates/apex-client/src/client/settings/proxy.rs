@@ -24,7 +24,7 @@ pub struct ClientSettingsProxy<'a, 'window> {
 impl<'a, 'window> SettingsProxy for ClientSettingsProxy<'a, 'window> {
   fn update_graphics_present_mode(&mut self, value: PresentModeOptions) {
     self.config.present_mode = value.into();
-    self.surface.configure(self.device, self.config);
+    self.proxy.send_event(CoreEvent::ReconfigureSurface).unwrap();
   }
 
   // TODO: probably remove this event
