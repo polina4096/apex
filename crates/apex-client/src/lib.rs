@@ -48,8 +48,14 @@ pub fn setup() -> (EventLoop<CoreEvent<ClientEvent>>, Window) {
 }
 
 pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> color_eyre::Result<()> {
+  // TODO: this is bad
+  let settings = if let Ok(string) = std::fs::read_to_string("./config.toml") {
+    toml::from_str(&string).unwrap_or_default()
+  } else {
+    Settings::default()
+  };
+
   let window = Arc::new(window);
-  let settings = Settings::default();
   let mut core = Core::new(&event_loop, &window, &settings);
   let mut client = Client::new(&mut core, settings, EventBus::new(event_loop.create_proxy()));
 
@@ -188,5 +194,6 @@ pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> col
     }
   })?;
 
+  drop(client);
   std::process::exit(0);
 }

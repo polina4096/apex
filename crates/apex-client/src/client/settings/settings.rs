@@ -1,4 +1,5 @@
 use super::graphics::{FrameLimiterOptions, PresentModeOptions, RenderingBackend, WgpuBackend};
+use log::error;
 use serde::{Deserialize, Serialize};
 
 use crate::{core::graphics::color::Color, settings};
@@ -65,5 +66,21 @@ settings! {
 
     /// Color of the kat hit object
     kat_color: Color = Color::new(0.00, 0.47, 0.67, 1.00)
+  }
+}
+
+impl Drop for Settings {
+  fn drop(&mut self) {
+    let string = match toml::to_string_pretty(self) {
+      Ok(string) => string,
+      Err(e) => {
+        error!("Failed to serialize config: {}", e);
+        return;
+      }
+    };
+
+    if let Err(e) = std::fs::write("./config.toml", string) {
+      error!("Failed to write config to disk: {}", e);
+    }
   }
 }
