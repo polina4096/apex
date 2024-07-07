@@ -1,7 +1,7 @@
 use crate::{
   client::{
     input::client_action::ClientAction,
-    settings::settings::{Settings, SettingsProxy},
+    settings::{Settings, SettingsProxy},
     ui::game_settings::GameSettingsView,
   },
   core::input::Input,

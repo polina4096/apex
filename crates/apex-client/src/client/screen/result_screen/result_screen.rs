@@ -2,7 +2,7 @@ use std::path::Path;
 
 use crate::{
   client::{
-    client::Client, event::ClientEvent, gameplay::beatmap_cache::BeatmapCache, settings::settings::Settings,
+    client::Client, event::ClientEvent, gameplay::beatmap_cache::BeatmapCache, settings::Settings,
     ui::play_results::PlayResultsView,
   },
   core::{core::Core, event::EventBus},

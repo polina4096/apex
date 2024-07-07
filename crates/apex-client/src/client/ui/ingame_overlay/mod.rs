@@ -4,7 +4,7 @@ use crate::{
   client::{
     client::Client,
     gameplay::{score_processor::ScoreProcessor, taiko_player::TaikoPlayerInput},
-    settings::settings::Settings,
+    settings::Settings,
   },
   core::{core::Core, time::clock::AbstractClock},
 };

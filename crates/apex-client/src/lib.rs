@@ -12,10 +12,8 @@ use std::sync::Arc;
 use client::{
   client::Client,
   event::ClientEvent,
-  settings::{
-    graphics::{FrameLimiterOptions, RenderingBackend},
-    settings::Settings,
-  },
+  graphics::{FrameLimiterOptions, RenderingBackend},
+  settings::Settings,
   util::frame_limiter::FrameLimiter,
 };
 use log::warn;
@@ -48,12 +46,7 @@ pub fn setup() -> (EventLoop<CoreEvent<ClientEvent>>, Window) {
 }
 
 pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> color_eyre::Result<()> {
-  // TODO: this is bad
-  let settings = if let Ok(string) = std::fs::read_to_string("./config.toml") {
-    toml::from_str(&string).unwrap_or_default()
-  } else {
-    Settings::default()
-  };
+  let settings = Settings::from_file("./config.toml");
 
   let window = Arc::new(window);
   let mut core = Core::new(&event_loop, &window, &settings);

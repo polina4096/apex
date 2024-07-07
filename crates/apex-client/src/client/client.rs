@@ -40,7 +40,7 @@ use super::{
     result_screen::result_screen::ResultScreen, selection_screen::selection_screen::SelectionScreen,
     settings_screen::settings_screen::SettingsScreen,
   },
-  settings::{proxy::ClientSettingsProxy, settings::Settings},
+  settings::{proxy::ClientSettingsProxy, Settings},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -90,6 +90,7 @@ impl App for Client {
         proxy: &core.proxy,
 
         gameplay_screen: &mut self.gameplay_screen,
+        audio_controller: &mut self.audio_controller,
 
         device: &core.graphics.device,
         queue: &core.graphics.queue,
@@ -330,33 +331,25 @@ impl Client {
 
       ClientAction::KatOne if !repeat => {
         if self.game_state == GameState::Playing {
-          self
-            .gameplay_screen
-            .hit(TaikoPlayerInput::KatOne, &core.graphics, &mut self.audio_engine, &self.settings);
+          self.gameplay_screen.hit(TaikoPlayerInput::KatOne, &core.graphics, &mut self.audio_engine);
         }
       }
 
       ClientAction::KatTwo if !repeat => {
         if self.game_state == GameState::Playing {
-          self
-            .gameplay_screen
-            .hit(TaikoPlayerInput::KatTwo, &core.graphics, &mut self.audio_engine, &self.settings);
+          self.gameplay_screen.hit(TaikoPlayerInput::KatTwo, &core.graphics, &mut self.audio_engine);
         }
       }
 
       ClientAction::DonOne if !repeat => {
         if self.game_state == GameState::Playing {
-          self
-            .gameplay_screen
-            .hit(TaikoPlayerInput::DonOne, &core.graphics, &mut self.audio_engine, &self.settings);
+          self.gameplay_screen.hit(TaikoPlayerInput::DonOne, &core.graphics, &mut self.audio_engine);
         }
       }
 
       ClientAction::DonTwo if !repeat => {
         if self.game_state == GameState::Playing {
-          self
-            .gameplay_screen
-            .hit(TaikoPlayerInput::DonTwo, &core.graphics, &mut self.audio_engine, &self.settings);
+          self.gameplay_screen.hit(TaikoPlayerInput::DonTwo, &core.graphics, &mut self.audio_engine);
         }
       }
 

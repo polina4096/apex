@@ -6,7 +6,7 @@ use winit::{
   window::Window,
 };
 
-use crate::client::settings::{graphics::RenderingBackend, settings::Settings};
+use crate::client::{graphics::RenderingBackend, settings::Settings};
 
 use super::{
   app::App,

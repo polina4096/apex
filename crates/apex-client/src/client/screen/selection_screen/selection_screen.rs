@@ -3,7 +3,7 @@ use crate::{
     client::Client,
     event::ClientEvent,
     gameplay::{beatmap_cache::BeatmapCache, beatmap_selector::BeatmapSelector},
-    settings::settings::Settings,
+    settings::Settings,
     ui::beatmap_selection::BeatmapSelectionView,
   },
   core::{

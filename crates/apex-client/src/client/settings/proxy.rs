@@ -1,19 +1,21 @@
 use winit::event_loop::EventLoopProxy;
 
 use crate::{
-  client::{event::ClientEvent, screen::gameplay_screen::gameplay_screen::GameplayScreen},
-  core::{event::CoreEvent, graphics::color::Color},
+  client::{
+    event::ClientEvent,
+    graphics::{FrameLimiterOptions, PresentModeOptions, RenderingBackend},
+    screen::gameplay_screen::gameplay_screen::GameplayScreen,
+  },
+  core::{audio::audio_mixer::AudioController, event::CoreEvent, graphics::color::Color},
 };
 
-use super::{
-  graphics::{FrameLimiterOptions, PresentModeOptions, RenderingBackend},
-  settings::SettingsProxy,
-};
+use super::SettingsProxy;
 
 pub struct ClientSettingsProxy<'a, 'window> {
   pub proxy: &'a EventLoopProxy<CoreEvent<ClientEvent>>,
 
   pub gameplay_screen: &'a mut GameplayScreen,
+  pub audio_controller: &'a mut AudioController,
 
   pub device: &'a wgpu::Device,
   pub queue: &'a wgpu::Queue,
@@ -59,5 +61,17 @@ impl<'a, 'window> SettingsProxy for ClientSettingsProxy<'a, 'window> {
 
   fn update_taiko_kat_color(&mut self, value: Color) {
     self.gameplay_screen.set_taiko_kat_color(self.device, value);
+  }
+
+  fn update_audio_master_volume(&mut self, value: f32) {
+    self.audio_controller.set_master_volume(value);
+  }
+
+  fn update_audio_music_volume(&mut self, value: f32) {
+    self.audio_controller.set_music_volume(value);
+  }
+
+  fn update_audio_effect_volume(&mut self, value: f32) {
+    self.audio_controller.set_effect_volume(value);
   }
 }

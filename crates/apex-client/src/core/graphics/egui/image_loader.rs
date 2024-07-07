@@ -31,7 +31,7 @@ impl BackgroundImageLoader {
     let cache = Arc::new(DashMap::default());
 
     std::thread::spawn({
-      let cache = cache.clone();
+      let cache = Arc::downgrade(&cache);
 
       move || {
         while let Ok(uri) = rx.recv() {
@@ -57,12 +57,14 @@ impl BackgroundImageLoader {
                 };
 
                 log::trace!("finished loading {uri:?}");
+                let Some(cache) = cache.upgrade() else { return };
                 cache.insert(uri, result);
 
                 break;
               }
 
               Err(err) => {
+                let Some(cache) = cache.upgrade() else { return };
                 cache.insert(uri, ImageState::Error(LoadError::Loading(err.to_string())));
                 break;
               }

@@ -11,7 +11,7 @@ use crate::{
     client::Client,
     event::ClientEvent,
     gameplay::{beatmap::Beatmap, beatmap_cache::BeatmapCache, beatmap_selector::BeatmapSelector},
-    settings::settings::Settings,
+    settings::Settings,
   },
   core::{
     core::Core,

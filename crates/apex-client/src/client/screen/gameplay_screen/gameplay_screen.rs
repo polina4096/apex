@@ -23,7 +23,7 @@ use crate::{
       taiko_player::{TaikoPlayer, TaikoPlayerInput},
     },
     graphics::taiko_renderer::taiko_renderer::{TaikoRenderer, TaikoRendererConfig},
-    settings::settings::Settings,
+    settings::Settings,
     ui::ingame_overlay::{HitResult, IngameOverlayView},
   },
   core::{
@@ -124,7 +124,7 @@ impl GameplayScreen {
     };
   }
 
-  pub fn hit(&mut self, input: TaikoPlayerInput, graphics: &Graphics, audio: &mut AudioEngine, settings: &Settings) {
+  pub fn hit(&mut self, input: TaikoPlayerInput, graphics: &Graphics, audio: &mut AudioEngine) {
     let Some(beatmap) = &self.beatmap else { return };
     let mut audio = self.audio.borrow(audio);
     let time = audio.position();
@@ -135,17 +135,13 @@ impl GameplayScreen {
       TaikoPlayerInput::DonOne | TaikoPlayerInput::DonTwo => {
         let source = SamplesBuffer::<f32>::new(self.channels, self.sample_rate.0, self.don_hitsound.clone());
 
-        if settings.audio.hitsounds() {
-          self.audio_controller.play_sound(source);
-        }
+        self.audio_controller.play_sound(source);
       }
 
       TaikoPlayerInput::KatOne | TaikoPlayerInput::KatTwo => {
         let source = SamplesBuffer::<f32>::new(self.channels, self.sample_rate.0, self.kat_hitsound.clone());
 
-        if settings.audio.hitsounds() {
-          self.audio_controller.play_sound(source);
-        }
+        self.audio_controller.play_sound(source);
       }
     }
 

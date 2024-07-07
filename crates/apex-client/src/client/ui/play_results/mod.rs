@@ -1,7 +1,7 @@
 use egui::ImageSource;
 
 use crate::{
-  client::{client::Client, settings::settings::Settings},
+  client::{client::Client, settings::Settings},
   core::core::Core,
 };
 

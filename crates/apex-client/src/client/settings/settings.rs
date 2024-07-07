@@ -1,86 +1,131 @@
-use super::graphics::{FrameLimiterOptions, PresentModeOptions, RenderingBackend, WgpuBackend};
-use log::error;
-use serde::{Deserialize, Serialize};
+#[macro_export]
+macro_rules! settings {
+  (
+    $(
+      $(#[$($attrs_category:tt)*])*
+      $category:ident {
+        $(
+          $(#[$($attrs_setting:tt)*])*
+          $setting:ident: $type:ty = $default_value:expr
+        )+
+      }
+    )+
+  ) => {
+    paste::paste! {
+      #[derive(Debug, Clone, Serialize, Deserialize)]
+      pub struct Settings {
+        path: std::path::PathBuf,
 
-use crate::{core::graphics::color::Color, settings};
+        $(pub $category: [<$category:camel Settings>],)+
+      }
 
-settings! {
-  audio {
-    /// Master volume
-    master_volume: f32 = 0.25
+      $(
+        $(#[$($attrs_category)*])*
+        #[derive(Debug, Clone, Serialize, Deserialize)]
+        pub struct [<$category:camel Settings>] {
+          $(
+            $(#[$($attrs_setting)*])*
+            $setting: $type,
+          )+
+        }
 
-    /// Music volume
-    music_volume: f32 = 1.0
+        impl Default for [<$category:camel Settings>] {
+          fn default() -> Self {
+            return Self {
+              $($setting: $default_value,)+
+            };
+          }
+        }
 
-    /// Effect volume
-    effect_volume: f32 = 1.0
+        impl [<$category:camel Settings>] {
+          $(
+            pub fn $setting(&self) -> $type {
+              return self.$setting;
+            }
 
-    /// TODO: remove after implementing volumes
-    hitsounds: bool = true
-  }
+            pub fn [<set_ $setting>](&mut self, value: $type, proxy: &mut impl SettingsProxy) {
+              self.$setting = value;
+              proxy.[<update_ $category _ $setting>](value);
+            }
+          )+
+        }
+      )+
 
-  graphics {
-    /// Controls the frame pacing
-    frame_limiter: FrameLimiterOptions = {
-      if cfg!(target_os = "macos") {
-        FrameLimiterOptions::DisplayLink
-      } else {
-        FrameLimiterOptions::Unlimited
+      impl Default for Settings {
+        fn default() -> Self {
+          return Self {
+            path: std::path::PathBuf::from("./config.toml"),
+            $($category: [<$category:camel Settings>]::default(),)+
+          };
+        }
+      }
+
+      impl Settings {
+        pub fn default_with_path(path: impl AsRef<std::path::Path>) -> Self {
+          return Self {
+            path: path.as_ref().to_owned(),
+            $($category: [<$category:camel Settings>]::default(),)+
+          };
+        }
+
+        pub fn from_file(path: impl AsRef<std::path::Path>) -> Self {
+          return std::fs::read_to_string(&path)
+            .map(|data| {
+              return toml::from_str(&data).unwrap_or_else(|e| {
+                log::error!("Failed to parse config file, falling back to default config: {}", e);
+
+                return Settings::default_with_path(&path);
+              });
+            })
+            .unwrap_or_else(|e| {
+              let default = Settings::default_with_path(&path);
+
+              match e.kind() {
+                std::io::ErrorKind::NotFound => {
+                  log::info!("Failed to open config file, file not found. Creating a default config file...");
+                  let default_data = toml::to_string_pretty(&default).expect("Failed to serialize default config");
+                  if let Err(e) = std::fs::write(&path, default_data) {
+                    log::error!("Failed to write default config file: {}", e);
+                  }
+                }
+
+                std::io::ErrorKind::PermissionDenied => {
+                  log::info!("Failed to open config file, insufficient permissions. Falling back to default configuration.");
+                }
+
+                _ => {
+                  log::error!("Failed to access config file: {}. Falling back to default configuration.", e);
+                }
+              }
+
+              return default;
+            });
+        }
+      }
+
+      impl Drop for Settings {
+        fn drop(&mut self) {
+          let data = match toml::to_string_pretty(&self) {
+            Ok(data) => data,
+            Err(e) => {
+              log::error!("Failed to serialize settings: {}", e);
+              return
+            }
+          };
+
+          if let Err(e) = std::fs::write(&self.path, data) {
+            log::error!("Failed to write settings to file: {}", e);
+            return;
+          }
+
+          let path = self.path.canonicalize().unwrap_or(self.path.clone());
+          log::info!("Settings successfully written to `{}`", path.display());
+        }
+      }
+
+      pub trait SettingsProxy {
+        $($(fn [<update_ $category _ $setting>](&mut self, _value: $type) {})+)+
       }
     }
-
-    /// Graphics API presentation mode
-    present_mode: PresentModeOptions = PresentModeOptions::VSync
-
-    /// Rendering backend to use
-    rendering_backend: RenderingBackend = RenderingBackend::Wgpu(WgpuBackend::Auto)
-
-  }
-
-  gameplay {
-    /// Offset of the audio in milliseconds
-    universal_offset: i64 = 0
-
-    /// Additional time before the first note
-    lead_in: u64 = 1000
-
-    /// Additional time after the last note
-    lead_out: u64 = 1000
-  }
-
-  taiko {
-    /// Hit object distance multiplier
-    zoom: f64 = 0.235
-
-    /// Gameplay scale
-    scale: f64 = 0.85
-
-    /// Hit position X
-    hit_position_x: f32 = 256.0
-
-    /// Hit position Y
-    hit_position_y: f32 = 192.0
-
-    /// Color of the don hit object
-    don_color: Color = Color::new(0.92, 0.00, 0.27, 1.00)
-
-    /// Color of the kat hit object
-    kat_color: Color = Color::new(0.00, 0.47, 0.67, 1.00)
-  }
-}
-
-impl Drop for Settings {
-  fn drop(&mut self) {
-    let string = match toml::to_string_pretty(self) {
-      Ok(string) => string,
-      Err(e) => {
-        error!("Failed to serialize config: {}", e);
-        return;
-      }
-    };
-
-    if let Err(e) = std::fs::write("./config.toml", string) {
-      error!("Failed to write config to disk: {}", e);
-    }
-  }
+  };
 }

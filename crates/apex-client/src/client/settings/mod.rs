@@ -1,69 +1,72 @@
-pub mod graphics;
 pub mod proxy;
 pub mod settings;
 
-#[macro_export]
-macro_rules! settings {
-  (
-    $(
-      $(#[$($attrs_category:tt)*])*
-      $category:ident {
-        $(
-          $(#[$($attrs_setting:tt)*])*
-          $setting:ident: $type:ty = $default_value:expr
-        )+
-      }
-    )+
-  ) => {
-    paste::paste! {
-      #[derive(Debug, Clone, Serialize, Deserialize)]
-      pub struct Settings {
-        $(pub $category: [<$category:camel Settings>],)+
-      }
+use serde::{Deserialize, Serialize};
 
-      $(
-        $(#[$($attrs_category)*])*
-        #[derive(Debug, Clone, Serialize, Deserialize)]
-        pub struct [<$category:camel Settings>] {
-          $(
-            $(#[$($attrs_setting)*])*
-            $setting: $type,
-          )+
-        }
+use crate::{
+  client::graphics::{FrameLimiterOptions, PresentModeOptions, RenderingBackend, WgpuBackend},
+  core::graphics::color::Color,
+  settings,
+};
 
-        impl Default for [<$category:camel Settings>] {
-          fn default() -> Self {
-            return Self {
-              $($setting: $default_value,)+
-            };
-          }
-        }
+settings! {
+  audio {
+    /// Master volume
+    master_volume: f32 = 0.25
 
-        impl [<$category:camel Settings>] {
-          $(
-            pub fn $setting(&self) -> $type {
-              return self.$setting;
-            }
+    /// Music volume
+    music_volume: f32 = 1.0
 
-            pub fn [<set_ $setting>](&mut self, value: $type, proxy: &mut impl SettingsProxy) {
-              self.$setting = value;
-              proxy.[<update_ $category _ $setting>](value);
-            }
-          )+
-        }
-      )+
+    /// Effect volume
+    effect_volume: f32 = 1.0
+  }
 
-      impl Default for Settings {
-        fn default() -> Self {
-          return Self {
-            $($category: [<$category:camel Settings>]::default(),)+
-          };
-        }
-      }
-
-      pub trait SettingsProxy {
-        $($(fn [<update_ $category _ $setting>](&mut self, _value: $type) {})+)+
+  graphics {
+    /// Controls the frame pacing
+    frame_limiter: FrameLimiterOptions = {
+      if cfg!(target_os = "macos") {
+        FrameLimiterOptions::DisplayLink
+      } else {
+        FrameLimiterOptions::Unlimited
       }
     }
-  };
+
+    /// Graphics API presentation mode
+    present_mode: PresentModeOptions = PresentModeOptions::VSync
+
+    /// Rendering backend to use
+    rendering_backend: RenderingBackend = RenderingBackend::Wgpu(WgpuBackend::Auto)
+
+  }
+
+  gameplay {
+    /// Offset of the audio in milliseconds
+    universal_offset: i64 = 0
+
+    /// Additional time before the first note
+    lead_in: u64 = 1000
+
+    /// Additional time after the last note
+    lead_out: u64 = 1000
+  }
+
+  taiko {
+    /// Hit object distance multiplier
+    zoom: f64 = 0.235
+
+    /// Gameplay scale
+    scale: f64 = 0.85
+
+    /// Hit position X
+    hit_position_x: f32 = 256.0
+
+    /// Hit position Y
+    hit_position_y: f32 = 192.0
+
+    /// Color of the don hit object
+    don_color: Color = Color::new(0.92, 0.00, 0.27, 1.00)
+
+    /// Color of the kat hit object
+    kat_color: Color = Color::new(0.00, 0.47, 0.67, 1.00)
+  }
 }

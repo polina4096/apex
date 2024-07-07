@@ -1,5 +1,4 @@
 use std::{
-  cell::Cell,
   collections::VecDeque,
   sync::{
     mpsc::{Receiver, Sender},
@@ -10,13 +9,20 @@ use std::{
 use rodio::{Sample as _, Source};
 
 pub enum AudioMixerEvent {
-  SetSource(Box<dyn Source<Item = f32> + Send + Sync>),
+  PlaySound(Box<dyn Source<Item = f32> + Send + Sync>),
+  SetMasterVolume(f32),
+  SetMusicVolume(f32),
+  SetEffectVolume(f32),
 }
 
 pub struct AudioMixer {
   source: Arc<Mutex<Box<dyn Source<Item = f32> + Send + Sync>>>,
   sounds: VecDeque<Box<dyn Source<Item = f32> + Send + Sync>>,
-  rx: Receiver<Box<dyn Source<Item = f32> + Send + Sync>>,
+  rx: Receiver<AudioMixerEvent>,
+
+  master_volume: f32,
+  music_volume: f32,
+  effect_volume: f32,
 }
 
 pub fn mixer(
@@ -29,15 +35,17 @@ pub fn mixer(
   let source = Arc::new(Mutex::new(Box::new(source) as Box<dyn Source<Item = f32> + Send + Sync>));
   let sounds = VecDeque::new();
 
-  let mixer = AudioMixer { source: source.clone(), sounds, rx };
+  let mixer = AudioMixer {
+    source: source.clone(),
+    sounds,
+    rx,
 
-  let controller = AudioController {
-    tx,
-    source,
-    master_volume: Cell::new(master_volume),
-    audio_volume: Cell::new(audio_volume),
-    sound_volume: Cell::new(sound_volume),
+    master_volume,
+    music_volume: audio_volume,
+    effect_volume: sound_volume,
   };
+
+  let controller = AudioController { tx, source };
 
   return (mixer, controller);
 }
@@ -46,15 +54,23 @@ impl Iterator for AudioMixer {
   type Item = f32;
 
   fn next(&mut self) -> Option<Self::Item> {
-    if let Ok(sound) = self.rx.try_recv() {
-      self.sounds.push_back(sound);
+    if let Ok(event) = self.rx.try_recv() {
+      match event {
+        AudioMixerEvent::PlaySound(sound) => {
+          self.sounds.push_back(sound);
+        }
+
+        AudioMixerEvent::SetMasterVolume(volume) => self.master_volume = volume,
+        AudioMixerEvent::SetMusicVolume(volume) => self.music_volume = volume,
+        AudioMixerEvent::SetEffectVolume(volume) => self.effect_volume = volume,
+      }
     }
 
     let mut sample = f32::zero_value();
 
     self.sounds.retain_mut(|sound| {
       if let Some(sound_sample) = sound.next() {
-        sample = sample.saturating_add(sound_sample);
+        sample = sample.saturating_add(sound_sample.amplify(self.effect_volume));
         return true;
       }
 
@@ -64,7 +80,7 @@ impl Iterator for AudioMixer {
     {
       let mut lock = self.source.lock().unwrap();
       if let Some(source_sample) = lock.next() {
-        sample = source_sample.saturating_add(sample);
+        sample = source_sample.amplify(self.music_volume).saturating_add(sample).amplify(self.master_volume);
       }
     }
 
@@ -97,31 +113,27 @@ impl Source for AudioMixer {
 #[derive(Clone)]
 pub struct AudioController {
   source: Arc<Mutex<Box<dyn Source<Item = f32> + Send + Sync>>>,
-  tx: Sender<Box<dyn Source<Item = f32> + Send + Sync>>,
-
-  master_volume: Cell<f32>,
-  audio_volume: Cell<f32>,
-  sound_volume: Cell<f32>,
+  tx: Sender<AudioMixerEvent>,
 }
 
 impl AudioController {
   pub fn play_sound(&mut self, sound: impl Source<Item = f32> + Send + Sync + 'static) {
-    self.tx.send(Box::new(sound)).unwrap();
+    self.tx.send(AudioMixerEvent::PlaySound(Box::new(sound))).unwrap();
   }
 
   pub fn play_audio(&mut self, source: impl Source<Item = f32> + Send + Sync + 'static) {
     *self.source.lock().unwrap() = Box::new(source);
   }
 
-  pub fn set_master_volume(&self, volume: f32) {
-    self.master_volume.set(volume);
+  pub fn set_master_volume(&mut self, volume: f32) {
+    self.tx.send(AudioMixerEvent::SetMasterVolume(volume)).unwrap();
   }
 
-  pub fn set_audio_volume(&self, volume: f32) {
-    self.audio_volume.set(volume);
+  pub fn set_music_volume(&mut self, volume: f32) {
+    self.tx.send(AudioMixerEvent::SetMusicVolume(volume)).unwrap();
   }
 
-  pub fn set_sound_volume(&self, volume: f32) {
-    self.sound_volume.set(volume);
+  pub fn set_effect_volume(&mut self, volume: f32) {
+    self.tx.send(AudioMixerEvent::SetEffectVolume(volume)).unwrap();
   }
 }

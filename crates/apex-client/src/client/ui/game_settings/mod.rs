@@ -4,7 +4,7 @@ use log::debug;
 use crate::{
   client::{
     input::client_action::ClientAction,
-    settings::settings::{Settings, SettingsProxy},
+    settings::{Settings, SettingsProxy},
   },
   core::input::{
     bind::{Bind, KeyCombination},

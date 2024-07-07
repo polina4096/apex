@@ -1,6 +1,6 @@
 use egui::Widget as _;
 
-use crate::client::settings::{
+use crate::client::{
   graphics::{FrameLimiterOptions, PresentModeOptions, RenderingBackend, WgpuBackend},
   settings::{Settings, SettingsProxy},
 };
@@ -71,19 +71,6 @@ impl GameSettingsView {
         let mut value = settings.audio.effect_volume();
         if egui::Slider::new(&mut value, 0.0 ..= 1.0).clamp_to_range(true).ui(ui).changed() {
           settings.audio.set_effect_volume(value, proxy);
-        }
-      });
-    });
-
-    body.row(text_height + 8.0, |mut row| {
-      row.col(|ui| {
-        ui.label("Enable hitsounds");
-      });
-
-      row.col(|ui| {
-        let mut value = settings.audio.hitsounds();
-        if egui::Checkbox::without_text(&mut value).ui(ui).changed() {
-          settings.audio.set_hitsounds(value, proxy);
         }
       });
     });

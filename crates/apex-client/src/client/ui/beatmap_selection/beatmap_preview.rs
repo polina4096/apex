@@ -4,7 +4,7 @@ use crate::{
   client::{
     gameplay::beatmap::Beatmap,
     graphics::taiko_renderer::taiko_renderer::{TaikoRenderer, TaikoRendererConfig},
-    settings::settings::Settings,
+    settings::Settings,
   },
   core::{
     graphics::{egui::EguiContext, graphics::Graphics},
