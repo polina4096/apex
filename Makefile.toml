@@ -12,6 +12,10 @@ args = ["run", "--bin", "apex-client"]
 cwd = "./debug/"
 env = { "RUST_LOG" = "apex_client=debug" }
 
+[tasks.build]
+command = "cargo"
+args = ["build", "--bin", "apex-client", "${@}"]
+
 [tasks.run-opt]
 dependencies = ["copy-assets"]
 command = "cargo"
