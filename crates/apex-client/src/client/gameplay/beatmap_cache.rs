@@ -56,7 +56,10 @@ impl<T: AsRef<str>> From<T> for BeatmapInfo {
     beatmap_info.object_count = r_beatmap.hit_objects.len();
     beatmap_info.hp_drain = r_beatmap.hp as f64;
     beatmap_info.overall_difficulty = r_beatmap.od as f64;
-    beatmap_info.length = Time::from_seconds(r_beatmap.hit_objects.last().unwrap().start_time / 1000.0);
+
+    // TODO: fix this properly
+    beatmap_info.length =
+      Time::from_seconds(r_beatmap.hit_objects.last().map(|x| x.start_time / 1000.0).unwrap_or(0.0));
 
     let mut category = None::<&str>;
 
