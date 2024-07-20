@@ -141,87 +141,103 @@ impl IngameOverlayView {
           );
         }
 
-        ui.with_layout(egui::Layout::top_down(egui::Align::Max), |ui| {
-          ui.label(egui::RichText::new(format!("{:.2}%", score.accuracy() * 100.0)).size(24.0));
+        use egui_extras::{Size, StripBuilder};
 
-          {
-            let mut job = egui::text::LayoutJob::default();
+        StripBuilder::new(ui) //
+          .size(Size::remainder())
+          .size(Size::exact(128.0))
+          .horizontal(|mut strip| {
+            strip.cell(|ui| {
+              ui.with_layout(egui::Layout::top_down(egui::Align::Max), |ui| {
+                ui.label(egui::RichText::new(format!("(max) {}x", score.max_combo())).size(18.0));
+                ui.label(egui::RichText::new(format!("{}x", score.curr_combo())).size(18.0));
+              });
+            });
 
-            job.append(
-              &score.result_300s().to_string(),
-              0.0,
-              egui::TextFormat {
-                font_id: egui::FontId::new(18.0, egui::FontFamily::Monospace),
-                color: ui.style().visuals.text_color(),
-                ..Default::default()
-              },
-            );
+            strip.cell(|ui| {
+              ui.with_layout(egui::Layout::top_down(egui::Align::Max), |ui| {
+                ui.label(egui::RichText::new(format!("{:.2}%", score.accuracy() * 100.0)).size(24.0));
 
-            job.append(
-              " 300",
-              0.0,
-              egui::TextFormat {
-                font_id: egui::FontId::new(18.0, egui::FontFamily::Monospace),
-                color: egui::Color32::GOLD,
-                ..Default::default()
-              },
-            );
+                {
+                  let mut job = egui::text::LayoutJob::default();
 
-            ui.label(job);
-          }
+                  job.append(
+                    &score.result_300s().to_string(),
+                    0.0,
+                    egui::TextFormat {
+                      font_id: egui::FontId::new(18.0, egui::FontFamily::Monospace),
+                      color: ui.style().visuals.text_color(),
+                      ..Default::default()
+                    },
+                  );
 
-          {
-            let mut job = egui::text::LayoutJob::default();
+                  job.append(
+                    " 300",
+                    0.0,
+                    egui::TextFormat {
+                      font_id: egui::FontId::new(18.0, egui::FontFamily::Monospace),
+                      color: egui::Color32::GOLD,
+                      ..Default::default()
+                    },
+                  );
 
-            job.append(
-              &score.result_150s().to_string(),
-              0.0,
-              egui::TextFormat {
-                font_id: egui::FontId::new(18.0, egui::FontFamily::Monospace),
-                color: ui.style().visuals.text_color(),
-                ..Default::default()
-              },
-            );
+                  ui.label(job);
+                }
 
-            job.append(
-              " 150",
-              0.0,
-              egui::TextFormat {
-                font_id: egui::FontId::new(18.0, egui::FontFamily::Monospace),
-                color: egui::Color32::LIGHT_BLUE,
-                ..Default::default()
-              },
-            );
+                {
+                  let mut job = egui::text::LayoutJob::default();
 
-            ui.label(job);
-          }
+                  job.append(
+                    &score.result_150s().to_string(),
+                    0.0,
+                    egui::TextFormat {
+                      font_id: egui::FontId::new(18.0, egui::FontFamily::Monospace),
+                      color: ui.style().visuals.text_color(),
+                      ..Default::default()
+                    },
+                  );
 
-          {
-            let mut job = egui::text::LayoutJob::default();
+                  job.append(
+                    " 150",
+                    0.0,
+                    egui::TextFormat {
+                      font_id: egui::FontId::new(18.0, egui::FontFamily::Monospace),
+                      color: egui::Color32::LIGHT_BLUE,
+                      ..Default::default()
+                    },
+                  );
 
-            job.append(
-              &score.result_misses().to_string(),
-              0.0,
-              egui::TextFormat {
-                font_id: egui::FontId::new(18.0, egui::FontFamily::Monospace),
-                color: ui.style().visuals.text_color(),
-                ..Default::default()
-              },
-            );
+                  ui.label(job);
+                }
 
-            job.append(
-              " bad",
-              0.0,
-              egui::TextFormat {
-                font_id: egui::FontId::new(18.0, egui::FontFamily::Monospace),
-                color: egui::Color32::DARK_RED,
-                ..Default::default()
-              },
-            );
+                {
+                  let mut job = egui::text::LayoutJob::default();
 
-            ui.label(job);
-          }
-        });
+                  job.append(
+                    &score.result_misses().to_string(),
+                    0.0,
+                    egui::TextFormat {
+                      font_id: egui::FontId::new(18.0, egui::FontFamily::Monospace),
+                      color: ui.style().visuals.text_color(),
+                      ..Default::default()
+                    },
+                  );
+
+                  job.append(
+                    " bad",
+                    0.0,
+                    egui::TextFormat {
+                      font_id: egui::FontId::new(18.0, egui::FontFamily::Monospace),
+                      color: egui::Color32::DARK_RED,
+                      ..Default::default()
+                    },
+                  );
+
+                  ui.label(job);
+                }
+              });
+            });
+          });
 
         ui.with_layout(egui::Layout::bottom_up(egui::Align::Max), |ui| {
           let max_width = ui.available_width();
