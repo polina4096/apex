@@ -12,7 +12,7 @@ use crate::{
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HitResult {
   Hit300,
-  Hit100,
+  Hit150,
   Miss,
 }
 
@@ -124,7 +124,7 @@ impl IngameOverlayView {
 
           #[rustfmt::skip]
           let color = match self.last_hit_result_kind {
-            HitResult::Hit100 => egui::Color32::from_rgba_unmultiplied( 60, 185, 255, value),
+            HitResult::Hit150 => egui::Color32::from_rgba_unmultiplied( 60, 185, 255, value),
             HitResult::Miss   => egui::Color32::from_rgba_unmultiplied(255,  20,  60, value),
 
             _ => { break 'a }
@@ -174,7 +174,7 @@ impl IngameOverlayView {
             let mut job = egui::text::LayoutJob::default();
 
             job.append(
-              &score.result_100s().to_string(),
+              &score.result_150s().to_string(),
               0.0,
               egui::TextFormat {
                 font_id: egui::FontId::new(18.0, egui::FontFamily::Monospace),
@@ -184,7 +184,7 @@ impl IngameOverlayView {
             );
 
             job.append(
-              " 100",
+              " 150",
               0.0,
               egui::TextFormat {
                 font_id: egui::FontId::new(18.0, egui::FontFamily::Monospace),

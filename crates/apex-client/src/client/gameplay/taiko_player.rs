@@ -43,8 +43,8 @@ impl TaikoPlayer {
   pub fn tick(&mut self, curr_time: Time, beatmap: &Beatmap, mut on_miss: impl FnMut(usize)) {
     let od = beatmap.overall_difficulty;
     // let hit_window_300 = Time::from_ms(50.0 - 3.0 * od);
-    let hit_window_100 = Time::from_ms(if od <= 5.0 { 120.0 - 8.0 * od } else { 110.0 - 6.0 * od });
-    let tolerance = hit_window_100;
+    let hit_window_150 = Time::from_ms(if od <= 5.0 { 120.0 - 8.0 * od } else { 110.0 - 6.0 * od });
+    let tolerance = hit_window_150;
 
     // Skip unhit circles until we find the next circle that should be hit.
     while let Some(circle) = beatmap.hit_objects.get(self.current_circle) {
@@ -67,8 +67,8 @@ impl TaikoPlayer {
   ) {
     let od = beatmap.overall_difficulty;
     let hit_window_300 = Time::from_ms(50.0 - 3.0 * od);
-    let hit_window_100 = Time::from_ms(if od <= 5.0 { 120.0 - 8.0 * od } else { 110.0 - 6.0 * od });
-    let tolerance = hit_window_100;
+    let hit_window_150 = Time::from_ms(if od <= 5.0 { 120.0 - 8.0 * od } else { 110.0 - 6.0 * od });
+    let tolerance = hit_window_150;
 
     // Check if the hit was within the hit window of the current circle.
     if let Some(circle) = beatmap.hit_objects.get(self.current_circle) {
@@ -91,8 +91,8 @@ impl TaikoPlayer {
             on_hit(HitResult::Hit300, self.current_circle);
           },
 
-          hit_delta.abs() < hit_window_100.to_ms() => {
-            on_hit(HitResult::Hit100, self.current_circle);
+          hit_delta.abs() < hit_window_150.to_ms() => {
+            on_hit(HitResult::Hit150, self.current_circle);
           },
 
           _ => {

@@ -4,7 +4,7 @@ pub struct ScoreProcessor {
   events: Vec<ScoreProcessorEvent>,
 
   result_300: usize,
-  result_100: usize,
+  result_150: usize,
   result_miss: usize,
   accuracy: f32,
 }
@@ -14,7 +14,7 @@ impl Default for ScoreProcessor {
     return Self {
       events: Vec::new(),
       result_300: 0,
-      result_100: 0,
+      result_150: 0,
       result_miss: 0,
       accuracy: 1.0,
     };
@@ -26,7 +26,7 @@ impl ScoreProcessor {
     #[rustfmt::skip]
     match event.result {
       HitResult::Hit300 => self.result_300  += 1,
-      HitResult::Hit100 => self.result_100  += 1,
+      HitResult::Hit150 => self.result_150  += 1,
       HitResult::Miss   => self.result_miss += 1,
     };
 
@@ -42,8 +42,8 @@ impl ScoreProcessor {
     return self.result_300;
   }
 
-  pub fn result_100s(&self) -> usize {
-    return self.result_100;
+  pub fn result_150s(&self) -> usize {
+    return self.result_150;
   }
 
   pub fn result_misses(&self) -> usize {
@@ -52,10 +52,10 @@ impl ScoreProcessor {
 
   fn calc_accuracy(&self) -> f32 {
     let n_300 = self.result_300 as f32;
-    let n_100 = self.result_100 as f32;
+    let n_150 = self.result_150 as f32;
     let n_miss = self.result_miss as f32;
 
-    return (n_300 + n_100 * 0.5) / (n_300 + n_100 + n_miss);
+    return (n_300 + n_150 * 0.5) / (n_300 + n_150 + n_miss);
   }
 }
 
