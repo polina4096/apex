@@ -166,7 +166,7 @@ impl GameplayScreen {
 
   pub fn play(&mut self, beatmap_path: &Path, graphics: &Graphics, audio: &mut AudioEngine, settings: &Settings) {
     let data = std::fs::read_to_string(beatmap_path).unwrap();
-    let beatmap = Beatmap::from(data);
+    let beatmap = Beatmap::parse(data);
     let end_time = beatmap.hit_objects.last().unwrap().time;
 
     self.taiko_renderer.load_beatmap(&graphics.device, beatmap.clone());

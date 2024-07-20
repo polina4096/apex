@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use ahash::AHashMap;
 use intbits::Bits;
+use kiam::when;
 use log::warn;
 
 use crate::core::time::time::Time;
@@ -46,8 +47,8 @@ pub struct Beatmap {
 
 pub enum BeatmapParseError {}
 
-impl<T: AsRef<str>> From<T> for Beatmap {
-  fn from(data: T) -> Self {
+impl Beatmap {
+  pub fn parse<T: AsRef<str>>(data: T) -> Self {
     let data = data.as_ref();
     let mut objects = Vec::<TaikoHitObject>::new();
 
@@ -110,16 +111,48 @@ impl<T: AsRef<str>> From<T> for Beatmap {
             warn!("Failed to parse hit object time at line {}", i);
             continue;
           };
-          let Some(object_type) = parts.nth(1).and_then(|x| x.parse::<u8>().ok()) else {
+
+          let Some(object_type) = parts.next().and_then(|x| x.parse::<u8>().ok()) else {
             warn!("Failed to parse hit object type at line {}", i);
             continue;
           };
 
-          objects.push(TaikoHitObject {
-            time: Time::from_ms(time_in_ms),
-            color: if object_type.bit(1) || object_type.bit(3) { TaikoColor::Kat } else { TaikoColor::Don },
-            big: object_type.bit(2),
-          });
+          let Some(hitsounds) = parts.next().and_then(|x| x.parse::<u8>().ok()) else {
+            warn!("Failed to parse hit object hitsouns at line {}", i);
+            continue;
+          };
+
+          when! {
+            object_type.bit(0) => {
+              when! {
+                // Whistles or claps become kat
+                hitsounds.bit(1) || hitsounds.bit(3) => {
+                  objects.push(TaikoHitObject {
+                    time: Time::from_ms(time_in_ms),
+                    color: TaikoColor::Kat,
+                    big: hitsounds.bit(2),
+                  });
+                },
+
+                // Everything else becomes don
+                _ => {
+                  objects.push(TaikoHitObject {
+                    time: Time::from_ms(time_in_ms),
+                    color: TaikoColor::Don,
+                    big: hitsounds.bit(2),
+                  });
+                },
+              }
+            },
+
+            object_type.bit(1) => {
+              // sliders
+            },
+
+            object_type.bit(3) => {
+              // spinners
+            },
+          }
         }
 
         Some(category) => {

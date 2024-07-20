@@ -161,7 +161,7 @@ impl RecordingPanelView {
         ui.horizontal(|ui| {
           if ui.button("⏺ Record").clicked() {
             let data = std::fs::read_to_string(path).unwrap();
-            let beatmap = Beatmap::from(data);
+            let beatmap = Beatmap::parse(data);
             let info = cache.get(path).unwrap();
             let preview_time = info.preview_time;
             let audio_path = info.audio_path.clone();

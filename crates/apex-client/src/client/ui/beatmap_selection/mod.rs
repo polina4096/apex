@@ -90,7 +90,7 @@ impl BeatmapSelectionView {
       self.beatmap_bg = BackgroundComponent::new(bg);
 
       let data = std::fs::read_to_string(path).unwrap();
-      let beatmap = Beatmap::from(data);
+      let beatmap = Beatmap::parse(data);
 
       self.beatmap_preview.change_beatmap(&core.graphics, &mut core.egui_ctx, &beatmap);
     }
