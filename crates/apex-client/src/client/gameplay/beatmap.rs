@@ -140,7 +140,9 @@ impl<T: AsRef<str>> From<T> for Beatmap {
 
     if let Some(p) = timing_points.first() {
       if p.time != Time::zero() {
-        timing_points.insert(0, TimingPoint::default());
+        // In osu!, if there are objects before the first timing point
+        // they act as if affected by the first timing point after them
+        timing_points.insert(0, TimingPoint { time: Time::zero(), bpm: p.bpm });
       }
     } else {
       timing_points.insert(0, TimingPoint::default());
@@ -148,6 +150,7 @@ impl<T: AsRef<str>> From<T> for Beatmap {
 
     if let Some(p) = velocity_points.first() {
       if p.time != Time::zero() {
+        // The same above does not apply to velocity points :)
         velocity_points.insert(0, VelocityPoint::default());
       }
     } else {
