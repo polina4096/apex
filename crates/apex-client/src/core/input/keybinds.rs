@@ -5,18 +5,18 @@ use log::warn;
 use winit::keyboard::{ModifiersState, PhysicalKey};
 
 /// Container providing ergonomic API to store and access keybinds
-pub struct KeybindManager<T> {
+pub struct Keybinds<T> {
   /// Maps key combinations to the respective binds values
   binds: AHashMap<KeyCombination, Bind<T>>,
 }
 
-impl<T> Default for KeybindManager<T> {
+impl<T> Default for Keybinds<T> {
   fn default() -> Self {
     Self { binds: Default::default() }
   }
 }
 
-impl<T: Copy + Eq + Hash> KeybindManager<T> {
+impl<T: Copy + Eq + Hash> Keybinds<T> {
   pub fn add(&mut self, key: KeyCombination, bind: Bind<T>) {
     self.binds.insert(key, bind);
   }

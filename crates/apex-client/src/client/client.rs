@@ -4,7 +4,6 @@ use std::{
   path::{Path, PathBuf},
 };
 
-use log::error;
 use rodio::{
   source::{Empty, UniformSourceIterator},
   Decoder, DeviceTrait as _, Source,
@@ -22,19 +21,16 @@ use crate::core::{
   event::EventBus,
   graphics::drawable::Drawable,
   input::{
-    bind::{Bind, KeyCombination},
+    keybinds::{Bind, KeyCombination},
     Input,
   },
   time::{clock::AbstractClock, time::Time},
 };
 
 use super::{
+  action::ClientAction,
   event::ClientEvent,
-  gameplay::{
-    beatmap_cache::{BeatmapCache, BeatmapInfo},
-    taiko_player::TaikoPlayerInput,
-  },
-  input::client_action::ClientAction,
+  gameplay::beatmap_cache::{BeatmapCache, BeatmapInfo},
   screen::{
     gameplay_screen::gameplay_screen::GameplayScreen, recording_screen::recording_screen::RecordingScreen,
     result_screen::result_screen::ResultScreen, selection_screen::selection_screen::SelectionScreen,
@@ -51,26 +47,26 @@ pub enum GameState {
 }
 
 pub struct Client {
-  input: Input<ClientAction>,
-  audio_engine: AudioEngine,
-  audio_controller: AudioController,
-  event_bus: EventBus<ClientEvent>,
+  pub(crate) input: Input<ClientAction>,
+  pub(crate) audio_engine: AudioEngine,
+  pub(crate) audio_controller: AudioController,
+  pub(crate) event_bus: EventBus<ClientEvent>,
 
-  game_state: GameState,
+  pub(crate) game_state: GameState,
 
-  beatmap_cache: BeatmapCache,
+  pub(crate) beatmap_cache: BeatmapCache,
 
   /// Configuration and state of the whole game
-  pub settings: Settings,
+  pub(crate) settings: Settings,
 
-  prev_audio_path: PathBuf,
-  prev_beatmap_path: PathBuf,
+  pub(crate) prev_audio_path: PathBuf,
+  pub(crate) prev_beatmap_path: PathBuf,
 
-  selection_screen: SelectionScreen,
-  gameplay_screen: GameplayScreen,
-  result_screen: ResultScreen,
-  settings_screen: SettingsScreen,
-  recording_screen: RecordingScreen,
+  pub(crate) selection_screen: SelectionScreen,
+  pub(crate) gameplay_screen: GameplayScreen,
+  pub(crate) result_screen: ResultScreen,
+  pub(crate) settings_screen: SettingsScreen,
+  pub(crate) recording_screen: RecordingScreen,
 }
 
 impl App for Client {
@@ -209,152 +205,37 @@ impl Client {
     }
 
     if event.state.is_pressed() {
-      if self.game_state == GameState::Selection {
-        match event.physical_key {
-          PhysicalKey::Code(KeyCode::Backspace) => {
-            if self.selection_screen.beatmap_selector().has_query() {
-              self.selection_screen.beatmap_selector_mut().pop_query();
-              return;
-            }
-          }
-
-          PhysicalKey::Code(KeyCode::Escape) | PhysicalKey::Code(KeyCode::Enter) => {}
-          PhysicalKey::Code(KeyCode::Comma) | PhysicalKey::Code(KeyCode::KeyR)
-            if self.input.state.modifiers.contains(ModifiersState::SUPER) => {}
-
-          _ => {
-            if let Some(c) = event.logical_key.to_text().and_then(|x| x.chars().next()) {
-              self.selection_screen.beatmap_selector_mut().push_query(c);
-            }
-          }
-        }
-      }
+      let mut captured = false;
 
       let comb = KeyCombination::new(event.physical_key, self.input.state.modifiers);
       if let Some(action) = self.input.keybinds.get(&comb).map(|x| x.id) {
-        self.action(core, action, event.repeat);
+        captured = action.execute(self, core, event.repeat);
+      }
+
+      if !captured {
+        // Handle typing in selection screen
+        if self.game_state == GameState::Selection {
+          match event.physical_key {
+            PhysicalKey::Code(KeyCode::Backspace) => {
+              if self.selection_screen.beatmap_selector().has_query() {
+                self.selection_screen.beatmap_selector_mut().pop_query();
+                return;
+              }
+            }
+
+            _ => {
+              if let Some(c) = event.logical_key.to_text().and_then(|x| x.chars().next()) {
+                self.selection_screen.beatmap_selector_mut().push_query(c);
+              }
+            }
+          }
+        }
       }
     }
   }
 
   pub fn modifiers(&mut self, modifiers: Modifiers) {
     self.input.state.modifiers = modifiers.state();
-  }
-
-  pub fn action(&mut self, core: &mut Core<Self>, action: ClientAction, repeat: bool) {
-    match action {
-      ClientAction::Back => {
-        match self.game_state {
-          GameState::Selection => {
-            if self.settings_screen.is_open() {
-              self.settings_screen.toggle();
-            } else if self.selection_screen.beatmap_selector().has_query() {
-              self.selection_screen.beatmap_selector_mut().clear_query();
-            } else {
-              core.exit();
-            }
-          }
-
-          GameState::Playing => {
-            if self.settings_screen.is_open() {
-              self.settings_screen.toggle();
-            } else {
-              let lead_in = Time::from_ms(self.settings.gameplay.lead_in() as f64);
-              let delay_adjusted_position = self.audio_engine.position() - lead_in;
-              let delay_adjusted_position = delay_adjusted_position.max(Time::zero());
-
-              let selected = self.selection_screen.beatmap_selector().selected();
-              if let Some((path, beatmap)) = self.beatmap_cache.get_index(selected) {
-                Self::play_beatmap_audio_unchecked(&mut self.audio_engine, &mut self.audio_controller, path, beatmap);
-                self.audio_engine.set_position(delay_adjusted_position);
-              };
-
-              self.game_state = GameState::Selection;
-            }
-          }
-
-          GameState::Results => {
-            self.game_state = GameState::Selection;
-          }
-        }
-      }
-
-      ClientAction::Settings => {
-        self.settings_screen.toggle();
-      }
-
-      ClientAction::Recording => {
-        self.recording_screen.toggle();
-      }
-
-      ClientAction::Next => {
-        match self.game_state {
-          GameState::Selection => {
-            self.selection_screen.beatmap_selector_mut().select_next();
-            self.play_beatmap_audio();
-          }
-
-          _ => {}
-        }
-      }
-
-      ClientAction::Prev => {
-        match self.game_state {
-          GameState::Selection => {
-            self.selection_screen.beatmap_selector_mut().select_prev();
-            self.play_beatmap_audio();
-          }
-
-          _ => {}
-        }
-      }
-
-      ClientAction::Retry => {
-        self.event_bus.send(ClientEvent::RetryBeatmap);
-      }
-
-      ClientAction::Select => {
-        match self.game_state {
-          GameState::Selection => {
-            self
-              .selection_screen
-              .beatmap_selector()
-              .pick(&self.event_bus, &self.beatmap_cache)
-              .unwrap_or_else(|err| {
-                error!("Failed to select beatmap: {:?}", err);
-              });
-          }
-
-          _ => {}
-        }
-      }
-
-      ClientAction::KatOne if !repeat => {
-        if self.game_state == GameState::Playing {
-          self.gameplay_screen.hit(TaikoPlayerInput::KatOne, &core.graphics, &mut self.audio_engine);
-        }
-      }
-
-      ClientAction::KatTwo if !repeat => {
-        if self.game_state == GameState::Playing {
-          self.gameplay_screen.hit(TaikoPlayerInput::KatTwo, &core.graphics, &mut self.audio_engine);
-        }
-      }
-
-      ClientAction::DonOne if !repeat => {
-        if self.game_state == GameState::Playing {
-          self.gameplay_screen.hit(TaikoPlayerInput::DonOne, &core.graphics, &mut self.audio_engine);
-        }
-      }
-
-      ClientAction::DonTwo if !repeat => {
-        if self.game_state == GameState::Playing {
-          self.gameplay_screen.hit(TaikoPlayerInput::DonTwo, &core.graphics, &mut self.audio_engine);
-        }
-      }
-
-      _ => {}
-    }
   }
 
   pub fn dispatch(&mut self, core: &mut Core<Self>, event: ClientEvent) {

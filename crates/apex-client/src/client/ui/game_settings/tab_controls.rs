@@ -3,8 +3,8 @@ use std::fmt::Write as _;
 use egui::Widget as _;
 
 use crate::{
-  client::input::client_action::ClientAction,
-  core::input::{bind::KeyCombination, Input},
+  client::action::ClientAction,
+  core::input::{keybinds::KeyCombination, Input},
 };
 
 use super::GameSettingsView;

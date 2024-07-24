@@ -3,11 +3,11 @@ use log::debug;
 
 use crate::{
   client::{
-    input::client_action::ClientAction,
+    action::ClientAction,
     settings::{Settings, SettingsProxy},
   },
   core::input::{
-    bind::{Bind, KeyCombination},
+    keybinds::{Bind, KeyCombination},
     Input,
   },
 };

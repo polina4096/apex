@@ -1,6 +1,6 @@
 use crate::{
   client::{
-    input::client_action::ClientAction,
+    action::ClientAction,
     settings::{Settings, SettingsProxy},
     ui::game_settings::GameSettingsView,
   },
