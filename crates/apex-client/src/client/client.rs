@@ -395,10 +395,10 @@ impl Client {
     let beatmapset_id = path.file_name().unwrap().to_str().unwrap().split_whitespace().next().unwrap();
     zip::read::ZipArchive::new(std::io::Cursor::new(file))
       .unwrap()
-      .extract(&format!("./beatmaps/{}", beatmapset_id))
+      .extract(format!("./beatmaps/{}", beatmapset_id))
       .unwrap();
 
-    self.beatmap_cache.load_difficulties(&format!("./beatmaps/{}", beatmapset_id));
+    self.beatmap_cache.load_difficulties(format!("./beatmaps/{}", beatmapset_id));
   }
 
   fn default_input() -> Input<ClientAction> {
