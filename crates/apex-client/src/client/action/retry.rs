@@ -1,10 +1,9 @@
 use crate::{
   client::{
-    action::action::Action,
     client::{Client, GameState},
     event::ClientEvent,
   },
-  core::core::Core,
+  core::{core::Core, input::action::Action},
 };
 
 pub struct Retry;

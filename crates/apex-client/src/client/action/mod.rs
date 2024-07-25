@@ -1,20 +1,24 @@
-use actions::{
-  back::Back,
-  next::Next,
-  prev::Prev,
-  recording::Recording,
-  retry::Retry,
-  select::Select,
-  settings::Settings,
-  taiko::{DonOne, DonTwo, KatOne, KatTwo},
-};
+use back::Back;
+use next::Next;
+use prev::Prev;
+use recording::Recording;
+use retry::Retry;
+use select::Select;
+use settings::Settings;
+use taiko::{DonOne, DonTwo, KatOne, KatTwo};
 
 use crate::actions;
 
 use super::client::Client;
 
-pub mod action;
-pub mod actions;
+pub mod back;
+pub mod next;
+pub mod prev;
+pub mod recording;
+pub mod retry;
+pub mod select;
+pub mod settings;
+pub mod taiko;
 
 actions! {
   ClientAction<Client> {

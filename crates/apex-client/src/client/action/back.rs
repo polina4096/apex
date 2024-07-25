@@ -1,10 +1,8 @@
 use crate::{
-  client::{
-    action::action::Action,
-    client::{Client, GameState},
-  },
+  client::client::{Client, GameState},
   core::{
     core::Core,
+    input::action::Action,
     time::{clock::AbstractClock, time::Time},
   },
 };

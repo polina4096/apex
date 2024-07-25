@@ -14,8 +14,6 @@ macro_rules! settings {
     paste::paste! {
       #[derive(Debug, Clone, Serialize, Deserialize)]
       pub struct Settings {
-        path: std::path::PathBuf,
-
         $(pub $category: [<$category:camel Settings>],)+
       }
 
@@ -54,35 +52,32 @@ macro_rules! settings {
       impl Default for Settings {
         fn default() -> Self {
           return Self {
-            path: std::path::PathBuf::from("./config.toml"),
             $($category: [<$category:camel Settings>]::default(),)+
           };
         }
       }
 
-      impl Settings {
-        pub fn default_with_path(path: impl AsRef<std::path::Path>) -> Self {
-          return Self {
-            path: path.as_ref().to_owned(),
-            $($category: [<$category:camel Settings>]::default(),)+
-          };
-        }
+      impl $crate::core::data::persistant::Persistant for Settings {
+        fn load(path: impl AsRef<std::path::Path>) -> Self {
+          {
+            let path = path.as_ref().canonicalize().unwrap_or(path.as_ref().to_owned());
+            log::info!("Loading settings from `{}`", path.display());
+          }
 
-        pub fn from_file(path: impl AsRef<std::path::Path>) -> Self {
           return std::fs::read_to_string(&path)
             .map(|data| {
               return toml::from_str(&data).unwrap_or_else(|e| {
                 log::error!("Failed to parse config file, falling back to default config: {}", e);
 
-                return Settings::default_with_path(&path);
+                return Settings::default();
               });
             })
             .unwrap_or_else(|e| {
-              let default = Settings::default_with_path(&path);
+              let default = Settings::default();
 
               match e.kind() {
                 std::io::ErrorKind::NotFound => {
-                  log::info!("Failed to open config file, file not found. Creating a default config file...");
+                  log::warn!("Failed to open config file, file not found. Creating a default config file...");
                   let default_data = toml::to_string_pretty(&default).expect("Failed to serialize default config");
                   if let Err(e) = std::fs::write(&path, default_data) {
                     log::error!("Failed to write default config file: {}", e);
@@ -90,7 +85,7 @@ macro_rules! settings {
                 }
 
                 std::io::ErrorKind::PermissionDenied => {
-                  log::info!("Failed to open config file, insufficient permissions. Falling back to default configuration.");
+                  log::warn!("Failed to open config file, insufficient permissions. Falling back to default configuration.");
                 }
 
                 _ => {
@@ -101,10 +96,8 @@ macro_rules! settings {
               return default;
             });
         }
-      }
 
-      impl Drop for Settings {
-        fn drop(&mut self) {
+        fn save(&self, path: impl AsRef<std::path::Path>) {
           let data = match toml::to_string_pretty(&self) {
             Ok(data) => data,
             Err(e) => {
@@ -113,12 +106,12 @@ macro_rules! settings {
             }
           };
 
-          if let Err(e) = std::fs::write(&self.path, data) {
+          if let Err(e) = std::fs::write(&path, data) {
             log::error!("Failed to write settings to file: {}", e);
             return;
           }
 
-          let path = self.path.canonicalize().unwrap_or(self.path.clone());
+          let path = path.as_ref().canonicalize().unwrap_or(path.as_ref().to_owned());
           log::info!("Settings successfully written to `{}`", path.display());
         }
       }

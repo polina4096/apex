@@ -1,10 +1,9 @@
 use crate::{
   client::{
-    action::action::Action,
     client::{Client, GameState},
     gameplay::taiko_player::TaikoPlayerInput,
   },
-  core::core::Core,
+  core::{core::Core, input::action::Action},
 };
 
 macro_rules! impl_taiko_button {

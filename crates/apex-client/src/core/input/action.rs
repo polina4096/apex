@@ -17,7 +17,7 @@ macro_rules! actions {
     impl $name {
       /// Returns true if the execution was successful and the input should be consumed.
       pub fn execute(self, client: &mut $app, core: &mut $crate::core::core::Core<$app>, repeat: bool) -> bool {
-        use $crate::client::action::action::Action;
+        use $crate::core::input::action::Action;
 
         match self {
           $(

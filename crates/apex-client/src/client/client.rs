@@ -18,6 +18,7 @@ use crate::core::{
   app::App,
   audio::{self, audio_engine::AudioEngine, audio_mixer::AudioController},
   core::Core,
+  data::persistant::Persistant as _,
   event::EventBus,
   graphics::drawable::Drawable,
   input::{
@@ -67,6 +68,12 @@ pub struct Client {
   pub(crate) result_screen: ResultScreen,
   pub(crate) settings_screen: SettingsScreen,
   pub(crate) recording_screen: RecordingScreen,
+}
+
+impl Drop for Client {
+  fn drop(&mut self) {
+    self.settings.save("./config.toml");
+  }
 }
 
 impl App for Client {

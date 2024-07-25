@@ -1,5 +1,6 @@
 use self::{input_state::InputState, keybinds::Keybinds};
 
+pub mod action;
 pub mod input_state;
 pub mod keybinds;
 

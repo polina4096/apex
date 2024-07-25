@@ -1,5 +1,4 @@
 pub mod proxy;
-pub mod settings;
 
 use serde::{Deserialize, Serialize};
 

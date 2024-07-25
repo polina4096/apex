@@ -1,9 +1,6 @@
 use crate::{
-  client::{
-    action::action::Action,
-    client::{Client, GameState},
-  },
-  core::core::Core,
+  client::client::{Client, GameState},
+  core::{core::Core, input::action::Action},
 };
 
 pub struct Select;

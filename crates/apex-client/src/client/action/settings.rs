@@ -1,6 +1,6 @@
 use crate::{
-  client::{action::action::Action, client::Client},
-  core::core::Core,
+  client::client::Client,
+  core::{core::Core, input::action::Action},
 };
 
 pub struct Settings;

@@ -4,6 +4,7 @@
 
 use core::{
   core::Core,
+  data::persistant::Persistant as _,
   event::{CoreEvent, EventBus},
   graphics::{drawable::Drawable as _, egui::EguiContext, graphics::Graphics},
 };
@@ -46,7 +47,7 @@ pub fn setup() -> (EventLoop<CoreEvent<ClientEvent>>, Window) {
 }
 
 pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> color_eyre::Result<()> {
-  let settings = Settings::from_file("./config.toml");
+  let settings = Settings::load("./config.toml");
 
   let window = Arc::new(window);
   let mut core = Core::new(&event_loop, &window, &settings);
