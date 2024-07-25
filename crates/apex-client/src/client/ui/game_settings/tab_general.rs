@@ -167,6 +167,26 @@ impl GameSettingsView {
           });
       });
     });
+
+    body.row(text_height + 8.0, |mut row| {
+      row.col(|ui| {
+        ui.label("macOS stutter fix");
+      });
+
+      row.col(|ui| {
+        let mut value = settings.graphics.macos_stutter_fix();
+        if egui::Checkbox::without_text(&mut value).ui(ui).changed() {
+          let prev = settings.graphics.frame_limiter();
+          settings.graphics.set_frame_limiter(FrameLimiterOptions::Unlimited, proxy);
+          settings.graphics.set_macos_stutter_fix(value, proxy);
+
+          // This is a horrible workaround so to successfully restart Display Link,
+          // reset the frame limiter triggering the Display Link reinitialization
+          settings.graphics.set_frame_limiter(prev, proxy);
+          settings.graphics.set_macos_stutter_fix(value, proxy);
+        }
+      });
+    });
   }
 
   fn gameplay_category(

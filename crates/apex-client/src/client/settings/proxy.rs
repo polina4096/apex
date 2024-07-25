@@ -34,6 +34,10 @@ impl<'a, 'window> SettingsProxy for ClientSettingsProxy<'a, 'window> {
     self.proxy.send_event(CoreEvent::UpdateFrameLimiterConfiguration).unwrap();
   }
 
+  fn update_graphics_macos_stutter_fix(&mut self, _value: bool) {
+    self.proxy.send_event(CoreEvent::UpdateFrameLimiterConfiguration).unwrap();
+  }
+
   // TODO: probably remove this event too
   fn update_graphics_rendering_backend(&mut self, _value: RenderingBackend) {
     self.proxy.send_event(CoreEvent::RecreateGraphicsContext).unwrap();

@@ -37,6 +37,8 @@ settings! {
     /// Rendering backend to use
     rendering_backend: RenderingBackend = RenderingBackend::Wgpu(WgpuBackend::Auto)
 
+    /// Fixes massive macOS game stutter when alt-tabbing occluded window
+    macos_stutter_fix: bool = true
   }
 
   gameplay {

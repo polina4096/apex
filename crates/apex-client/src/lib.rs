@@ -98,7 +98,7 @@ pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>, window: Window) -> col
               }
 
               FrameLimiterOptions::DisplayLink => {
-                frame_limiter.enable_external_sync();
+                frame_limiter.enable_external_sync(client.settings.graphics.macos_stutter_fix());
               }
 
               FrameLimiterOptions::Unlimited => {

@@ -1,10 +1,13 @@
-use std::sync::Arc;
+use std::sync::{
+  atomic::{AtomicBool, Ordering},
+  Arc,
+};
 
 use instant::Instant;
 use winit::window::Window;
 
 pub struct FrameLimiter {
-  app_focus: bool,
+  app_focus: Arc<AtomicBool>,
   last_frame: Instant,
 
   external_sync: bool,
@@ -19,7 +22,7 @@ pub struct FrameLimiter {
 impl FrameLimiter {
   pub fn new(window: Arc<Window>, external: bool, unlimited: bool, target_fps: u16) -> Self {
     let mut limiter = Self {
-      app_focus: false,
+      app_focus: Arc::new(AtomicBool::new(false)),
       last_frame: Instant::now(),
 
       external_sync: external,
@@ -32,7 +35,7 @@ impl FrameLimiter {
     };
 
     if external {
-      limiter.enable_external_sync();
+      limiter.enable_external_sync(true);
     }
 
     return limiter;
@@ -50,7 +53,7 @@ impl FrameLimiter {
     }
 
     let mut fps = self.target_fps;
-    if !self.app_focus || !window.is_visible().unwrap_or(false) {
+    if !self.app_focus.load(Ordering::Relaxed) || !window.is_visible().unwrap_or(false) {
       fps = 30; // fps when not focused
     }
 
@@ -63,7 +66,7 @@ impl FrameLimiter {
 
   /// Call this when the app gains or loses focus.
   pub fn update_focus(&mut self, focus: bool) {
-    self.app_focus = focus;
+    self.app_focus.store(focus, Ordering::Relaxed);
   }
 
   /// Use this to set the desired target FPS.
@@ -76,16 +79,25 @@ impl FrameLimiter {
     self.unlimited = unlimited;
   }
 
-  pub fn enable_external_sync(&mut self) {
+  pub fn enable_external_sync(&mut self, macos_fix: bool) {
     self.external_sync = true;
 
     #[cfg(target_os = "macos")]
     {
       // Setup CVDisplayLink
       let window = self.window.clone();
+      let app_focus = self.app_focus.clone();
+
+      // This will be called on every vsync.
       let mut display_link = display_link::DisplayLink::new(move |_ts| {
-        // This will be called on every vsync.
-        window.request_redraw();
+        if macos_fix {
+          // Make sure to request redraws only when the window is visible to prevent massive stutters :D
+          if app_focus.load(Ordering::Relaxed) && window.is_visible().unwrap_or(false) {
+            window.request_redraw();
+          }
+        } else {
+          window.request_redraw();
+        }
       })
       .unwrap();
 
