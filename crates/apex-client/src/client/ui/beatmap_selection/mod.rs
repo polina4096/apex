@@ -98,35 +98,38 @@ impl BeatmapSelectionView {
     egui::CentralPanel::default().frame(egui::Frame::none()).show(core.egui_ctx(), |ui| {
       self.beatmap_bg.prepare(ui);
 
-      StripBuilder::new(ui).size(Size::remainder()).size(Size::relative(0.4)).horizontal(|mut builder| {
-        builder.cell(|ui| {
-          // let max_width = ui.available_width();
-          // ui.set_width(max_width.min(640.0));
+      StripBuilder::new(ui) //
+        .size(Size::remainder())
+        .size(Size::relative(0.4))
+        .horizontal(|mut builder| {
+          builder.cell(|ui| {
+            // let max_width = ui.available_width();
+            // ui.set_width(max_width.min(640.0));
 
-          ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
-            self.beatmap_stats.prepare(ui, info);
+            ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
+              self.beatmap_stats.prepare(ui, info);
 
-            self.beatmap_preview.prepare(ui, clock.position());
+              self.beatmap_preview.prepare(ui, clock.position());
 
-            // egui::Frame::window(ui.style())
-            //   .outer_margin(egui::Margin::same(12.0))
-            //   .inner_margin(egui::Margin::symmetric(24.0, 16.0))
-            //   .show(ui, |ui| {
-            //     ui.set_max_height(0.0);
+              // egui::Frame::window(ui.style())
+              //   .outer_margin(egui::Margin::same(12.0))
+              //   .inner_margin(egui::Margin::symmetric(24.0, 16.0))
+              //   .show(ui, |ui| {
+              //     ui.set_max_height(0.0);
 
-            //     ui.label("text");
-            //   });
+              //     ui.label("text");
+              //   });
+            });
+
+            ui.with_layout(egui::Layout::left_to_right(egui::Align::Max), |ui| {
+              self.action_bar.prepare(ui, clock);
+            });
           });
 
-          ui.with_layout(egui::Layout::left_to_right(egui::Align::Max), |ui| {
-            self.action_bar.prepare(ui, clock);
+          builder.cell(|ui| {
+            self.beatmap_list.prepare(ui, beatmap_cache, selector);
           });
         });
-
-        builder.cell(|ui| {
-          self.beatmap_list.prepare(ui, beatmap_cache, selector);
-        });
-      });
     });
   }
 }

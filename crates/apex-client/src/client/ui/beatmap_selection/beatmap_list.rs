@@ -52,6 +52,7 @@ impl BeatmapList {
 
     egui::Frame::none()
       .fill(egui::Color32::from_black_alpha(128))
+      .outer_margin(egui::Margin { left: -9.0, ..Default::default() })
       .inner_margin(egui::Margin {
         left: 12.0,
         right: 12.0,
@@ -62,14 +63,16 @@ impl BeatmapList {
         ui.set_width(ui.available_width());
 
         egui::Window::new("search_bar_window")
-          .frame(egui::Frame::window(ui.style()).inner_margin(egui::Margin::symmetric(8.0, 6.0)).outer_margin(
-            egui::Margin {
-              top: 8.0,
-              bottom: 8.0,
-              right: 11.75,
-              ..Default::default()
-            },
-          ))
+          .frame(
+            egui::Frame::window(ui.style()) //
+              .inner_margin(egui::Margin::symmetric(8.0, 6.0))
+              .outer_margin(egui::Margin {
+                top: 8.0,
+                bottom: 8.0,
+                right: 11.75,
+                ..Default::default()
+              }),
+          )
           .fixed_size(egui::vec2(ui.available_width() - 16.0, 0.0))
           .anchor(egui::Align2::RIGHT_TOP, egui::Vec2::ZERO)
           .collapsible(false)
