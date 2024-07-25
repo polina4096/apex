@@ -13,9 +13,8 @@ use std::sync::Arc;
 use client::{
   client::Client,
   event::ClientEvent,
-  graphics::{FrameLimiterOptions, RenderingBackend},
+  graphics::{frame_limiter::FrameLimiter, FrameLimiterOptions, RenderingBackend},
   settings::Settings,
-  util::frame_limiter::FrameLimiter,
 };
 use log::warn;
 use pollster::FutureExt as _;
