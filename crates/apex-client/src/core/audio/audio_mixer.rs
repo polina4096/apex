@@ -2,10 +2,11 @@ use std::{
   collections::VecDeque,
   sync::{
     mpsc::{Receiver, Sender},
-    Arc, Mutex,
+    Arc,
   },
 };
 
+use parking_lot::Mutex;
 use rodio::{Sample as _, Source};
 
 pub enum AudioMixerEvent {
@@ -78,7 +79,7 @@ impl Iterator for AudioMixer {
     });
 
     {
-      let mut lock = self.source.lock().unwrap();
+      let mut lock = self.source.lock();
       if let Some(source_sample) = lock.next() {
         sample = source_sample.amplify(self.music_volume).saturating_add(sample).amplify(self.master_volume);
       }
@@ -94,11 +95,11 @@ impl Source for AudioMixer {
   }
 
   fn channels(&self) -> u16 {
-    return self.source.lock().unwrap().channels();
+    return self.source.lock().channels();
   }
 
   fn sample_rate(&self) -> u32 {
-    return self.source.lock().unwrap().sample_rate();
+    return self.source.lock().sample_rate();
   }
 
   fn total_duration(&self) -> Option<instant::Duration> {
@@ -106,7 +107,7 @@ impl Source for AudioMixer {
   }
 
   fn try_seek(&mut self, pos: instant::Duration) -> Result<(), rodio::source::SeekError> {
-    return self.source.lock().unwrap().try_seek(pos);
+    return self.source.lock().try_seek(pos);
   }
 }
 
@@ -122,7 +123,7 @@ impl AudioController {
   }
 
   pub fn play_audio(&mut self, source: impl Source<Item = f32> + Send + Sync + 'static) {
-    *self.source.lock().unwrap() = Box::new(source);
+    *self.source.lock() = Box::new(source);
   }
 
   pub fn set_master_volume(&mut self, volume: f32) {

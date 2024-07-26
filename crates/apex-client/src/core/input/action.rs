@@ -7,7 +7,10 @@ pub trait Action<A: App> {
 #[macro_export]
 macro_rules! actions {
   ($name:ident<$app:ty> {
-    $($action:ident),+ $(,)?
+    $(
+      #[doc = $action_desc:expr]
+      $action:ident $(as $action_name:literal)? = $action_comb:expr
+    ),+ $(,)?
   }) => {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub enum $name {
@@ -26,6 +29,29 @@ macro_rules! actions {
             }
           )+
         }
+      }
+
+      pub fn insert_keybinds(keybinds: &mut $crate::core::input::keybinds::Keybinds<$name>) {
+        $(
+          keybinds.add(
+            $action_comb,
+            $crate::core::input::keybinds::Bind {
+              id: $name::$action,
+              name: String::from({
+                #[allow(unused)]
+                let name = stringify!($action);
+                $(let name = $action_name;)?
+                name
+              }),
+              description: String::from({
+                #[allow(unused)]
+                let desc = "";
+                let desc = $action_desc;
+                desc
+              }),
+            },
+          );
+        )+
       }
     }
   };

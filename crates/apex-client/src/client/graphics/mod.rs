@@ -36,6 +36,7 @@ impl From<PresentModeOptions> for wgpu::PresentMode {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
 pub enum RenderingBackend {
   Wgpu(WgpuBackend),
   None,

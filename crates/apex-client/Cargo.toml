@@ -10,25 +10,35 @@ crate-type = ["cdylib", "rlib"]
 workspace = true
 
 [dependencies]
+# Logging
 log = "0.4.22"
 pretty_env_logger = "0.5.0"
 color-eyre = "0.6.3"
 
+# Utility
 paste = "1.0.15"
 cfg-if = "1.0.0"
 tap = "1.0.1"
 kiam = "0.1.1"
 
+# Graphics
 wgpu = "0.20.0"
 winit = "0.29.4"
 egui-wgpu = "0.28.0"
 egui-winit = { version = "0.28.0", default-features = false }
 egui_extras = { version = "0.28.0", features = ["file"] }
 egui = "0.28.0"
+
+# Audio
 rodio = "0.18.0"
 
+# Threading
+parking_lot = "0.12.3"
+
+# Async
 pollster = { version = "0.3.0", features = ["macro"] }
 
+# Data Manipulation
 intbits = "0.2.0"
 bytemuck = "1.15.0"
 toml = "0.8.14"
@@ -36,17 +46,22 @@ serde = { version = "1.0.203", features = ["derive"] }
 image = { version = "0.25.1", features = ["jpeg", "png"] }
 zip = "2.1.2"
 
+# Maths, Time
 glam = { version = "0.27.0", features = ["bytemuck", "serde"] }
 chrono = { version = "0.4.38", features = ["serde"] }
 instant = "0.1.12"
 
+# Data Structures
 ahash = "0.8.11"
 nohash-hasher = "0.2.0"
 dashmap = "6.0.1"
 indexmap = "2.2.6"
+triomphe = "0.1.13"
 
+# Algorithms
 nucleo = "0.5.0"
 
+# Game-specific
 rosu-pp = "1.0.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]

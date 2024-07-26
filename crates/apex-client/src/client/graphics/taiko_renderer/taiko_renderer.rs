@@ -501,5 +501,7 @@ impl Drawable for TaikoRenderer {
     self.finisher_texture.recreate(device, queue, format);
     self.circle_overlay_texture.recreate(device, queue, format);
     self.finisher_overlay_texture.recreate(device, queue, format);
+
+    self.update_camera(queue);
   }
 }

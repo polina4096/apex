@@ -9,7 +9,7 @@ use crate::{
   core::{
     core::Core,
     event::EventBus,
-    graphics::{egui::EguiContext, graphics::Graphics},
+    graphics::{drawable::Drawable, egui::EguiContext, graphics::Graphics},
     time::clock::AbstractClock,
   },
 };
@@ -44,5 +44,11 @@ impl SelectionScreen {
 
   pub fn beatmap_selector_mut(&mut self) -> &mut BeatmapSelector {
     return &mut self.beatmap_selector;
+  }
+}
+
+impl Drawable for SelectionScreen {
+  fn recreate(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, format: wgpu::TextureFormat) {
+    self.beatmap_selection.recreate(device, queue, format);
   }
 }

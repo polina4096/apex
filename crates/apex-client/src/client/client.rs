@@ -11,7 +11,7 @@ use rodio::{
 use tap::Tap;
 use winit::{
   event::{KeyEvent, Modifiers},
-  keyboard::{KeyCode, ModifiersState, PhysicalKey},
+  keyboard::{KeyCode, PhysicalKey},
 };
 
 use crate::core::{
@@ -21,10 +21,7 @@ use crate::core::{
   data::persistant::Persistant as _,
   event::EventBus,
   graphics::drawable::Drawable,
-  input::{
-    keybinds::{Bind, KeyCombination},
-    Input,
-  },
+  input::{keybinds::KeyCombination, Input},
   time::{clock::AbstractClock, time::Time},
 };
 
@@ -147,12 +144,13 @@ impl App for Client {
 impl Drawable for Client {
   fn recreate(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, format: wgpu::TextureFormat) {
     self.gameplay_screen.recreate(device, queue, format);
+    self.selection_screen.recreate(device, queue, format);
   }
 }
 
 impl Client {
   pub fn new(core: &mut Core<Self>, settings: Settings, event_bus: EventBus<ClientEvent>) -> Self {
-    let input = Client::default_input();
+    let input = Input::default().tap_mut(|input| ClientAction::insert_keybinds(&mut input.keybinds));
 
     let (m, a, s) = (settings.audio.master_volume(), settings.audio.music_volume(), settings.audio.effect_volume());
     let (audio_mixer, audio_controller) = audio::mixer(Empty::new(), m, a, s);
@@ -287,112 +285,6 @@ impl Client {
       .unwrap();
 
     self.beatmap_cache.load_difficulties(format!("./beatmaps/{}", beatmapset_id));
-  }
-
-  fn default_input() -> Input<ClientAction> {
-    let mut input = Input::default();
-
-    input.keybinds.add(
-      KeyCombination::new(PhysicalKey::Code(KeyCode::Comma), ModifiersState::SUPER),
-      Bind {
-        id: ClientAction::Settings,
-        name: String::from("Settings"),
-        description: String::from("Open settings menu"),
-      },
-    );
-
-    input.keybinds.add(
-      KeyCombination::new(PhysicalKey::Code(KeyCode::KeyR), ModifiersState::SUPER),
-      Bind {
-        id: ClientAction::Recording,
-        name: String::from("Recording"),
-        description: String::from("Open recording menu"),
-      },
-    );
-
-    input.keybinds.add(
-      KeyCombination::new(PhysicalKey::Code(KeyCode::Escape), ModifiersState::empty()),
-      Bind {
-        id: ClientAction::Back,
-        name: String::from("Back"),
-        description: String::from("Return to the previous state"),
-      },
-    );
-
-    input.keybinds.add(
-      KeyCombination::new(PhysicalKey::Code(KeyCode::Enter), ModifiersState::empty()),
-      Bind {
-        id: ClientAction::Select,
-        name: String::from("Select"),
-        description: String::from("Pick selected element"),
-      },
-    );
-
-    input.keybinds.add(
-      KeyCombination::new(PhysicalKey::Code(KeyCode::Backquote), ModifiersState::empty()),
-      Bind {
-        id: ClientAction::Retry,
-        name: String::from("Retry"),
-        description: String::from("Replay a beatmap from the beginning"),
-      },
-    );
-
-    input.keybinds.add(
-      KeyCombination::new(PhysicalKey::Code(KeyCode::ArrowDown), ModifiersState::empty()),
-      Bind {
-        id: ClientAction::Next,
-        name: String::from("Next"),
-        description: String::from("Select next element"),
-      },
-    );
-
-    input.keybinds.add(
-      KeyCombination::new(PhysicalKey::Code(KeyCode::ArrowUp), ModifiersState::empty()),
-      Bind {
-        id: ClientAction::Prev,
-        name: String::from("Previous"),
-        description: String::from("Select previous element"),
-      },
-    );
-
-    // Gameplay control
-    input.keybinds.add(
-      KeyCombination::new(PhysicalKey::Code(KeyCode::KeyS), ModifiersState::empty()),
-      Bind {
-        id: ClientAction::KatOne,
-        name: String::from("Kat 1"),
-        description: String::from("Kat (blue)"),
-      },
-    );
-
-    input.keybinds.add(
-      KeyCombination::new(PhysicalKey::Code(KeyCode::KeyL), ModifiersState::empty()),
-      Bind {
-        id: ClientAction::KatTwo,
-        name: String::from("Kat 2"),
-        description: String::from("Kat (blue)"),
-      },
-    );
-
-    input.keybinds.add(
-      KeyCombination::new(PhysicalKey::Code(KeyCode::KeyD), ModifiersState::empty()),
-      Bind {
-        id: ClientAction::DonOne,
-        name: String::from("Don 1"),
-        description: String::from("Don (red)"),
-      },
-    );
-
-    input.keybinds.add(
-      KeyCombination::new(PhysicalKey::Code(KeyCode::KeyK), ModifiersState::empty()),
-      Bind {
-        id: ClientAction::DonTwo,
-        name: String::from("Don 2"),
-        description: String::from("Don (red)"),
-      },
-    );
-
-    return input;
   }
 
   pub fn play_beatmap_audio(&mut self) {
