@@ -8,7 +8,7 @@ use settings::Settings;
 use taiko::{DonOne, DonTwo, KatOne, KatTwo};
 use winit::keyboard::{KeyCode, ModifiersState, PhysicalKey};
 
-use crate::{actions, core::input::keybinds::KeyCombination};
+use crate::{actions, core::input::keybinds::KeyCombination, key_comb};
 
 use super::client::Client;
 
@@ -24,29 +24,29 @@ pub mod taiko;
 actions! {
   ClientAction<Client> {
     /// Return to the previous state
-    Back = KeyCombination::new(PhysicalKey::Code(KeyCode::Escape), ModifiersState::empty()),
+    Back = key_comb!(Escape),
     /// Open settings menu
-    Settings = KeyCombination::new(PhysicalKey::Code(KeyCode::Comma), ModifiersState::SUPER),
+    Settings = key_comb!(Super + Comma),
     /// Open recording menu
-    Recording = KeyCombination::new(PhysicalKey::Code(KeyCode::KeyR), ModifiersState::SUPER),
+    Recording = key_comb!(Super + KeyR),
 
     /// Select next element
-    Next = KeyCombination::new(PhysicalKey::Code(KeyCode::ArrowDown), ModifiersState::empty()),
+    Next = key_comb!(ArrowDown),
     /// Select previous element
-    Prev = KeyCombination::new(PhysicalKey::Code(KeyCode::ArrowUp), ModifiersState::empty()),
+    Prev = key_comb!(ArrowUp),
 
     /// Pick selected element
-    Select = KeyCombination::new(PhysicalKey::Code(KeyCode::Enter), ModifiersState::empty()),
+    Select = key_comb!(Enter),
     /// Replay a beatmap from the beginning
-    Retry = KeyCombination::new(PhysicalKey::Code(KeyCode::Backquote), ModifiersState::empty()),
+    Retry = key_comb!(Backquote),
 
     /// Kat (blue)
-    KatOne as "Kat 1" = KeyCombination::new(PhysicalKey::Code(KeyCode::KeyS), ModifiersState::empty()),
+    KatOne as "Kat 1" = key_comb!(KeyS),
     /// Don (red)
-    DonOne as "Don 1" = KeyCombination::new(PhysicalKey::Code(KeyCode::KeyL), ModifiersState::empty()),
+    DonOne as "Don 1" = key_comb!(KeyL),
     /// Kat (blue)
-    KatTwo as "Kat 2" = KeyCombination::new(PhysicalKey::Code(KeyCode::KeyD), ModifiersState::empty()),
+    KatTwo as "Kat 2" = key_comb!(KeyD),
     /// Don (red)
-    DonTwo as "Don 2" = KeyCombination::new(PhysicalKey::Code(KeyCode::KeyK), ModifiersState::empty()),
+    DonTwo as "Don 2" = key_comb!(KeyK),
   }
 }

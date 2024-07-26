@@ -95,6 +95,29 @@ impl Display for KeyCombination {
   }
 }
 
+#[macro_export]
+macro_rules! key_comb {
+  (Ctrl + $key:ident) => {
+    KeyCombination::new(PhysicalKey::Code(KeyCode::$key), ModifiersState::CONTROL)
+  };
+
+  (Shift + $key:ident) => {
+    KeyCombination::new(PhysicalKey::Code(KeyCode::$key), ModifiersState::SHIFT)
+  };
+
+  (Alt + $key:ident) => {
+    KeyCombination::new(PhysicalKey::Code(KeyCode::$key), ModifiersState::ALT)
+  };
+
+  (Super + $key:ident) => {
+    KeyCombination::new(PhysicalKey::Code(KeyCode::$key), ModifiersState::SUPER)
+  };
+
+  ($key:ident) => {
+    KeyCombination::new(PhysicalKey::Code(KeyCode::$key), ModifiersState::empty())
+  };
+}
+
 /// Action which is usually dispatched by the input system, or rendered in the UI
 #[rustfmt::skip]
 #[derive(Clone)]
