@@ -10,7 +10,7 @@ use serde::{
 use tap::Tap;
 use winit::keyboard::{ModifiersState, PhysicalKey};
 
-use crate::core::data::persistant::Persistant;
+use crate::core::data::persistent::Persistent;
 
 use super::action::AppActions;
 
@@ -125,7 +125,7 @@ impl<'de, T: AppActions + Copy + Eq + Hash + Deserialize<'de>> Deserialize<'de> 
   }
 }
 
-impl<T: AppActions + Copy + Eq + Hash + Serialize + DeserializeOwned> Persistant for Keybinds<T> {
+impl<T: AppActions + Copy + Eq + Hash + Serialize + DeserializeOwned> Persistent for Keybinds<T> {
   fn load(path: impl AsRef<std::path::Path>) -> Self {
     let absolute = path.as_ref().canonicalize().unwrap_or(path.as_ref().to_owned());
     log::info!("Loading settings from `{}`", absolute.display());

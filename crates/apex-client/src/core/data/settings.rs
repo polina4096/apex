@@ -57,7 +57,7 @@ macro_rules! settings {
         }
       }
 
-      impl $crate::core::data::persistant::Persistant for Settings {
+      impl $crate::core::data::persistent::Persistent for Settings {
         fn load(path: impl AsRef<std::path::Path>) -> Self {
           {
             let path = path.as_ref().canonicalize().unwrap_or(path.as_ref().to_owned());

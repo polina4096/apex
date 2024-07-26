@@ -4,7 +4,7 @@
 
 use core::{
   core::Core,
-  data::persistant::Persistant as _,
+  data::persistent::Persistent as _,
   event::{CoreEvent, EventBus},
   graphics::{drawable::Drawable as _, egui::EguiContext, graphics::Graphics},
 };

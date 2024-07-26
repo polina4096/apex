@@ -18,7 +18,7 @@ use crate::core::{
   app::App,
   audio::{self, audio_engine::AudioEngine, audio_mixer::AudioController},
   core::Core,
-  data::persistant::Persistant as _,
+  data::persistent::Persistent as _,
   event::EventBus,
   graphics::drawable::Drawable,
   input::{

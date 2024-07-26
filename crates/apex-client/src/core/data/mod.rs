@@ -1,2 +1,2 @@
-pub mod persistant;
+pub mod persistent;
 pub mod settings;
