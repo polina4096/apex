@@ -6,16 +6,26 @@ pub mod keybinds;
 
 #[rustfmt::skip]
 pub struct Input<T> {
-  pub state    : InputState,
   pub keybinds : Keybinds<T>,
+  pub state    : InputState,
   pub grabbing : bool,
+}
+
+impl<T> Input<T> {
+  pub fn with_keybinds(keybinds: Keybinds<T>) -> Self {
+    return Self {
+      keybinds,
+      state: InputState::default(),
+      grabbing: false,
+    };
+  }
 }
 
 impl<T> Default for Input<T> {
   fn default() -> Self {
     #[rustfmt::skip] return Self {
-      state    : InputState::default(),
       keybinds : Keybinds::default(),
+      state    : InputState::default(),
       grabbing : false,
     };
   }

@@ -23,7 +23,7 @@ kiam = "0.1.1"
 
 # Graphics
 wgpu = "0.20.0"
-winit = "0.29.4"
+winit = { version = "0.29.4", features = ["serde"] }
 egui-wgpu = "0.28.0"
 egui-winit = { version = "0.28.0", default-features = false }
 egui_extras = { version = "0.28.0", features = ["file"] }

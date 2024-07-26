@@ -21,7 +21,11 @@ use crate::core::{
   data::persistant::Persistant as _,
   event::EventBus,
   graphics::drawable::Drawable,
-  input::{keybinds::KeyCombination, Input},
+  input::{
+    action::AppActions as _,
+    keybinds::{KeyCombination, Keybinds},
+    Input,
+  },
   time::{clock::AbstractClock, time::Time},
 };
 
@@ -70,6 +74,7 @@ pub struct Client {
 impl Drop for Client {
   fn drop(&mut self) {
     self.settings.save("./config.toml");
+    self.input.keybinds.save("./keybinds.toml");
   }
 }
 
@@ -150,7 +155,7 @@ impl Drawable for Client {
 
 impl Client {
   pub fn new(core: &mut Core<Self>, settings: Settings, event_bus: EventBus<ClientEvent>) -> Self {
-    let input = Input::default().tap_mut(|input| ClientAction::insert_keybinds(&mut input.keybinds));
+    let input = Input::with_keybinds(Keybinds::load("./keybinds.toml"));
 
     let (m, a, s) = (settings.audio.master_volume(), settings.audio.music_volume(), settings.audio.effect_volume());
     let (audio_mixer, audio_controller) = audio::mixer(Empty::new(), m, a, s);

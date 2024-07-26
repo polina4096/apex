@@ -1,8 +1,18 @@
-use std::{fmt::Display, hash::Hash};
+use std::{fmt::Display, hash::Hash, marker::PhantomData};
 
 use ahash::AHashMap;
 use log::warn;
+use serde::{
+  de::{DeserializeOwned, MapAccess, Visitor},
+  ser::SerializeMap,
+  Deserialize, Deserializer, Serialize,
+};
+use tap::Tap;
 use winit::keyboard::{ModifiersState, PhysicalKey};
+
+use crate::core::data::persistant::Persistant;
+
+use super::action::AppActions;
 
 /// Container providing ergonomic API to store and access keybinds
 pub struct Keybinds<T> {
@@ -66,8 +76,113 @@ impl<T: Copy + Eq + Hash> Keybinds<T> {
   }
 }
 
+impl<'de, T: AppActions + Serialize + Deserialize<'de>> Serialize for Keybinds<T> {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: serde::Serializer,
+  {
+    let mut state = serializer.serialize_map(Some(self.binds.len()))?;
+
+    for (key, bind) in self.binds.iter() {
+      state.serialize_entry(&bind.id, key)?;
+    }
+
+    return state.end();
+  }
+}
+
+struct KeybindsVisitor<T>(PhantomData<T>);
+
+impl<'de, T: AppActions + Copy + Eq + Hash + Deserialize<'de>> Visitor<'de> for KeybindsVisitor<T> {
+  type Value = Keybinds<T>;
+
+  fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+    formatter.write_str("an integer between -2^31 and 2^31")
+  }
+
+  fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
+  where
+    M: MapAccess<'de>,
+  {
+    let mut keybinds = Keybinds::default();
+
+    while let Some((id, key)) = access.next_entry()? {
+      let (name, description) = T::action_info(&id);
+
+      keybinds.add(key, Bind { id, name, description });
+    }
+
+    return Ok(keybinds);
+  }
+}
+
+impl<'de, T: AppActions + Copy + Eq + Hash + Deserialize<'de>> Deserialize<'de> for Keybinds<T> {
+  fn deserialize<D>(deserializer: D) -> Result<Keybinds<T>, D::Error>
+  where
+    D: Deserializer<'de>,
+  {
+    deserializer.deserialize_map(KeybindsVisitor::<T>(PhantomData))
+  }
+}
+
+impl<T: AppActions + Copy + Eq + Hash + Serialize + DeserializeOwned> Persistant for Keybinds<T> {
+  fn load(path: impl AsRef<std::path::Path>) -> Self {
+    let absolute = path.as_ref().canonicalize().unwrap_or(path.as_ref().to_owned());
+    log::info!("Loading settings from `{}`", absolute.display());
+
+    return std::fs::read_to_string(&path)
+      .map(|data| {
+        return toml::from_str(&data).unwrap_or_else(|e| {
+          log::error!("Failed to parse config file, falling back to default config: {}", e);
+          return Self::default().tap_mut(T::insert_keybinds);
+        });
+      })
+      .unwrap_or_else(|e| {
+        let default = Self::default().tap_mut(T::insert_keybinds);
+
+        match e.kind() {
+          std::io::ErrorKind::NotFound => {
+            log::warn!("Failed to open config file, file not found. Creating a default config file...");
+            let default_data = toml::to_string_pretty(&default).expect("Failed to serialize default config");
+            if let Err(e) = std::fs::write(&path, default_data) {
+              log::error!("Failed to write default config file: {}", e);
+            }
+          }
+
+          std::io::ErrorKind::PermissionDenied => {
+            log::warn!("Failed to open config file, insufficient permissions. Falling back to default configuration.");
+          }
+
+          _ => {
+            log::error!("Failed to access config file: {}. Falling back to default configuration.", e);
+          }
+        }
+
+        return default;
+      });
+  }
+
+  fn save(&self, path: impl AsRef<std::path::Path>) {
+    let data = match toml::to_string_pretty(&self) {
+      Ok(data) => data,
+      Err(e) => {
+        log::error!("Failed to serialize settings: {}", e);
+        return;
+      }
+    };
+
+    if let Err(e) = std::fs::write(&path, data) {
+      log::error!("Failed to write settings to file: {}", e);
+      return;
+    }
+
+    let path = path.as_ref().canonicalize().unwrap_or(path.as_ref().to_owned());
+    log::info!("Settings successfully written to `{}`", path.display());
+  }
+}
+
 /// Represents a key combination: <A>, <Ctrl + A>, <Ctrl + Shift + D>
-#[derive(Debug, Hash, Ord, PartialOrd, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Hash, Ord, PartialOrd, PartialEq, Eq, Clone, Copy)]
 pub struct KeyCombination {
   pub key: PhysicalKey,
   pub modifiers: ModifiersState,
