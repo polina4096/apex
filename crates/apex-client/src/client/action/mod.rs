@@ -43,9 +43,9 @@ actions! {
     /// Kat (blue)
     KatOne as "Kat 1" = key_comb!(KeyS),
     /// Don (red)
-    DonOne as "Don 1" = key_comb!(KeyL),
+    DonOne as "Don 1" = key_comb!(KeyD),
     /// Kat (blue)
-    KatTwo as "Kat 2" = key_comb!(KeyD),
+    KatTwo as "Kat 2" = key_comb!(KeyL),
     /// Don (red)
     DonTwo as "Don 2" = key_comb!(KeyK),
   }
