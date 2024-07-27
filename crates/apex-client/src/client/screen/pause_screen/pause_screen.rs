@@ -153,8 +153,6 @@ impl PauseScreen {
       SelectedButton::Retry => SelectedButton::Continue,
       SelectedButton::Quit => SelectedButton::Retry,
     };
-
-    dbg!(self.selected_button);
   }
 
   pub fn select_down(&mut self) {
