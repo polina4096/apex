@@ -1,7 +1,8 @@
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
 use bytemuck::Zeroable;
 use glam::{vec2, vec3, vec4, Quat, Vec4};
+use tap::Tap;
 use wgpu::util::DeviceExt;
 use winit::dpi::PhysicalSize;
 
@@ -39,6 +40,8 @@ pub struct TaikoRendererConfig {
   pub hit_position_y: f32,
   pub don: Color,
   pub kat: Color,
+
+  pub hit_height: f64,
 }
 
 #[rustfmt::skip]
@@ -46,9 +49,12 @@ pub struct TaikoRenderer {
   pub scene: Scene<ProjectionOrthographic, Camera2D>,
 
   pub pipeline: wgpu::RenderPipeline,
+  pub pipeline_layout: wgpu::PipelineLayout,
+  pub shader: wgpu::ShaderModule,
 
   pub time_uniform: Uniform<Vec4>,
 
+  pub texture_layout           : wgpu::BindGroupLayout,
   pub circle_texture           : Texture,
   pub finisher_texture         : Texture,
   pub circle_overlay_texture   : Texture,
@@ -103,7 +109,7 @@ impl TaikoRenderer {
     let time_uniform = Uniform::new(device);
 
     let shader = device.create_shader_module(wgpu::include_wgsl!("taiko_shader.wgsl"));
-    let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
       label: Some("Render Pipeline Layout"),
       bind_group_layouts: &[
         scene.layout(),
@@ -118,13 +124,18 @@ impl TaikoRenderer {
 
     let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
       label: Some("Render Pipeline"),
-      layout: Some(&render_pipeline_layout),
+      layout: Some(&pipeline_layout),
 
       vertex: wgpu::VertexState {
         module: &shader,
         entry_point: "vs_main",
         buffers: &[QuadVertex::describe(), HitObjectModel::describe()],
-        compilation_options: wgpu::PipelineCompilationOptions::default(),
+        compilation_options: wgpu::PipelineCompilationOptions {
+          constants: &HashMap::new().tap_mut(|x| {
+            x.insert(String::from("1000"), config.hit_height);
+          }),
+          ..Default::default()
+        },
       },
       fragment: Some(wgpu::FragmentState {
         module: &shader,
@@ -191,9 +202,12 @@ impl TaikoRenderer {
       scene,
 
       pipeline,
+      pipeline_layout,
+      shader,
 
       time_uniform,
 
+      texture_layout,
       circle_texture,
       finisher_texture,
       circle_overlay_texture,
@@ -334,9 +348,63 @@ impl TaikoRenderer {
     self.config.kat = value;
     self.prepare_instances(device);
   }
+
+  pub fn set_hit_height(&mut self, device: &wgpu::Device, format: wgpu::TextureFormat, value: f64) {
+    dbg!(value);
+    self.config.hit_height = value;
+    self.recreate_pipeline(device, format);
+  }
 }
 
 impl TaikoRenderer {
+  fn recreate_pipeline(&mut self, device: &wgpu::Device, format: wgpu::TextureFormat) {
+    self.pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+      label: Some("Render Pipeline"),
+      layout: Some(&self.pipeline_layout),
+
+      vertex: wgpu::VertexState {
+        module: &self.shader,
+        entry_point: "vs_main",
+        buffers: &[QuadVertex::describe(), HitObjectModel::describe()],
+        compilation_options: wgpu::PipelineCompilationOptions {
+          constants: &HashMap::new().tap_mut(|x| {
+            x.insert(String::from("1000"), self.config.hit_height);
+          }),
+          ..Default::default()
+        },
+      },
+      fragment: Some(wgpu::FragmentState {
+        module: &self.shader,
+        entry_point: "fs_main",
+        targets: &[Some(wgpu::ColorTargetState {
+          format: format,
+          blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+          write_mask: wgpu::ColorWrites::ALL,
+        })],
+        compilation_options: wgpu::PipelineCompilationOptions::default(),
+      }),
+
+      primitive: wgpu::PrimitiveState {
+        topology: wgpu::PrimitiveTopology::TriangleList,
+        front_face: wgpu::FrontFace::Ccw,
+        cull_mode: Some(wgpu::Face::Back),
+        polygon_mode: wgpu::PolygonMode::Fill, // Others require Features::NON_FILL_POLYGON_MODE
+        unclipped_depth: false,                // Requires Features::DEPTH_CLIP_CONTROL
+        conservative: false,                   // Requires Features::CONSERVATIVE_RASTERIZATION
+        strip_index_format: None,
+      },
+
+      multisample: wgpu::MultisampleState {
+        count: 1,
+        mask: !0,
+        alpha_to_coverage_enabled: false,
+      },
+
+      depth_stencil: None,
+      multiview: None,
+    });
+  }
+
   fn prepare_instances(&mut self, device: &wgpu::Device) {
     const OSU_TAIKO_VELOCITY_MULTIPLIER: f64 = 1.4;
     const OSU_TAIKO_CIRCLE_SIZE: f32 = 128.0;
@@ -403,7 +471,7 @@ impl Drawable for TaikoRenderer {
       };
     };
 
-    let texture_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+    self.texture_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
       entries: &[
         wgpu::BindGroupLayoutEntry {
           binding: 0,
@@ -427,32 +495,37 @@ impl Drawable for TaikoRenderer {
 
     self.time_uniform = Uniform::new(device);
 
-    let shader = device.create_shader_module(wgpu::include_wgsl!("taiko_shader.wgsl"));
-    let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+    self.shader = device.create_shader_module(wgpu::include_wgsl!("taiko_shader.wgsl"));
+    self.pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
       label: Some("Render Pipeline Layout"),
       bind_group_layouts: &[
         self.scene.layout(),
         self.time_uniform.layout(),
-        &texture_layout,
-        &texture_layout,
-        &texture_layout,
-        &texture_layout,
+        &self.texture_layout,
+        &self.texture_layout,
+        &self.texture_layout,
+        &self.texture_layout,
       ],
       push_constant_ranges: &[],
     });
 
     self.pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
       label: Some("Render Pipeline"),
-      layout: Some(&render_pipeline_layout),
+      layout: Some(&self.pipeline_layout),
 
       vertex: wgpu::VertexState {
-        module: &shader,
+        module: &self.shader,
         entry_point: "vs_main",
         buffers: &[QuadVertex::describe(), HitObjectModel::describe()],
-        compilation_options: wgpu::PipelineCompilationOptions::default(),
+        compilation_options: wgpu::PipelineCompilationOptions {
+          constants: &HashMap::new().tap_mut(|x| {
+            x.insert(String::from("1000"), self.config.hit_height);
+          }),
+          ..Default::default()
+        },
       },
       fragment: Some(wgpu::FragmentState {
-        module: &shader,
+        module: &self.shader,
         entry_point: "fs_main",
         targets: &[Some(wgpu::ColorTargetState {
           format: format,

@@ -78,6 +78,7 @@ impl GameplayScreen {
         hit_position_y: settings.taiko.hit_position_y(),
         don: settings.taiko.don_color(),
         kat: settings.taiko.kat_color(),
+        hit_height: if settings.taiko.hit_animation() { 12.5 } else { 9999.0 },
       },
     );
 
@@ -261,6 +262,10 @@ impl GameplayScreen {
 
   pub fn set_taiko_kat_color(&mut self, device: &wgpu::Device, color: Color) {
     self.taiko_renderer.set_kat_color(device, color);
+  }
+
+  pub fn set_taiko_hit_animation(&mut self, device: &wgpu::Device, format: wgpu::TextureFormat, value: bool) {
+    self.taiko_renderer.set_hit_height(device, format, if value { 12.5 } else { 9999.0 });
   }
 
   pub fn audio(&mut self) -> &mut BeatmapAudio {

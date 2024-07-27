@@ -69,5 +69,8 @@ settings! {
 
     /// Color of the kat hit object
     kat_color: Color = Color::new(0.00, 0.47, 0.67, 1.00)
+
+    /// Hit animation
+    hit_animation: bool = true
   }
 }

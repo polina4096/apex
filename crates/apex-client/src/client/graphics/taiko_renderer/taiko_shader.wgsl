@@ -9,6 +9,8 @@ var<uniform> scene: SceneUniform;
 @group(1) @binding(0)
 var<uniform> time: vec4<f32>;
 
+@id(1000) override height: f32 = 12.5;
+
 struct VertexInput {
     @location(0) position  : vec3<f32>,
     @location(1) uv_coords : vec2<f32>,
@@ -70,7 +72,6 @@ fn vs_main(
 
 
         if (p * instance.velocity).x - (h * instance.velocity).x < 0.0 {
-            let height = 12.5;
             let intensity = 0.36;
 
             offset = pow((p.x - h.x) * intensity + height, 2.0) * -1.0 + (height * height);

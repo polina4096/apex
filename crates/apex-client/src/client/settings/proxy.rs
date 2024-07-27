@@ -67,6 +67,10 @@ impl<'a, 'window> SettingsProxy for ClientSettingsProxy<'a, 'window> {
     self.gameplay_screen.set_taiko_kat_color(self.device, value);
   }
 
+  fn update_taiko_hit_animation(&mut self, value: bool) {
+    self.gameplay_screen.set_taiko_hit_animation(self.device, self.config.format, value)
+  }
+
   fn update_audio_master_volume(&mut self, value: f32) {
     self.audio_controller.set_master_volume(value);
   }

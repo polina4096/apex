@@ -344,5 +344,18 @@ impl GameSettingsView {
         }
       });
     });
+
+    body.row(text_height + 8.0, |mut row| {
+      row.col(|ui| {
+        ui.label("Hit animation");
+      });
+
+      row.col(|ui| {
+        let mut value = settings.taiko.hit_animation();
+        if egui::Checkbox::without_text(&mut value).ui(ui).changed() {
+          settings.taiko.set_hit_animation(value, proxy);
+        }
+      });
+    });
   }
 }

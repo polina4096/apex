@@ -210,6 +210,7 @@ impl RecordingPanelView {
                   hit_position_y: 256.0,
                   don: Color::new(0.92, 0.00, 0.27, 1.00),
                   kat: Color::new(0.00, 0.47, 0.67, 1.00),
+                  hit_height: 12.5,
                 },
               );
 

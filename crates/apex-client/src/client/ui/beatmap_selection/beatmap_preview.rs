@@ -84,6 +84,7 @@ impl BeatmapPreview {
         hit_position_y: hit_pos / graphics.scale as f32,
         don: settings.taiko.don_color(),
         kat: settings.taiko.kat_color(),
+        hit_height: 12.5,
       },
     );
 
@@ -168,6 +169,7 @@ impl Drawable for BeatmapPreview {
         hit_position_y: self.hit_pos / self.scale_factor as f32,
         don: self.don_color,
         kat: self.kat_color,
+        hit_height: 12.5,
       },
     );
 
