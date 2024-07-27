@@ -15,6 +15,10 @@ impl Action<Client> for Prev {
         return true;
       }
 
+      GameState::Paused => {
+        client.pause_screen.select_up();
+      }
+
       _ => {}
     }
 

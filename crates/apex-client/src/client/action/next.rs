@@ -15,6 +15,10 @@ impl Action<Client> for Next {
         return true;
       }
 
+      GameState::Paused => {
+        client.pause_screen.select_down();
+      }
+
       _ => {}
     }
 

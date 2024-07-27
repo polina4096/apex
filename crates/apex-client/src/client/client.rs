@@ -34,9 +34,9 @@ use super::{
   event::ClientEvent,
   gameplay::beatmap_cache::{BeatmapCache, BeatmapInfo},
   screen::{
-    gameplay_screen::gameplay_screen::GameplayScreen, recording_screen::recording_screen::RecordingScreen,
-    result_screen::result_screen::ResultScreen, selection_screen::selection_screen::SelectionScreen,
-    settings_screen::settings_screen::SettingsScreen,
+    gameplay_screen::gameplay_screen::GameplayScreen, pause_screen::pause_screen::PauseScreen,
+    recording_screen::recording_screen::RecordingScreen, result_screen::result_screen::ResultScreen,
+    selection_screen::selection_screen::SelectionScreen, settings_screen::settings_screen::SettingsScreen,
   },
   settings::{proxy::ClientSettingsProxy, Settings},
 };
@@ -45,6 +45,7 @@ use super::{
 pub enum GameState {
   Selection,
   Playing,
+  Paused,
   Results,
 }
 
@@ -69,6 +70,7 @@ pub struct Client {
   pub(crate) result_screen: ResultScreen,
   pub(crate) settings_screen: SettingsScreen,
   pub(crate) recording_screen: RecordingScreen,
+  pub(crate) pause_screen: PauseScreen,
 }
 
 impl Drop for Client {
@@ -113,6 +115,20 @@ impl App for Client {
         self.gameplay_screen.prepare(core, &mut self.audio_engine, &self.settings);
       }
 
+      GameState::Paused => {
+        self.gameplay_screen.prepare(core, &mut self.audio_engine, &self.settings);
+        self.pause_screen.prepare(
+          core,
+          &mut self.audio_engine,
+          &mut self.audio_controller,
+          &mut self.gameplay_screen,
+          &mut self.selection_screen,
+          &self.beatmap_cache,
+          &mut self.game_state,
+          &self.settings,
+        )
+      }
+
       GameState::Results => {
         self.result_screen.prepare(core, &mut self.settings, &self.beatmap_cache);
       }
@@ -127,6 +143,10 @@ impl App for Client {
       GameState::Selection => {}
 
       GameState::Playing => {
+        self.gameplay_screen.render(rpass);
+      }
+
+      GameState::Paused => {
         self.gameplay_screen.render(rpass);
       }
 
@@ -173,6 +193,7 @@ impl Client {
     #[rustfmt::skip] let gameplay_screen = GameplayScreen::new(event_bus.clone(), &core.graphics, &audio_engine, audio_controller.clone(), &settings);
     #[rustfmt::skip] let settings_screen = SettingsScreen::new();
     #[rustfmt::skip] let recording_screen = RecordingScreen::new();
+    #[rustfmt::skip] let pause_screen = PauseScreen::new(event_bus.clone());
 
     let prev_audio_path = PathBuf::new();
     let prev_beatmap_path = PathBuf::new();
@@ -192,6 +213,7 @@ impl Client {
       result_screen,
       settings_screen,
       recording_screen,
+      pause_screen,
     };
   }
 

@@ -1,16 +1,16 @@
 use crate::{
   client::client::{Client, GameState},
-  core::{
-    core::Core,
-    input::action::Action,
-    time::{clock::AbstractClock, time::Time},
-  },
+  core::{core::Core, input::action::Action},
 };
 
 pub struct Back;
 
 impl Action<Client> for Back {
-  fn execute(client: &mut Client, core: &mut Core<Client>, _repeat: bool) -> bool {
+  fn execute(client: &mut Client, core: &mut Core<Client>, repeat: bool) -> bool {
+    if repeat {
+      return false;
+    }
+
     match client.game_state {
       GameState::Selection => {
         if client.settings_screen.is_open() {
@@ -26,18 +26,15 @@ impl Action<Client> for Back {
         if client.settings_screen.is_open() {
           client.settings_screen.toggle();
         } else {
-          let lead_in = Time::from_ms(client.settings.gameplay.lead_in() as f64);
-          let delay_adjusted_position = client.audio_engine.position() - lead_in;
-          let delay_adjusted_position = delay_adjusted_position.max(Time::zero());
-
-          let selected = client.selection_screen.beatmap_selector().selected();
-          if let Some((path, beatmap)) = client.beatmap_cache.get_index(selected) {
-            Client::play_beatmap_audio_unchecked(&mut client.audio_engine, &mut client.audio_controller, path, beatmap);
-            client.audio_engine.set_position(delay_adjusted_position);
-          };
-
-          client.game_state = GameState::Selection;
+          client.gameplay_screen.set_paused(true, &mut client.audio_engine);
+          client.game_state = GameState::Paused;
         }
+      }
+
+      GameState::Paused => {
+        client.pause_screen.deselect();
+        client.gameplay_screen.set_paused(false, &mut client.audio_engine);
+        client.game_state = GameState::Playing;
       }
 
       GameState::Results => {

@@ -20,6 +20,10 @@ impl Action<Client> for Select {
         return true;
       }
 
+      GameState::Paused => {
+        client.pause_screen.click();
+      }
+
       _ => {}
     }
 

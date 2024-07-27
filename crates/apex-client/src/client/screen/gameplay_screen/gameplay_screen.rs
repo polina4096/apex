@@ -195,6 +195,16 @@ impl GameplayScreen {
     audio.set_playing(true);
   }
 
+  pub fn set_paused(&mut self, state: bool, audio: &mut AudioEngine) {
+    let mut audio = self.audio.borrow(audio);
+
+    if state {
+      audio.set_playing(false);
+    } else {
+      audio.set_playing(true);
+    }
+  }
+
   pub fn prepare(&mut self, core: &mut Core<Client>, audio: &mut AudioEngine, settings: &Settings) {
     let mut audio = self.audio.borrow(audio);
     let time = audio.position();
