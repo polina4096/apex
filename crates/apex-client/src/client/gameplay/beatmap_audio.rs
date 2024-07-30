@@ -81,7 +81,7 @@ impl<'a> AbstractClock for BorrowedBeatmapAudio<'a> {
   }
 
   fn set_position(&mut self, position: Time) {
-    self.audio_engine.set_position(position);
+    self.audio_engine.set_position(position + self.lead_in);
   }
 
   fn length(&self) -> Time {

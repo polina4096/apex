@@ -5,6 +5,7 @@ use recording::Recording;
 use retry::Retry;
 use select::Select;
 use settings::Settings;
+use skip::Skip;
 use taiko::{DonOne, DonTwo, KatOne, KatTwo};
 use winit::keyboard::{KeyCode, ModifiersState, PhysicalKey};
 
@@ -19,6 +20,7 @@ pub mod recording;
 pub mod retry;
 pub mod select;
 pub mod settings;
+pub mod skip;
 pub mod taiko;
 
 actions! {
@@ -39,6 +41,9 @@ actions! {
     Select = key_comb!(Enter),
     /// Replay a beatmap from the beginning
     Retry = key_comb!(Backquote),
+
+    /// Skip
+    Skip = key_comb!(Space),
 
     /// Kat (blue)
     KatOne as "Kat 1" = key_comb!(KeyS),

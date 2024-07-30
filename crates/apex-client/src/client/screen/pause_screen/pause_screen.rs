@@ -78,7 +78,7 @@ impl PauseScreen {
 
             let item_height = text.size().y;
             let x = max_width / 2.0 - text.size().x / 2.0;
-            let y = max_height / 2.0 + item_height * additional_y;
+            let y = max_height / 2.0 + item_height * additional_y - item_height / 2.0;
 
             let rect = egui::Rect::from_two_pos(egui::pos2(0.0, y), egui::pos2(max_width, y + item_height));
             let response = ui.interact(rect, id, egui::Sense::click());

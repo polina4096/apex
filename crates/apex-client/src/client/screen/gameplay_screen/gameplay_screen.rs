@@ -17,14 +17,17 @@ use crate::{
     client::Client,
     event::ClientEvent,
     gameplay::{
-      beatmap::Beatmap,
+      beatmap::{Beatmap, BreakPoint},
       beatmap_audio::BeatmapAudio,
       score_processor::{ScoreProcessor, ScoreProcessorEvent},
       taiko_player::{TaikoPlayer, TaikoPlayerInput},
     },
     graphics::taiko_renderer::taiko_renderer::{TaikoRenderer, TaikoRendererConfig},
     settings::Settings,
-    ui::ingame_overlay::{HitResult, IngameOverlayView},
+    ui::{
+      break_overlay::BreakOverlayView,
+      ingame_overlay::{HitResult, IngameOverlayView},
+    },
   },
   core::{
     audio::{audio_engine::AudioEngine, audio_mixer::AudioController},
@@ -41,6 +44,7 @@ pub struct GameplayScreen {
 
   taiko_renderer: TaikoRenderer,
   ingame_overlay: IngameOverlayView,
+  break_overlay: BreakOverlayView,
 
   channels: ChannelCount,
   sample_rate: SampleRate,
@@ -64,6 +68,7 @@ impl GameplayScreen {
     settings: &Settings,
   ) -> Self {
     let ingame_overlay = IngameOverlayView::new();
+    let break_overlay = BreakOverlayView::new();
     let taiko_renderer = TaikoRenderer::new(
       &graphics.device,
       &graphics.queue,
@@ -110,6 +115,7 @@ impl GameplayScreen {
 
       taiko_renderer,
       ingame_overlay,
+      break_overlay,
 
       channels,
       sample_rate,
@@ -149,7 +155,7 @@ impl GameplayScreen {
     self.player.hit(time, input, beatmap, |result, idx| {
       self.score.feed(ScoreProcessorEvent { result });
       self.taiko_renderer.set_hit(&graphics.queue, time, idx);
-      self.ingame_overlay.show_hit_result(result);
+      self.ingame_overlay.update_last_hit_result(result);
     });
   }
 
@@ -161,7 +167,7 @@ impl GameplayScreen {
 
     let mut audio = self.audio.borrow(audio);
     audio.set_playing(false);
-    audio.set_position(Time::zero());
+    audio.set_position(Time::zero() - audio.lead_in);
     audio.set_playing(true);
   }
 
@@ -191,7 +197,7 @@ impl GameplayScreen {
 
     self.beatmap = Some(beatmap);
 
-    audio.set_position(Time::zero());
+    audio.set_position(Time::zero() - audio.lead_in);
     audio.set_playing(true);
   }
 
@@ -202,6 +208,35 @@ impl GameplayScreen {
       audio.set_playing(false);
     } else {
       audio.set_playing(true);
+    }
+  }
+
+  pub fn skip_break(&mut self, audio: &mut AudioEngine, break_leniency_end: Time) {
+    // TOOD: error handling
+    if let Some(beatmap) = &self.beatmap {
+      let mut audio = self.audio.borrow(audio);
+      let time = audio.position();
+
+      let Some(obj) = beatmap.hit_objects.first() else {
+        return;
+      };
+
+      if obj.time > Time::from_seconds(10.0) {
+        let point = BreakPoint { start: Time::zero(), end: obj.time };
+        audio.set_position(point.end - break_leniency_end);
+      }
+
+      // TODO: optimize
+      let p = beatmap.break_points.iter().find(|x| time >= x.start && time < x.end);
+
+      if let Some(break_point) = p {
+        audio.set_playing(false);
+        // TOOD: make this a setting
+        let break_leniency = Time::from_seconds(1.0);
+
+        audio.set_position(break_point.end - break_leniency);
+        audio.set_playing(true);
+      }
     }
   }
 
@@ -230,12 +265,32 @@ impl GameplayScreen {
     if let Some(beatmap) = &self.beatmap {
       self.player.tick(time, beatmap, |_idx| {
         self.score.feed(ScoreProcessorEvent { result: HitResult::Miss });
-        self.ingame_overlay.show_hit_result(HitResult::Miss);
+        self.ingame_overlay.update_last_hit_result(HitResult::Miss);
       });
     }
 
     self.taiko_renderer.prepare(&core.graphics.queue, time);
     self.ingame_overlay.prepare(core, &mut audio, &self.score, settings);
+
+    if let Some(beatmap) = &self.beatmap {
+      let Some(obj) = beatmap.hit_objects.first() else {
+        return;
+      };
+
+      if obj.time > Time::from_seconds(10.0) {
+        let point = BreakPoint { start: Time::zero(), end: obj.time };
+        self.break_overlay.prepare(core, time, &point, Time::zero(), Time::from_seconds(1.0));
+      } else {
+        // TODO: optimize
+        let p = beatmap.break_points.iter().find(|x| time >= x.start && time < x.end);
+
+        if let Some(break_point) = p {
+          self
+            .break_overlay
+            .prepare(core, time, break_point, Time::from_seconds(1.0), Time::from_seconds(1.0));
+        }
+      }
+    }
   }
 
   pub fn render<'rpass>(&'rpass self, rpass: &mut wgpu::RenderPass<'rpass>) {

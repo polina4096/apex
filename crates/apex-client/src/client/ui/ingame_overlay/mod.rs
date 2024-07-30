@@ -39,7 +39,7 @@ impl IngameOverlayView {
     };
   }
 
-  pub fn show_hit_result(&mut self, result: HitResult) {
+  pub fn update_last_hit_result(&mut self, result: HitResult) {
     if result != HitResult::Hit300 {
       self.last_hit_result_time = Instant::now();
     }

@@ -193,6 +193,7 @@ impl TaikoRenderer {
       hit_objects: vec![],
       timing_points: vec![],
       velocity_points: vec![],
+      break_points: vec![],
       overall_difficulty: 0.0,
       velocity_multiplier: 0.0,
       audio: PathBuf::new(),

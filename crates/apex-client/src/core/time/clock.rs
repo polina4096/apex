@@ -48,11 +48,6 @@ impl AbstractClock for Clock {
       let diff = now.duration_since(self.last_pause);
       let time = self.last_time + diff.into();
 
-      // if time >= self.length {
-      //   self.playing = true;
-      //   self.last_time = self.length;
-      // }
-
       return time;
     } else {
       return self.last_time;

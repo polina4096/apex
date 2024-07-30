@@ -4,6 +4,7 @@ use ahash::AHashMap;
 use intbits::Bits;
 use kiam::when;
 use log::warn;
+use winit::event;
 
 use crate::core::time::time::Time;
 
@@ -34,10 +35,17 @@ impl Default for VelocityPoint {
 }
 
 #[derive(Clone)]
+pub struct BreakPoint {
+  pub start: Time,
+  pub end: Time,
+}
+
+#[derive(Clone)]
 pub struct Beatmap {
   pub hit_objects: Vec<TaikoHitObject>,
   pub timing_points: Vec<TimingPoint>,
   pub velocity_points: Vec<VelocityPoint>,
+  pub break_points: Vec<BreakPoint>,
 
   pub overall_difficulty: f32,
   pub velocity_multiplier: f32,
@@ -54,6 +62,7 @@ impl Beatmap {
 
     let mut timing_points = Vec::<TimingPoint>::new();
     let mut velocity_points = Vec::<VelocityPoint>::new();
+    let mut break_points = Vec::<BreakPoint>::new();
 
     let mut property_map = AHashMap::<&str, AHashMap<&str, &str>>::new();
     let mut current_category = None::<&str>;
@@ -102,6 +111,35 @@ impl Beatmap {
               time: Time::from_ms(time_ms),
               velocity: -100.0 / beat_length,
             });
+          }
+        }
+
+        Some("[Events]") => {
+          let mut parts = line.split(',');
+          let Some(event_type) = parts.next() else {
+            warn!("Failed to parse event type at line {}", i);
+            continue;
+          };
+
+          match event_type {
+            "2" | "Break" => {
+              let Some(start) = parts.next().and_then(|x| x.parse::<f64>().ok()) else {
+                warn!("Failed to parse break start time at line {}", i);
+                continue;
+              };
+
+              let Some(end) = parts.next().and_then(|x| x.parse::<f64>().ok()) else {
+                warn!("Failed to parse break end time at line {}", i);
+                continue;
+              };
+
+              break_points.push(BreakPoint {
+                start: Time::from_ms(start),
+                end: Time::from_ms(end),
+              });
+            }
+
+            _ => {}
           }
         }
 
@@ -196,6 +234,7 @@ impl Beatmap {
       hit_objects: objects,
       timing_points,
       velocity_points,
+      break_points,
       overall_difficulty: property_map["[Difficulty]"]["OverallDifficulty"].parse().expect("idk default OD, plz fix"),
       velocity_multiplier: property_map["[Difficulty]"]["SliderMultiplier"].parse().unwrap_or(0.6),
       audio: PathBuf::from(property_map["[General]"]["AudioFilename"]),
