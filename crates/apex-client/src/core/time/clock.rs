@@ -9,6 +9,8 @@ pub trait AbstractClock {
 
   fn position(&mut self) -> Time;
   fn set_position(&mut self, time: Time);
+  fn set_clock_position(&mut self, time: Time);
+  fn set_source_position(&mut self, time: Time);
 
   fn length(&self) -> Time;
   fn set_length(&mut self, value: Time);
@@ -82,5 +84,13 @@ impl AbstractClock for Clock {
 
   fn length(&self) -> Time {
     return self.length;
+  }
+
+  fn set_clock_position(&mut self, _time: Time) {
+    unimplemented!()
+  }
+
+  fn set_source_position(&mut self, _time: Time) {
+    unimplemented!()
   }
 }

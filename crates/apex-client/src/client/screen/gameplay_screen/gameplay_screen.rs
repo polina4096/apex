@@ -197,7 +197,9 @@ impl GameplayScreen {
 
     self.beatmap = Some(beatmap);
 
-    audio.set_position(Time::zero() - audio.lead_in);
+    // audio.set_position(Time::zero() - audio.lead_in);
+    audio.set_clock_position(Time::zero());
+    audio.set_source_position(Time::zero());
     audio.set_playing(true);
   }
 
@@ -214,6 +216,8 @@ impl GameplayScreen {
   pub fn skip_break(&mut self, audio: &mut AudioEngine, break_leniency_end: Time) {
     // TOOD: error handling
     if let Some(beatmap) = &self.beatmap {
+      let lead_in = self.audio.lead_in;
+      let audio_offset = self.audio.audio_offset;
       let mut audio = self.audio.borrow(audio);
       let time = audio.position();
 
@@ -221,9 +225,17 @@ impl GameplayScreen {
         return;
       };
 
-      if obj.time > Time::from_seconds(10.0) {
+      if time < obj.time - break_leniency_end && obj.time > Time::from_seconds(10.0) {
         let point = BreakPoint { start: Time::zero(), end: obj.time };
-        audio.set_position(point.end - break_leniency_end);
+        let delay_compensation = time - audio_offset;
+        let pos = point.end - break_leniency_end;
+
+        if delay_compensation < Time::zero() {
+          audio.set_source_position(pos - delay_compensation + lead_in);
+          audio.set_clock_position(pos + lead_in);
+        } else {
+          audio.set_position(pos);
+        }
       }
 
       // TODO: optimize

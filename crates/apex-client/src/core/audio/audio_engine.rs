@@ -98,6 +98,16 @@ impl AbstractClock for AudioEngine {
     }
   }
 
+  fn set_clock_position(&mut self, position: Time) {
+    self.clock.set_position(position);
+  }
+
+  fn set_source_position(&mut self, position: Time) {
+    if let Err(e) = self.sink.try_seek(position.into()) {
+      error!("Failed to seek audio source: {:?}", e);
+    }
+  }
+
   fn length(&self) -> Time {
     return self.clock.length();
   }
