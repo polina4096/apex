@@ -38,6 +38,10 @@ impl SelectionScreen {
     self.beatmap_selection.prepare(core, beatmap_cache, &mut self.beatmap_selector, clock);
   }
 
+  pub fn scale(&mut self, scale_factor: f64) {
+    self.beatmap_selection.scale(scale_factor);
+  }
+
   pub fn beatmap_selector(&self) -> &BeatmapSelector {
     return &self.beatmap_selector;
   }

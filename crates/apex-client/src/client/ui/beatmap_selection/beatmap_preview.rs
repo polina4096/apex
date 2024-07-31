@@ -17,6 +17,7 @@ pub const PREVIEW_HEIGHT: u32 = 160;
 pub struct BeatmapPreviewCallback {
   time: Time,
   new_width: Option<NonZero<u32>>,
+  new_scale: Option<f64>,
 }
 
 impl egui_wgpu::CallbackTrait for BeatmapPreviewCallback {
@@ -34,6 +35,12 @@ impl egui_wgpu::CallbackTrait for BeatmapPreviewCallback {
 
     if let Some(width) = self.new_width {
       resources.resize(queue, width.get(), PREVIEW_HEIGHT);
+    }
+
+    if let Some(scale_factor) = self.new_scale {
+      resources.scale(queue, scale_factor);
+      resources.set_hit_position_x(queue, PREVIEW_HEIGHT as f32 / 2.0 / scale_factor as f32);
+      resources.set_hit_position_y(queue, PREVIEW_HEIGHT as f32 / 2.0 / scale_factor as f32);
     }
 
     resources.prepare(queue, self.time);
@@ -56,7 +63,6 @@ impl egui_wgpu::CallbackTrait for BeatmapPreviewCallback {
 }
 
 pub struct BeatmapPreview {
-  hit_pos: f32,
   prev_width: u32,
   scale_factor: f64,
   zoom: f64,
@@ -65,6 +71,7 @@ pub struct BeatmapPreview {
 
   current_beatmap: Option<Beatmap>,
   new_renderer: Option<TaikoRenderer>,
+  new_scale_factor: Option<f64>,
 }
 
 impl BeatmapPreview {
@@ -89,7 +96,6 @@ impl BeatmapPreview {
     );
 
     let beatmap_preview = Self {
-      hit_pos,
       prev_width: 0,
       scale_factor: graphics.scale,
       zoom: settings.taiko.zoom(),
@@ -97,6 +103,7 @@ impl BeatmapPreview {
       kat_color: settings.taiko.kat_color(),
       current_beatmap: None,
       new_renderer: None,
+      new_scale_factor: None,
     };
 
     // Because the graphics pipeline must have the same lifetime as the egui render pass,
@@ -108,6 +115,8 @@ impl BeatmapPreview {
   }
 
   pub fn prepare(&mut self, ui: &mut egui::Ui, time: Time, egui_renderer: &mut egui_wgpu::Renderer) {
+    let hit_pos = PREVIEW_HEIGHT as f32 / 2.0;
+
     egui::Frame::canvas(ui.style())
       .outer_margin(egui::Margin::symmetric(12.0, 0.0))
       // .inner_margin(egui::Margin::ZERO)
@@ -117,7 +126,7 @@ impl BeatmapPreview {
         let rect = ui.allocate_space(egui::vec2(width, PREVIEW_HEIGHT as f32)).1;
 
         ui.painter().circle_stroke(
-          rect.min + egui::vec2(self.hit_pos, self.hit_pos),
+          rect.min + egui::vec2(hit_pos, hit_pos),
           56.0,
           egui::Stroke::new(2.0, egui::Color32::from_gray(100)),
         );
@@ -133,6 +142,7 @@ impl BeatmapPreview {
             } else {
               None
             },
+            new_scale: self.new_scale_factor.take(),
           },
         );
 
@@ -151,10 +161,17 @@ impl BeatmapPreview {
     resources.load_beatmap(&graphics.device, beatmap.clone());
     resources.set_hit_all(&graphics.queue);
   }
+
+  pub fn scale(&mut self, scale_factor: f64) {
+    self.scale_factor = scale_factor;
+    self.new_scale_factor = Some(scale_factor);
+  }
 }
 
 impl Drawable for BeatmapPreview {
   fn recreate(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, format: wgpu::TextureFormat) {
+    let hit_pos = PREVIEW_HEIGHT as f32 / 2.0;
+
     let mut renderer = TaikoRenderer::new(
       device,
       queue,
@@ -165,8 +182,8 @@ impl Drawable for BeatmapPreview {
         scale_factor: self.scale_factor,
         scale: 0.425,
         zoom: self.zoom,
-        hit_position_x: self.hit_pos / self.scale_factor as f32,
-        hit_position_y: self.hit_pos / self.scale_factor as f32,
+        hit_position_x: hit_pos / self.scale_factor as f32,
+        hit_position_y: hit_pos / self.scale_factor as f32,
         don: self.don_color,
         kat: self.kat_color,
         hit_height: 12.5,

@@ -163,6 +163,7 @@ impl App for Client {
 
   fn scale(&mut self, core: &mut Core<Self>, scale_factor: f64) {
     self.gameplay_screen.scale(&core.graphics.queue, scale_factor);
+    self.selection_screen.scale(scale_factor);
   }
 }
 

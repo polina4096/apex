@@ -65,6 +65,10 @@ impl BeatmapSelectionView {
     };
   }
 
+  pub fn scale(&mut self, scale_factor: f64) {
+    self.beatmap_preview.scale(scale_factor);
+  }
+
   pub fn prepare(
     &mut self,
     core: &mut Core<Client>,
