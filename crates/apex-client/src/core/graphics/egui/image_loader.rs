@@ -151,7 +151,7 @@ impl ImageLoader for BackgroundImageLoader {
               .unwrap_or(0)
           }
 
-          ImageState::Ready(image) => image.pixels.len(),
+          ImageState::Ready(image) => image.pixels.len() * size_of::<egui::Color32>(),
           ImageState::Error(_) => 0,
         }
       })

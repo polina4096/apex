@@ -34,9 +34,10 @@ use super::{
   event::ClientEvent,
   gameplay::beatmap_cache::{BeatmapCache, BeatmapInfo},
   screen::{
-    gameplay_screen::gameplay_screen::GameplayScreen, pause_screen::pause_screen::PauseScreen,
-    recording_screen::recording_screen::RecordingScreen, result_screen::result_screen::ResultScreen,
-    selection_screen::selection_screen::SelectionScreen, settings_screen::settings_screen::SettingsScreen,
+    debug_screen::debug_screen::DebugScreen, gameplay_screen::gameplay_screen::GameplayScreen,
+    pause_screen::pause_screen::PauseScreen, recording_screen::recording_screen::RecordingScreen,
+    result_screen::result_screen::ResultScreen, selection_screen::selection_screen::SelectionScreen,
+    settings_screen::settings_screen::SettingsScreen,
   },
   settings::{proxy::ClientSettingsProxy, Settings},
 };
@@ -71,6 +72,7 @@ pub struct Client {
   pub(crate) settings_screen: SettingsScreen,
   pub(crate) recording_screen: RecordingScreen,
   pub(crate) pause_screen: PauseScreen,
+  pub(crate) debug_screen: DebugScreen,
 }
 
 impl Drop for Client {
@@ -195,6 +197,7 @@ impl Client {
     #[rustfmt::skip] let settings_screen = SettingsScreen::new();
     #[rustfmt::skip] let recording_screen = RecordingScreen::new();
     #[rustfmt::skip] let pause_screen = PauseScreen::new(event_bus.clone());
+    #[rustfmt::skip] let debug_screen = DebugScreen::new();
 
     let prev_audio_path = PathBuf::new();
     let prev_beatmap_path = PathBuf::new();
@@ -215,6 +218,7 @@ impl Client {
       settings_screen,
       recording_screen,
       pause_screen,
+      debug_screen,
     };
   }
 

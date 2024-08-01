@@ -13,6 +13,7 @@ pub struct EguiContext {
   pub renderer: egui_wgpu::Renderer,
   pub screen_desc: egui_wgpu::ScreenDescriptor,
   pub winit_state: egui_winit::State,
+  pub image_loader: Arc<BackgroundImageLoader>,
 
   pub clipped_primitives: Vec<ClippedPrimitive>,
   pub commands: Vec<wgpu::CommandBuffer>,
@@ -37,12 +38,14 @@ impl EguiContext {
 
     let ctx = winit_state.egui_ctx();
     egui_extras::install_image_loaders(ctx);
-    ctx.add_image_loader(Arc::new(BackgroundImageLoader::new(ctx.clone())));
+    let image_loader = Arc::new(BackgroundImageLoader::new(ctx.clone()));
+    ctx.add_image_loader(image_loader.clone());
 
     return Self {
       renderer,
       screen_desc,
       winit_state,
+      image_loader,
 
       clipped_primitives: Vec::new(),
       commands: Vec::new(),

@@ -1,4 +1,5 @@
 use back::Back;
+use debug::Debug;
 use next::Next;
 use prev::Prev;
 use recording::Recording;
@@ -14,6 +15,7 @@ use crate::{actions, core::input::keybinds::KeyCombination, key_comb};
 use super::client::Client;
 
 pub mod back;
+pub mod debug;
 pub mod next;
 pub mod prev;
 pub mod recording;
@@ -31,6 +33,8 @@ actions! {
     Settings = key_comb!(Super + Comma),
     /// Open recording menu
     Recording = key_comb!(Super + KeyR),
+    /// Open debug menu
+    Debug = key_comb!(Super + F1),
 
     /// Select next element
     Next = key_comb!(ArrowDown),

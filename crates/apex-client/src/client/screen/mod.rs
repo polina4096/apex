@@ -1,3 +1,4 @@
+pub mod debug_screen;
 pub mod gameplay_screen;
 pub mod pause_screen;
 pub mod recording_screen;
