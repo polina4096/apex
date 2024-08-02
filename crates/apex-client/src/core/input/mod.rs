@@ -1,3 +1,6 @@
+use action::AppActions;
+use tap::Tap;
+
 use self::{input_state::InputState, keybinds::Keybinds};
 
 pub mod action;
@@ -11,10 +14,13 @@ pub struct Input<T> {
   pub grabbing : bool,
 }
 
-impl<T> Input<T> {
+impl<T: AppActions> Input<T> {
   pub fn with_keybinds(keybinds: Keybinds<T>) -> Self {
     return Self {
-      keybinds,
+      keybinds: Keybinds::<T>::default().tap_mut(|binds| {
+        T::insert_keybinds(binds);
+        binds.merge(keybinds);
+      }),
       state: InputState::default(),
       grabbing: false,
     };

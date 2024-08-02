@@ -2,7 +2,7 @@
 #![feature(adt_const_params)]
 #![allow(incomplete_features)]
 
-use apex::Apex;
+use apex::ApexApp;
 use client::event::ClientEvent;
 use core::event::CoreEvent;
 
@@ -25,7 +25,7 @@ pub fn create_event_loop() -> EventLoop<CoreEvent<ClientEvent>> {
 
 pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>) -> color_eyre::Result<()> {
   let proxy = event_loop.create_proxy();
-  let mut app = Apex::new(proxy);
+  let mut app = ApexApp::new(proxy);
 
   event_loop.run_app(&mut app)?;
 

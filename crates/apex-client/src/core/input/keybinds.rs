@@ -26,7 +26,13 @@ impl<T> Default for Keybinds<T> {
   }
 }
 
-impl<T: Copy + Eq + Hash> Keybinds<T> {
+impl<T> Keybinds<T> {
+  pub fn merge(&mut self, other: Self) {
+    for (key, bind) in other.binds {
+      self.binds.insert(key, bind);
+    }
+  }
+
   pub fn add(&mut self, key: KeyCombination, bind: Bind<T>) {
     self.binds.insert(key, bind);
   }
@@ -38,12 +44,6 @@ impl<T: Copy + Eq + Hash> Keybinds<T> {
 
   pub fn get(&mut self, key: &KeyCombination) -> Option<&Bind<T>> {
     return self.binds.get(key);
-  }
-
-  pub fn as_vec(&self) -> Vec<(KeyCombination, Bind<T>)> {
-    let mut cache: Vec<_> = self.binds.iter().map(|x| (*x.0, x.1.clone())).collect();
-    cache.sort_by(|a, b| a.1.name.cmp(&b.1.name));
-    return cache;
   }
 
   pub fn len(&self) -> usize {
@@ -73,6 +73,14 @@ impl<T: Copy + Eq + Hash> Keybinds<T> {
     } else {
       return;
     }
+  }
+}
+
+impl<T: Copy + Eq + Hash> Keybinds<T> {
+  pub fn as_vec(&self) -> Vec<(KeyCombination, Bind<T>)> {
+    let mut cache: Vec<_> = self.binds.iter().map(|x| (*x.0, x.1.clone())).collect();
+    cache.sort_by(|a, b| a.1.name.cmp(&b.1.name));
+    return cache;
   }
 }
 

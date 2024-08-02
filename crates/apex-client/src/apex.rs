@@ -25,7 +25,7 @@ use crate::{
   },
 };
 
-pub struct Apex {
+pub struct ApexApp {
   proxy: EventLoopProxy<CoreEvent<ClientEvent>>,
 
   settings: Settings,
@@ -37,7 +37,7 @@ pub struct Apex {
   frame_sync: FrameSync,
 }
 
-impl Apex {
+impl ApexApp {
   pub fn new(proxy: EventLoopProxy<CoreEvent<ClientEvent>>) -> Self {
     let app_focus = Arc::new(AtomicBool::new(true));
 
@@ -67,7 +67,7 @@ impl Apex {
   }
 }
 
-impl ApplicationHandler<CoreEvent<ClientEvent>> for Apex {
+impl ApplicationHandler<CoreEvent<ClientEvent>> for ApexApp {
   fn resumed(&mut self, event_loop: &ActiveEventLoop) {
     let window = Arc::new(event_loop.create_window(Window::default_attributes()).unwrap());
 
