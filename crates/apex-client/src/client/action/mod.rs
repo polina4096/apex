@@ -1,4 +1,5 @@
 use back::Back;
+use clear_query::ClearQuery;
 use debug::Debug;
 use next::Next;
 use prev::Prev;
@@ -15,6 +16,7 @@ use crate::{actions, core::input::keybinds::KeyCombination, key_comb};
 use super::client::Client;
 
 pub mod back;
+pub mod clear_query;
 pub mod debug;
 pub mod next;
 pub mod prev;
@@ -45,6 +47,9 @@ actions! {
     Select = key_comb!(Enter),
     /// Replay a beatmap from the beginning
     Retry = key_comb!(Backquote),
+
+    /// Clears the query in the beatmap selection screen
+    ClearQuery = key_comb!(Ctrl + Backspace),
 
     /// Skip
     Skip = key_comb!(Space),

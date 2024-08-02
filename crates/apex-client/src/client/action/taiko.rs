@@ -11,7 +11,7 @@ macro_rules! impl_taiko_button {
     impl Action<Client> for $name {
       fn execute(client: &mut Client, core: &mut Core<Client>, repeat: bool) -> bool {
         if repeat {
-          return true;
+          return false;
         }
 
         match client.game_state {
