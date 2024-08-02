@@ -115,7 +115,7 @@ impl BeatmapSelectionView {
               ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
                 self.beatmap_stats.prepare(ui, info);
 
-                self.beatmap_preview.prepare(ui, clock.position(), &mut core.egui_ctx.renderer);
+                self.beatmap_preview.prepare(ui, clock, &mut core.egui_ctx.renderer);
 
                 // egui::Frame::window(ui.style())
                 //   .outer_margin(egui::Margin::same(12.0))

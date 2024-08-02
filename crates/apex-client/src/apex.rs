@@ -5,6 +5,7 @@ use triomphe::Arc;
 use wgpu::rwh::HasDisplayHandle as _;
 use winit::{
   application::ApplicationHandler,
+  dpi::LogicalSize,
   event::WindowEvent,
   event_loop::{ActiveEventLoop, EventLoopProxy},
   window::{Window, WindowId},
@@ -69,7 +70,10 @@ impl ApexApp {
 
 impl ApplicationHandler<CoreEvent<ClientEvent>> for ApexApp {
   fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-    let window = Arc::new(event_loop.create_window(Window::default_attributes()).unwrap());
+    let window_attrs = Window::default_attributes() //
+      .with_inner_size(LogicalSize::new(1200, 800));
+
+    let window = Arc::new(event_loop.create_window(window_attrs).unwrap());
 
     // Setup external frame synchronization
     self.frame_sync.set_current_window(window.clone());

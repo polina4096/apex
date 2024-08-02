@@ -8,7 +8,7 @@ use crate::{
   },
   core::{
     graphics::{color::Color, drawable::Drawable, egui::EguiContext, graphics::Graphics},
-    time::time::Time,
+    time::{clock::AbstractClock, time::Time},
   },
 };
 
@@ -72,6 +72,9 @@ pub struct BeatmapPreview {
   current_beatmap: Option<Beatmap>,
   new_renderer: Option<TaikoRenderer>,
   new_scale_factor: Option<f64>,
+
+  last_state: bool,
+  last_bits: u32,
 }
 
 impl BeatmapPreview {
@@ -104,6 +107,8 @@ impl BeatmapPreview {
       current_beatmap: None,
       new_renderer: None,
       new_scale_factor: None,
+      last_state: false,
+      last_bits: 0,
     };
 
     // Because the graphics pipeline must have the same lifetime as the egui render pass,
@@ -114,7 +119,12 @@ impl BeatmapPreview {
     return beatmap_preview;
   }
 
-  pub fn prepare(&mut self, ui: &mut egui::Ui, time: Time, egui_renderer: &mut egui_wgpu::Renderer) {
+  pub fn prepare(
+    &mut self,
+    ui: &mut egui::Ui,
+    clock: &mut impl AbstractClock,
+    egui_renderer: &mut egui_wgpu::Renderer,
+  ) {
     let hit_pos = PREVIEW_HEIGHT as f32 / 2.0;
 
     egui::Frame::canvas(ui.style())
@@ -122,6 +132,7 @@ impl BeatmapPreview {
       // .inner_margin(egui::Margin::ZERO)
       .rounding(6.0)
       .show(ui, |ui| {
+        let time = clock.position();
         let width = ui.available_width();
         let rect = ui.allocate_space(egui::vec2(width, PREVIEW_HEIGHT as f32)).1;
 
@@ -151,6 +162,57 @@ impl BeatmapPreview {
         }
 
         ui.painter().add(callback);
+
+        let (id, mut rect) = ui.allocate_space(egui::vec2(ui.available_width(), 12.0));
+        let response = ui.interact(rect, id, egui::Sense::drag());
+
+        rect = rect.shrink(2.0);
+
+        rect.set_top(
+          rect.top()
+            + ui.ctx().animate_value_with_time(
+              id.with("expand_anim"),
+              if response.hovered() { 0.0 } else { 4.0 },
+              0.05,
+            ),
+        );
+
+        if response.drag_started() {
+          self.last_state = clock.is_playing();
+
+          if self.last_state {
+            clock.set_playing(false);
+          }
+        }
+
+        if let Some(pos) = response.interact_pointer_pos() {
+          let pos = pos.x - rect.left();
+          if pos > 0.0 && pos < rect.width() {
+            let value = pos / rect.width();
+            let time = value * clock.length().to_seconds() as f32;
+
+            let bits = time.to_bits();
+            if self.last_bits != bits {
+              clock.set_position(Time::from_seconds(time));
+              self.last_bits = bits;
+            }
+          }
+        }
+
+        if response.drag_stopped() {
+          clock.set_playing(self.last_state);
+        }
+
+        let rounding = egui::Rounding::same(8.0);
+        let inactive_color = ui.style().visuals.window_stroke.color;
+        let active_color = egui::Color32::from_gray(120);
+
+        ui.painter().rect(rect, rounding, inactive_color, egui::Stroke::NONE);
+
+        let value = time.to_seconds() / clock.length().to_seconds();
+        rect.set_width((rect.width() as f64 * value) as f32);
+
+        ui.painter().rect(rect, rounding, active_color, egui::Stroke::NONE);
       });
   }
 
