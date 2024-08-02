@@ -39,7 +39,7 @@ pub struct Apex {
 
 impl Apex {
   pub fn new(proxy: EventLoopProxy<CoreEvent<ClientEvent>>) -> Self {
-    let app_focus = Arc::new(AtomicBool::new(false));
+    let app_focus = Arc::new(AtomicBool::new(true));
 
     let settings = Settings::load("./config.toml");
 

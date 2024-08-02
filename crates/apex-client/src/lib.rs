@@ -29,5 +29,6 @@ pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>) -> color_eyre::Result<
 
   event_loop.run_app(&mut app)?;
 
+  // Unfortunate workaround for the fact that the window is unsound
   std::process::exit(0);
 }
