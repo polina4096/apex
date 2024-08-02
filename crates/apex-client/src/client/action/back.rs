@@ -13,9 +13,7 @@ impl Action<Client> for Back {
 
     match client.game_state {
       GameState::Selection => {
-        if client.settings_screen.is_open() {
-          client.settings_screen.toggle();
-        } else if client.selection_screen.beatmap_selector().has_query() {
+        if client.selection_screen.beatmap_selector().has_query() {
           client.selection_screen.beatmap_selector_mut().clear_query();
         } else {
           core.exit();
@@ -23,12 +21,8 @@ impl Action<Client> for Back {
       }
 
       GameState::Playing => {
-        if client.settings_screen.is_open() {
-          client.settings_screen.toggle();
-        } else {
-          client.gameplay_screen.set_paused(true, &mut client.audio_engine);
-          client.game_state = GameState::Paused;
-        }
+        client.gameplay_screen.set_paused(true, &mut client.audio_engine);
+        client.game_state = GameState::Paused;
       }
 
       GameState::Paused => {
