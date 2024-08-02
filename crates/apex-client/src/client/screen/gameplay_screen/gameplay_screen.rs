@@ -256,18 +256,6 @@ impl GameplayScreen {
     let mut audio = self.audio.borrow(audio);
     let time = audio.position();
 
-    if audio.lead_in.to_ms() != settings.gameplay.lead_in() as i64 {
-      audio.lead_in = Time::from_ms(settings.gameplay.lead_in() as f64);
-    }
-
-    if audio.lead_out.to_ms() != settings.gameplay.lead_out() as i64 {
-      audio.lead_out = Time::from_ms(settings.gameplay.lead_out() as f64);
-    }
-
-    if audio.audio_offset.to_ms() != settings.gameplay.universal_offset() {
-      audio.audio_offset = Time::from_ms(settings.gameplay.universal_offset() as f64);
-    }
-
     // delay after the last hit object before result screen
     if time >= audio.length() + audio.lead_out {
       let path = self.beatmap_path.clone();
@@ -343,6 +331,18 @@ impl GameplayScreen {
 
   pub fn set_taiko_hit_animation(&mut self, device: &wgpu::Device, format: wgpu::TextureFormat, value: bool) {
     self.taiko_renderer.set_hit_height(device, format, if value { 12.5 } else { 9999.0 });
+  }
+
+  pub fn set_audio_offset(&mut self, offset: Time) {
+    self.audio.audio_offset = offset;
+  }
+
+  pub fn set_audio_lead_in(&mut self, lead_in: Time) {
+    self.audio.lead_in = lead_in;
+  }
+
+  pub fn set_audio_lead_out(&mut self, lead_out: Time) {
+    self.audio.lead_out = lead_out;
   }
 
   pub fn audio(&mut self) -> &mut BeatmapAudio {

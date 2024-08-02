@@ -6,7 +6,7 @@ use crate::{
     graphics::{FrameLimiterOptions, PresentModeOptions, RenderingBackend},
     screen::gameplay_screen::gameplay_screen::GameplayScreen,
   },
-  core::{audio::audio_mixer::AudioController, event::CoreEvent, graphics::color::Color},
+  core::{audio::audio_mixer::AudioController, event::CoreEvent, graphics::color::Color, time::time::Time},
 };
 
 use super::SettingsProxy;
@@ -81,5 +81,17 @@ impl<'a, 'window> SettingsProxy for ClientSettingsProxy<'a, 'window> {
 
   fn update_audio_effect_volume(&mut self, value: f32) {
     self.audio_controller.set_effect_volume(value);
+  }
+
+  fn update_gameplay_lead_in(&mut self, value: u64) {
+    self.gameplay_screen.set_audio_lead_in(Time::from_ms(value as f64));
+  }
+
+  fn update_gameplay_lead_out(&mut self, value: u64) {
+    self.gameplay_screen.set_audio_lead_out(Time::from_ms(value as f64));
+  }
+
+  fn update_gameplay_universal_offset(&mut self, value: i64) {
+    self.gameplay_screen.set_audio_offset(Time::from_ms(value as f64));
   }
 }
