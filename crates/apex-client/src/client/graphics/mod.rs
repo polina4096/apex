@@ -1,4 +1,5 @@
 pub mod frame_limiter;
+pub mod frame_sync;
 pub mod taiko_renderer;
 pub mod taiko_video_exporter;
 

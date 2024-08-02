@@ -15,7 +15,7 @@ pub mod wasm {
     std::panic::set_hook(Box::new(console_error_panic_hook::hook));
     console_log::init_with_level(log::Level::Info).expect("Failed to initialize logger");
 
-    let (event_loop, window) = crate::setup();
+    let (event_loop, window) = crate::create_event_loop();
 
     use winit::platform::web::WindowExtWebSys;
 

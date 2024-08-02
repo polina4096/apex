@@ -166,6 +166,7 @@ impl TaikoRenderer {
 
       depth_stencil: None,
       multiview: None,
+      cache: None,
     });
 
     let vertex_buffer_data = QuadVertex::vertices_quad(-0.5, 0.5);
@@ -403,6 +404,7 @@ impl TaikoRenderer {
 
       depth_stencil: None,
       multiview: None,
+      cache: None,
     });
   }
 
@@ -554,6 +556,7 @@ impl Drawable for TaikoRenderer {
 
       depth_stencil: None,
       multiview: None,
+      cache: None,
     });
 
     let vertex_buffer_data = QuadVertex::vertices_quad(-0.5, 0.5);

@@ -1,52 +1,30 @@
-use std::sync::{
-  atomic::{AtomicBool, Ordering},
-  Arc,
-};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use instant::Instant;
+use triomphe::Arc;
 use winit::window::Window;
 
 pub struct FrameLimiter {
   app_focus: Arc<AtomicBool>,
   last_frame: Instant,
 
-  external_sync: bool,
   unlimited: bool,
   target_fps: u16,
-
-  #[cfg(target_os = "macos")]
-  display_link: Option<display_link::DisplayLink>,
-  window: Arc<Window>,
 }
 
 impl FrameLimiter {
-  pub fn new(window: Arc<Window>, external: bool, unlimited: bool, target_fps: u16) -> Self {
-    let mut limiter = Self {
-      app_focus: Arc::new(AtomicBool::new(false)),
+  pub fn new(unlimited: bool, target_fps: u16, app_focus: Arc<AtomicBool>) -> Self {
+    return Self {
+      app_focus,
       last_frame: Instant::now(),
 
-      external_sync: external,
       unlimited,
       target_fps,
-
-      #[cfg(target_os = "macos")]
-      display_link: None,
-      window,
     };
-
-    if external {
-      limiter.enable_external_sync(true);
-    }
-
-    return limiter;
   }
 
   /// Requests a redraw if the frame limiter allows it.
   pub fn request_redraw(&mut self, window: &Window) {
-    if self.external_sync {
-      return;
-    }
-
     if self.unlimited {
       window.request_redraw();
       return;
@@ -64,11 +42,6 @@ impl FrameLimiter {
     }
   }
 
-  /// Call this when the app gains or loses focus.
-  pub fn update_focus(&mut self, focus: bool) {
-    self.app_focus.store(focus, Ordering::Relaxed);
-  }
-
   /// Use this to set the desired target FPS.
   pub fn set_target_fps(&mut self, fps: u16) {
     self.target_fps = fps;
@@ -77,47 +50,5 @@ impl FrameLimiter {
   /// Controls whether the frame limiter is enabled or not.
   pub fn set_unlimited(&mut self, unlimited: bool) {
     self.unlimited = unlimited;
-  }
-
-  pub fn enable_external_sync(&mut self, macos_fix: bool) {
-    self.external_sync = true;
-
-    #[cfg(target_os = "macos")]
-    {
-      // Setup CVDisplayLink
-      let window = self.window.clone();
-      let app_focus = self.app_focus.clone();
-
-      // This will be called on every vsync.
-      let mut display_link = display_link::DisplayLink::new(move |_ts| {
-        if macos_fix {
-          // Make sure to request redraws only when the window is visible to prevent massive stutters :D
-          if app_focus.load(Ordering::Relaxed) && window.is_visible().unwrap_or(false) {
-            window.request_redraw();
-          }
-        } else {
-          window.request_redraw();
-        }
-      })
-      .unwrap();
-
-      // Start the CVDisplayLink
-      display_link.resume().unwrap();
-
-      // CVDisplayLink must live as long it's used, otherwise nothing will happen.
-      self.display_link = Some(display_link);
-    }
-  }
-
-  pub fn disable_external_sync(&mut self) {
-    self.external_sync = false;
-
-    #[cfg(target_os = "macos")]
-    {
-      // Stop the CVDisplayLink
-      if let Some(mut display_link) = self.display_link.take() {
-        display_link.pause().unwrap();
-      }
-    }
   }
 }

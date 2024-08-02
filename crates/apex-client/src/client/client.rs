@@ -60,9 +60,6 @@ pub struct Client {
 
   pub(crate) beatmap_cache: BeatmapCache,
 
-  /// Configuration and state of the whole game
-  pub(crate) settings: Settings,
-
   pub(crate) prev_audio_path: PathBuf,
   pub(crate) prev_beatmap_path: PathBuf,
 
@@ -75,18 +72,11 @@ pub struct Client {
   pub(crate) debug_screen: DebugScreen,
 }
 
-impl Drop for Client {
-  fn drop(&mut self) {
-    self.settings.save("./config.toml");
-    self.input.keybinds.save("./keybinds.toml");
-  }
-}
-
 impl App for Client {
   type Event = ClientEvent;
 
-  fn prepare(&mut self, core: &mut Core<Self>, encoder: &mut wgpu::CommandEncoder) {
-    core.egui_ctx.begin_frame(core.window);
+  fn prepare(&mut self, core: &mut Core<Self>, settings: &mut Settings, encoder: &mut wgpu::CommandEncoder) {
+    core.egui_ctx.begin_frame(&core.window);
 
     let beatmap_idx = self.selection_screen.beatmap_selector().selected();
     self.recording_screen.prepare(core, beatmap_idx, &self.beatmap_cache);
@@ -94,7 +84,7 @@ impl App for Client {
     self.settings_screen.prepare(
       core.egui_ctx.egui_ctx(),
       &mut self.input,
-      &mut self.settings,
+      settings,
       &mut ClientSettingsProxy {
         proxy: &core.proxy,
 
@@ -114,11 +104,11 @@ impl App for Client {
       }
 
       GameState::Playing => {
-        self.gameplay_screen.prepare(core, &mut self.audio_engine, &self.settings);
+        self.gameplay_screen.prepare(core, &mut self.audio_engine, settings);
       }
 
       GameState::Paused => {
-        self.gameplay_screen.prepare(core, &mut self.audio_engine, &self.settings);
+        self.gameplay_screen.prepare(core, &mut self.audio_engine, settings);
         self.pause_screen.prepare(
           core,
           &mut self.audio_engine,
@@ -127,12 +117,12 @@ impl App for Client {
           &mut self.selection_screen,
           &self.beatmap_cache,
           &mut self.game_state,
-          &self.settings,
+          settings,
         )
       }
 
       GameState::Results => {
-        self.result_screen.prepare(core, &mut self.settings, &self.beatmap_cache);
+        self.result_screen.prepare(core, settings, &self.beatmap_cache);
       }
     }
 
@@ -177,7 +167,7 @@ impl Drawable for Client {
 }
 
 impl Client {
-  pub fn new(core: &mut Core<Self>, settings: Settings, event_bus: EventBus<ClientEvent>) -> Self {
+  pub fn new(core: &mut Core<Self>, settings: &Settings, event_bus: EventBus<ClientEvent>) -> Self {
     let input = Input::with_keybinds(Keybinds::load("./keybinds.toml"));
 
     let (m, a, s) = (settings.audio.master_volume(), settings.audio.music_volume(), settings.audio.effect_volume());
@@ -191,9 +181,9 @@ impl Client {
       cache.load_beatmaps("./beatmaps");
     });
 
-    #[rustfmt::skip] let selection_screen = SelectionScreen::new(event_bus.clone(), &beatmap_cache, &mut audio_engine, &core.graphics, &mut core.egui_ctx, &settings);
+    #[rustfmt::skip] let selection_screen = SelectionScreen::new(event_bus.clone(), &beatmap_cache, &mut audio_engine, &core.graphics, &mut core.egui_ctx, settings);
     #[rustfmt::skip] let result_screen = ResultScreen::new(event_bus.clone(), &beatmap_cache, &PathBuf::new());
-    #[rustfmt::skip] let gameplay_screen = GameplayScreen::new(event_bus.clone(), &core.graphics, &audio_engine, audio_controller.clone(), &settings);
+    #[rustfmt::skip] let gameplay_screen = GameplayScreen::new(event_bus.clone(), &core.graphics, &audio_engine, audio_controller.clone(), settings);
     #[rustfmt::skip] let settings_screen = SettingsScreen::new();
     #[rustfmt::skip] let recording_screen = RecordingScreen::new();
     #[rustfmt::skip] let pause_screen = PauseScreen::new(event_bus.clone());
@@ -208,7 +198,6 @@ impl Client {
       audio_controller,
       event_bus,
       game_state,
-      settings,
       prev_audio_path,
       prev_beatmap_path,
       beatmap_cache,
@@ -275,11 +264,11 @@ impl Client {
     self.input.state.modifiers = modifiers.state();
   }
 
-  pub fn dispatch(&mut self, core: &mut Core<Self>, event: ClientEvent) {
+  pub fn dispatch(&mut self, core: &mut Core<Self>, settings: &mut Settings, event: ClientEvent) {
     match event {
       ClientEvent::PickBeatmap { path } => {
         self.game_state = GameState::Playing;
-        self.gameplay_screen.play(&path, &core.graphics, &mut self.audio_engine, &self.settings);
+        self.gameplay_screen.play(&path, &core.graphics, &mut self.audio_engine, settings);
       }
 
       ClientEvent::SelectBeatmap => {

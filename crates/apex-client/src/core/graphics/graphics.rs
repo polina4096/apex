@@ -68,6 +68,7 @@ impl Graphics {
               })
             }
           },
+          memory_hints: wgpu::MemoryHints::Performance,
         },
         None, // Trace path
       )

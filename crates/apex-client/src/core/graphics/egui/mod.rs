@@ -22,7 +22,7 @@ pub struct EguiContext {
 impl EguiContext {
   pub fn new(display_handle: &impl HasDisplayHandle, graphics: &Graphics) -> Self {
     let context = egui::Context::default();
-    let renderer = egui_wgpu::Renderer::new(&graphics.device, graphics.format, None, 1);
+    let renderer = egui_wgpu::Renderer::new(&graphics.device, graphics.format, None, 1, false);
     let screen_desc = egui_wgpu::ScreenDescriptor {
       size_in_pixels: [graphics.size.width, graphics.size.height],
       pixels_per_point: graphics.scale as f32,

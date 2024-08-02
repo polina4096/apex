@@ -1,8 +1,9 @@
 use pollster::FutureExt;
 use tap::Tap as _;
+use triomphe::Arc;
 use winit::{
   dpi::PhysicalSize,
-  event_loop::{EventLoop, EventLoopProxy},
+  event_loop::{ActiveEventLoop, EventLoopProxy},
   window::Window,
 };
 
@@ -14,21 +15,24 @@ use super::{
   graphics::{egui::EguiContext, graphics::Graphics},
 };
 
-pub struct Core<'a, A: App> {
+pub struct Core<A: App> {
   pub proxy: EventLoopProxy<CoreEvent<A::Event>>,
 
-  pub window: &'a Window,
+  pub window: Arc<Window>,
   pub graphics: Graphics,
   pub egui_ctx: EguiContext,
 }
 
-impl<'a, A: App> Core<'a, A> {
-  pub fn new(event_loop: &EventLoop<CoreEvent<A::Event>>, window: &'a Window, settings: &Settings) -> Self {
-    let proxy = event_loop.create_proxy();
-
+impl<A: App> Core<A> {
+  pub fn new(
+    event_loop: &ActiveEventLoop,
+    proxy: EventLoopProxy<CoreEvent<A::Event>>,
+    window: Arc<Window>,
+    settings: &Settings,
+  ) -> Self {
     #[rustfmt::skip]
     let RenderingBackend::Wgpu(backend) = settings.graphics.rendering_backend() else { todo!() };
-    let graphics = Graphics::new(window, backend.into(), settings.graphics.present_mode().into()).block_on();
+    let graphics = Graphics::new(&window, backend.into(), settings.graphics.present_mode().into()).block_on();
 
     let egui_ctx = EguiContext::new(event_loop, &graphics);
     egui_ctx.egui_ctx().set_visuals(egui::Visuals::dark().tap_mut(|vis| {
@@ -38,14 +42,14 @@ impl<'a, A: App> Core<'a, A> {
     return Self { proxy, window, graphics, egui_ctx };
   }
 
-  pub fn render(&mut self, app: &mut A) -> Result<(), wgpu::SurfaceError> {
+  pub fn render(&mut self, app: &mut A, settings: &mut Settings) -> Result<(), wgpu::SurfaceError> {
     let output = self.graphics.surface.get_current_texture()?;
     let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
     let cmd_encoder_desc = wgpu::CommandEncoderDescriptor { label: Some("render encoder") };
     let mut encoder = self.graphics.device.create_command_encoder(&cmd_encoder_desc);
 
     {
-      app.prepare(self, &mut encoder);
+      app.prepare(self, settings, &mut encoder);
 
       let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
         label: Some("egui render pass"),
