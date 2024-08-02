@@ -53,7 +53,7 @@ settings! {
 
   taiko {
     /// Hit object distance multiplier
-    zoom: f64 = 0.235
+    zoom: f64 = 0.215
 
     /// Gameplay scale
     scale: f64 = 0.85
