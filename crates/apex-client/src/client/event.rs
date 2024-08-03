@@ -1,11 +1,13 @@
 use std::path::PathBuf;
 
-#[derive(Debug, PartialEq, Eq)]
+use super::score::score::Score;
+
+#[derive(Debug)]
 pub enum ClientEvent {
   RetryBeatmap,
   ToggleSettings,
   ToggleRecordingWindow,
-  ShowResultScreen { path: PathBuf },
+  ShowResultScreen { path: PathBuf, score: Score },
   PickBeatmap { path: PathBuf },
   SelectBeatmap,
 }

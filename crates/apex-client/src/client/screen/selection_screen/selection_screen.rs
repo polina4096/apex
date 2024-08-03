@@ -1,8 +1,11 @@
+use std::path::{Path, PathBuf};
+
 use crate::{
   client::{
     client::Client,
     event::ClientEvent,
     gameplay::{beatmap_cache::BeatmapCache, beatmap_selector::BeatmapSelector},
+    score::score_cache::ScoreCache,
     settings::Settings,
     ui::beatmap_selection::BeatmapSelectionView,
   },
@@ -34,12 +37,22 @@ impl SelectionScreen {
     return Self { beatmap_selection, beatmap_selector };
   }
 
-  pub fn prepare(&mut self, core: &mut Core<Client>, beatmap_cache: &BeatmapCache, clock: &mut impl AbstractClock) {
-    self.beatmap_selection.prepare(core, beatmap_cache, &mut self.beatmap_selector, clock);
+  pub fn prepare(
+    &mut self,
+    core: &mut Core<Client>,
+    beatmap_cache: &BeatmapCache,
+    score_cache: &mut ScoreCache,
+    clock: &mut impl AbstractClock,
+  ) {
+    self.beatmap_selection.prepare(core, beatmap_cache, score_cache, &mut self.beatmap_selector, clock);
   }
 
   pub fn scale(&mut self, scale_factor: f64) {
     self.beatmap_selection.scale(scale_factor);
+  }
+
+  pub fn update_scores(&mut self, score_cache: &mut ScoreCache, path: &PathBuf) {
+    self.beatmap_selection.update_scores(score_cache, path);
   }
 
   pub fn beatmap_selector(&self) -> &BeatmapSelector {

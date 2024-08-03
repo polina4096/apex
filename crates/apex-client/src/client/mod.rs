@@ -3,6 +3,7 @@ pub mod client;
 pub mod event;
 pub mod gameplay;
 pub mod graphics;
+pub mod score;
 pub mod screen;
 pub mod settings;
 pub mod ui;

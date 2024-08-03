@@ -1,8 +1,13 @@
+use jiff::Timestamp;
+
 use crate::client::ui::ingame_overlay::HitResult;
+
+use super::{grades::Grade, score::Score};
 
 pub struct ScoreProcessor {
   events: Vec<ScoreProcessorEvent>,
 
+  score_points: usize,
   result_300: usize,
   result_150: usize,
   result_miss: usize,
@@ -15,6 +20,7 @@ impl Default for ScoreProcessor {
   fn default() -> Self {
     return Self {
       events: Vec::new(),
+      score_points: 0,
       result_300: 0,
       result_150: 0,
       result_miss: 0,
@@ -31,11 +37,15 @@ impl ScoreProcessor {
       HitResult::Hit300 => {
         self.result_300 += 1;
         self.curr_combo += 1;
+
+        self.score_points += 300 * self.curr_combo;
       }
 
       HitResult::Hit150 => {
         self.result_150 += 1;
         self.curr_combo += 1;
+
+        self.score_points += 150 * self.curr_combo;
       }
 
       HitResult::Miss => {
@@ -82,6 +92,21 @@ impl ScoreProcessor {
     let n_miss = self.result_miss as f32;
 
     return (n_300 + n_150 * 0.5) / (n_300 + n_150 + n_miss);
+  }
+
+  pub fn export(&self, date: Timestamp, username: String) -> Score {
+    return Score {
+      date,
+      username,
+      score_points: self.score_points,
+      result_300: self.result_300,
+      result_150: self.result_150,
+      result_miss: self.result_miss,
+      last_combo: self.curr_combo,
+      max_combo: self.max_combo,
+      accuracy: self.accuracy,
+      grade: Grade::from_osu_stable(self.result_300, self.result_150, self.result_miss),
+    };
   }
 }
 

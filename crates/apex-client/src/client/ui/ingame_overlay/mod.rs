@@ -2,8 +2,7 @@ use instant::Instant;
 
 use crate::{
   client::{
-    client::Client,
-    gameplay::{score_processor::ScoreProcessor, taiko_player::TaikoPlayerInput},
+    client::Client, gameplay::taiko_player::TaikoPlayerInput, score::score_processor::ScoreProcessor,
     settings::Settings,
   },
   core::{core::Core, time::clock::AbstractClock},

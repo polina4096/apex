@@ -8,6 +8,7 @@ use rodio::{
   source::{Empty, UniformSourceIterator},
   Decoder, DeviceTrait as _, Source,
 };
+use rusqlite::Connection;
 use tap::Tap;
 use winit::{
   event::{KeyEvent, Modifiers},
@@ -33,6 +34,7 @@ use super::{
   action::ClientAction,
   event::ClientEvent,
   gameplay::beatmap_cache::{BeatmapCache, BeatmapInfo},
+  score::score_cache::ScoreCache,
   screen::{
     debug_screen::debug_screen::DebugScreen, gameplay_screen::gameplay_screen::GameplayScreen,
     pause_screen::pause_screen::PauseScreen, recording_screen::recording_screen::RecordingScreen,
@@ -59,6 +61,7 @@ pub struct Client {
   pub(crate) game_state: GameState,
 
   pub(crate) beatmap_cache: BeatmapCache,
+  pub(crate) score_cache: ScoreCache,
 
   pub(crate) prev_audio_path: PathBuf,
   pub(crate) prev_beatmap_path: PathBuf,
@@ -100,7 +103,9 @@ impl App for Client {
 
     match self.game_state {
       GameState::Selection => {
-        self.selection_screen.prepare(core, &self.beatmap_cache, &mut self.audio_engine);
+        self
+          .selection_screen
+          .prepare(core, &self.beatmap_cache, &mut self.score_cache, &mut self.audio_engine);
       }
 
       GameState::Playing => {
@@ -122,7 +127,7 @@ impl App for Client {
       }
 
       GameState::Results => {
-        self.result_screen.prepare(core, settings, &self.beatmap_cache);
+        self.result_screen.prepare(core, settings, &self.beatmap_cache, &self.score_cache);
       }
     }
 
@@ -181,6 +186,9 @@ impl Client {
       cache.load_beatmaps("./beatmaps");
     });
 
+    let conn = Connection::open("./scores.db").unwrap();
+    let score_cache = ScoreCache::new(conn);
+
     #[rustfmt::skip] let selection_screen = SelectionScreen::new(event_bus.clone(), &beatmap_cache, &mut audio_engine, &core.graphics, &mut core.egui_ctx, settings);
     #[rustfmt::skip] let result_screen = ResultScreen::new(event_bus.clone(), &beatmap_cache, &PathBuf::new());
     #[rustfmt::skip] let gameplay_screen = GameplayScreen::new(event_bus.clone(), &core.graphics, &audio_engine, audio_controller.clone(), settings);
@@ -201,6 +209,7 @@ impl Client {
       prev_audio_path,
       prev_beatmap_path,
       beatmap_cache,
+      score_cache,
       selection_screen,
       gameplay_screen,
       result_screen,
@@ -283,9 +292,11 @@ impl Client {
         self.settings_screen.toggle();
       }
 
-      ClientEvent::ShowResultScreen { path } => {
+      ClientEvent::ShowResultScreen { path, score } => {
         self.game_state = GameState::Results;
-        self.result_screen.finish(&self.beatmap_cache, &path);
+        let score_id = self.score_cache.insert(path.clone(), score);
+        self.result_screen.finish(&self.beatmap_cache, &path, score_id);
+        self.selection_screen.update_scores(&mut self.score_cache, &path);
       }
 
       ClientEvent::ToggleRecordingWindow => {

@@ -1,7 +1,7 @@
 use egui::ImageSource;
 
 use crate::{
-  client::{client::Client, settings::Settings},
+  client::{client::Client, score::score_cache::ScoreId, settings::Settings},
   core::core::Core,
 };
 
@@ -10,16 +10,17 @@ use super::{background_component::BackgroundComponent, card_component::CardCompo
 pub struct PlayResultsView {
   preview: CardComponent,
   background: BackgroundComponent,
+  score_id: ScoreId,
 }
 
 impl PlayResultsView {
-  pub fn new(source: impl Into<ImageSource<'static>>) -> Self {
+  pub fn new(source: impl Into<ImageSource<'static>>, score_id: ScoreId) -> Self {
     let image = source.into();
 
     let background = BackgroundComponent::new(image.clone());
     let preview = CardComponent::new(image.clone());
 
-    return Self { preview, background };
+    return Self { preview, background, score_id };
   }
 
   pub fn prepare(&mut self, core: &Core<Client>, _settings: &mut Settings) {

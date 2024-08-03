@@ -4,13 +4,16 @@ use action_bar::ActionBar;
 use beatmap_card::BeatmapCard;
 use beatmap_list::BeatmapList;
 use beatmap_preview::BeatmapPreview;
+use beatmap_scores::BeatmapScores;
 use beatmap_stats::BeatmapStats;
+use egui::Widget;
 
 use crate::{
   client::{
     client::Client,
     event::ClientEvent,
     gameplay::{beatmap::Beatmap, beatmap_cache::BeatmapCache, beatmap_selector::BeatmapSelector},
+    score::score_cache::{ScoreCache, ScoreId},
     settings::Settings,
   },
   core::{
@@ -27,15 +30,18 @@ pub mod action_bar;
 pub mod beatmap_card;
 pub mod beatmap_list;
 pub mod beatmap_preview;
+pub mod beatmap_scores;
 pub mod beatmap_stats;
 
 pub struct BeatmapSelectionView {
   prev_beatmap: PathBuf,
+  score_ids: Vec<ScoreId>,
 
   beatmap_bg: BackgroundComponent,
   beatmap_list: BeatmapList,
   beatmap_stats: BeatmapStats,
   beatmap_preview: BeatmapPreview,
+  beatmap_scores: BeatmapScores,
   action_bar: ActionBar,
 }
 
@@ -56,11 +62,13 @@ impl BeatmapSelectionView {
 
     return Self {
       prev_beatmap: PathBuf::new(),
+      score_ids: Vec::new(),
 
       beatmap_bg: BackgroundComponent::new(""),
       beatmap_list: BeatmapList::new(event_bus.clone(), beatmap_cards),
       beatmap_stats: BeatmapStats::new(),
       beatmap_preview: BeatmapPreview::new(graphics, egui_ctx, settings),
+      beatmap_scores: BeatmapScores::new(),
       action_bar: ActionBar::new(event_bus, clock),
     };
   }
@@ -73,6 +81,7 @@ impl BeatmapSelectionView {
     &mut self,
     core: &mut Core<Client>,
     beatmap_cache: &BeatmapCache,
+    score_cache: &mut ScoreCache,
     selector: &mut BeatmapSelector,
     clock: &mut impl AbstractClock,
   ) {
@@ -97,6 +106,8 @@ impl BeatmapSelectionView {
       let beatmap = Beatmap::parse(data);
 
       self.beatmap_preview.change_beatmap(&core.graphics, &mut core.egui_ctx, &beatmap);
+
+      self.update_scores(score_cache, path);
     }
 
     egui::CentralPanel::default()
@@ -114,17 +125,8 @@ impl BeatmapSelectionView {
 
               ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
                 self.beatmap_stats.prepare(ui, info);
-
                 self.beatmap_preview.prepare(ui, clock, &mut core.egui_ctx.renderer);
-
-                // egui::Frame::window(ui.style())
-                //   .outer_margin(egui::Margin::same(12.0))
-                //   .inner_margin(egui::Margin::symmetric(24.0, 16.0))
-                //   .show(ui, |ui| {
-                //     ui.set_max_height(0.0);
-
-                //     ui.label("text");
-                //   });
+                self.beatmap_scores.prepare(ui, score_cache, &self.score_ids);
               });
 
               ui.with_layout(egui::Layout::left_to_right(egui::Align::Max), |ui| {
@@ -137,6 +139,13 @@ impl BeatmapSelectionView {
             });
           });
       });
+  }
+
+  pub fn update_scores(&mut self, score_cache: &mut ScoreCache, path: &PathBuf) {
+    self.score_ids.clear();
+    if let Some(score_ids) = score_cache.beatmap_scores(path) {
+      self.score_ids.extend(score_ids.iter());
+    }
   }
 }
 

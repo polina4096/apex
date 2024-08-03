@@ -74,3 +74,14 @@ impl From<egui::Rgba> for Color {
     return Color::new(value.r(), value.g(), value.b(), value.a());
   }
 }
+
+impl From<Color> for egui::Color32 {
+  fn from(value: Color) -> Self {
+    let r = (value.r * 255.0) as u8;
+    let g = (value.g * 255.0) as u8;
+    let b = (value.b * 255.0) as u8;
+    let a = (value.a * 255.0) as u8;
+
+    return egui::Color32::from_rgba_unmultiplied(r, g, b, a);
+  }
+}

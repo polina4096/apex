@@ -48,7 +48,7 @@ zip = "2.1.2"
 
 # Maths, Time
 glam = { version = "0.27.0", features = ["bytemuck", "serde"] }
-chrono = { version = "0.4.38", features = ["serde"] }
+jiff = "0.1.4"
 instant = "0.1.12"
 
 # Data Structures
@@ -58,11 +58,15 @@ dashmap = "6.0.1"
 indexmap = "2.2.6"
 triomphe = "0.1.13"
 
+# Database
+rusqlite = { version = "0.32.1", features = ["bundled"] }
+
 # Algorithms
 nucleo = "0.5.0"
 
 # Formatting
 bytesize = "1.3.0"
+timeago = "0.4.2"
 
 # Game-specific
 rosu-pp = "1.0.0"

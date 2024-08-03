@@ -2,8 +2,10 @@ use std::{
   fs::File,
   io::BufReader,
   path::{Path, PathBuf},
+  time::UNIX_EPOCH,
 };
 
+use jiff::Timestamp;
 use rodio::{
   buffer::SamplesBuffer,
   cpal::{ChannelCount, SampleRate},
@@ -19,10 +21,10 @@ use crate::{
     gameplay::{
       beatmap::{Beatmap, BreakPoint},
       beatmap_audio::BeatmapAudio,
-      score_processor::{ScoreProcessor, ScoreProcessorEvent},
       taiko_player::{TaikoPlayer, TaikoPlayerInput},
     },
     graphics::taiko_renderer::taiko_renderer::{TaikoRenderer, TaikoRendererConfig},
+    score::score_processor::{ScoreProcessor, ScoreProcessorEvent},
     settings::Settings,
     ui::{
       break_overlay::BreakOverlayView,
@@ -52,9 +54,10 @@ pub struct GameplayScreen {
   kat_hitsound: Vec<f32>,
 
   beatmap_path: PathBuf,
+  play_date: Timestamp,
 
   beatmap: Option<Beatmap>,
-  score: ScoreProcessor,
+  score_processor: ScoreProcessor,
   player: TaikoPlayer,
   audio: BeatmapAudio,
 }
@@ -88,6 +91,7 @@ impl GameplayScreen {
     );
 
     let beatmap_path = PathBuf::new();
+    let play_date = Timestamp::default();
 
     let beatmap = None;
     let score = ScoreProcessor::default();
@@ -123,9 +127,10 @@ impl GameplayScreen {
       kat_hitsound,
 
       beatmap_path,
+      play_date,
 
       beatmap,
-      score,
+      score_processor: score,
       player,
       audio,
     };
@@ -153,7 +158,7 @@ impl GameplayScreen {
     }
 
     self.player.hit(time, input, beatmap, |result, idx| {
-      self.score.feed(ScoreProcessorEvent { result });
+      self.score_processor.feed(ScoreProcessorEvent { result });
       self.taiko_renderer.set_hit(&graphics.queue, time, idx);
       self.ingame_overlay.update_last_hit_result(result);
     });
@@ -163,7 +168,7 @@ impl GameplayScreen {
     self.taiko_renderer.restart_beatmap(&graphics.queue);
     self.player.reset();
 
-    std::mem::take(&mut self.score);
+    std::mem::take(&mut self.score_processor);
 
     let mut audio = self.audio.borrow(audio);
     audio.set_playing(false);
@@ -177,7 +182,7 @@ impl GameplayScreen {
     let end_time = beatmap.hit_objects.last().unwrap().time;
 
     self.taiko_renderer.load_beatmap(&graphics.device, beatmap.clone());
-    std::mem::take(&mut self.score);
+    std::mem::take(&mut self.score_processor);
     self.player.reset();
 
     self.beatmap_path = beatmap_path.to_owned();
@@ -196,6 +201,7 @@ impl GameplayScreen {
     audio.set_length(end_time);
 
     self.beatmap = Some(beatmap);
+    self.play_date = Timestamp::now();
 
     // audio.set_position(Time::zero() - audio.lead_in);
     audio.set_clock_position(Time::zero());
@@ -259,18 +265,19 @@ impl GameplayScreen {
     // delay after the last hit object before result screen
     if time >= audio.length() + audio.lead_out {
       let path = self.beatmap_path.clone();
-      self.event_bus.send(ClientEvent::ShowResultScreen { path });
+      let score = self.score_processor.export(self.play_date, "player".to_string());
+      self.event_bus.send(ClientEvent::ShowResultScreen { path, score });
     }
 
     if let Some(beatmap) = &self.beatmap {
       self.player.tick(time, beatmap, |_idx| {
-        self.score.feed(ScoreProcessorEvent { result: HitResult::Miss });
+        self.score_processor.feed(ScoreProcessorEvent { result: HitResult::Miss });
         self.ingame_overlay.update_last_hit_result(HitResult::Miss);
       });
     }
 
     self.taiko_renderer.prepare(&core.graphics.queue, time);
-    self.ingame_overlay.prepare(core, &mut audio, &self.score, settings);
+    self.ingame_overlay.prepare(core, &mut audio, &self.score_processor, settings);
 
     if let Some(beatmap) = &self.beatmap {
       let Some(obj) = beatmap.hit_objects.first() else {
