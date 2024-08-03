@@ -6,7 +6,7 @@ default_to_workspace = false
 dependencies = ["make-dev-dirs", "run"]
 
 [tasks.run]
-dependencies = ["copy-assets"]
+dependencies = ["make-dev-dirs", "copy-assets"]
 command = "cargo"
 args = ["run", "--bin", "apex-client"]
 cwd = "./debug/"
@@ -17,7 +17,7 @@ command = "cargo"
 args = ["build", "--bin", "apex-client", "${@}"]
 
 [tasks.run-opt]
-dependencies = ["copy-assets"]
+dependencies = ["make-dev-dirs", "copy-assets"]
 command = "cargo"
 args = ["run", "--bin", "apex-client", "--release", "--", "-C", "target-cpu=native"]
 cwd = "./debug/"
@@ -26,7 +26,9 @@ env = { "RUST_LOG" = "apex_client=debug" }
 [tasks.make-dev-dirs]
 script = '''
 #!@duckscript
-mkdir ./debug
+if not is_path_exists ./debug
+  mkdir ./debug
+end
 '''
 
 [tasks.copy-assets]

@@ -2,20 +2,29 @@
 Hackable & performant taiko client supporting multiple platforms such as Linux (X11 & Wayland), macOS, Windows and even web using WebAssembly.
 
 ## Build Instructions
-1. Install the Rust toolchain: https://rustup.rs
+1. Install the **nightly** Rust toolchain: https://rustup.rs
 2. Install cargo-make: `cargo install --force cargo-make`
 3. Clone the repository: `git clone git@github.com:polina4096/apex.git`
 4. Navigate to the cloned repository's directory: `cd apex`
-5. Compile the program: `cargo make build`
+5. Run: `cargo make run-opt`
 
-This should generally work, but the project is not ready for testing yet. Expect no help if something goes wrong for now.
+Please note that the game is **not ready for testing yet**, as there are certain major issues such as some audio formats being only partially supported.
 
-Actually, build instructions do not work at all. There is no support for release builds yet, and if you want to just run a debug one do: `cargo make`. You can do `cargo build --release --bin apex-client`, but it will only build the executable which is not guaranteed to run with improper directory structure.
+### Development
 
-### WASM support
-Install [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/), build with: `wasm-pack build --release`.
+The game stores and accesses certain data such as assets, beatmaps or configuration from the working directory. If a directory or a file is missing the game creates when needed. Project is setup in a way which stores all game data inside a `debug` directory in a development environment.
 
-Navigate to `crates/apex-client/web` and host a local web server with: `pnpm run dev`. This will not work as WASM build is a bit broken and not ready yet :)
+Compile and run a development build with: `cargo make` / `cargo make run`
+
+Or with optimizations (takes very long): `cargo make run-opt`
+
+### WebAssembly support
+
+Right now Wasm builds are broken indefinitely due to threading and other issues and fixing them is low priority, please wait for future updates :c
+
+~~Install [wasm-pack](https://rustwasm.github.io/wasm-pack/installer/), build with: `wasm-pack build --release`.~~
+
+~~Navigate to `crates/apex-client/web` and host a local web server with: `pnpm run dev`.~~
 
 ## License
 Distributed under the MIT license.
