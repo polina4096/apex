@@ -168,8 +168,10 @@ impl GameplayScreen {
     self.player.reset();
 
     std::mem::take(&mut self.score_processor);
+    self.play_date = Timestamp::now();
 
     let mut audio = self.audio.borrow(audio);
+
     audio.set_playing(false);
     audio.set_position(Time::zero() - audio.lead_in);
     audio.set_playing(true);
