@@ -170,6 +170,19 @@ impl GameSettingsView {
 
     body.row(text_height + 8.0, |mut row| {
       row.col(|ui| {
+        ui.label("Max Frame Latency");
+      });
+
+      row.col(|ui| {
+        let mut value = settings.graphics.max_frame_latency();
+        if egui::DragValue::new(&mut value).range(0 ..= 5).clamp_to_range(false).ui(ui).changed() {
+          settings.graphics.set_max_frame_latency(value, proxy);
+        }
+      });
+    });
+
+    body.row(text_height + 8.0, |mut row| {
+      row.col(|ui| {
         ui.label("macOS stutter fix");
       });
 

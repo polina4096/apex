@@ -36,6 +36,15 @@ settings! {
     /// Rendering backend to use
     rendering_backend: RenderingBackend = RenderingBackend::Wgpu(WgpuBackend::Auto)
 
+    /// Hints the GPU how many frames to buffer
+    max_frame_latency: usize = {
+      if cfg!(target_os = "macos") {
+        0
+      } else {
+        2
+      }
+    }
+
     /// Fixes massive macOS game stutter when alt-tabbing occluded window
     macos_stutter_fix: bool = true
   }

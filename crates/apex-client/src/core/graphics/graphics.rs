@@ -19,7 +19,12 @@ pub struct Graphics {
 }
 
 impl Graphics {
-  pub async fn new(window: &Window, backends: wgpu::Backends, present_mode: wgpu::PresentMode) -> Graphics {
+  pub async fn new(
+    window: &Window,
+    backends: wgpu::Backends,
+    present_mode: wgpu::PresentMode,
+    max_frame_latency: usize,
+  ) -> Graphics {
     let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
       backends,
       flags: wgpu::InstanceFlags::empty(),
@@ -63,7 +68,7 @@ impl Graphics {
                 limits.max_bind_groups = 8;
               })
             } else {
-              wgpu::Limits::default().tap_mut(|limits| {
+              wgpu::Limits::default().using_resolution(adapter.limits()).tap_mut(|limits| {
                 limits.max_bind_groups = 8;
               })
             }
@@ -108,7 +113,7 @@ impl Graphics {
       alpha_mode   : surface_caps.alpha_modes[0],
       view_formats : vec![],
 
-      desired_maximum_frame_latency: 0,
+      desired_maximum_frame_latency: max_frame_latency as u32,
     };
 
     surface.configure(&device, &surface_config);

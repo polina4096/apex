@@ -32,7 +32,13 @@ impl<A: App> Core<A> {
   ) -> Self {
     #[rustfmt::skip]
     let RenderingBackend::Wgpu(backend) = settings.graphics.rendering_backend() else { todo!() };
-    let graphics = Graphics::new(&window, backend.into(), settings.graphics.present_mode().into()).block_on();
+    let graphics = Graphics::new(
+      &window,
+      backend.into(),
+      settings.graphics.present_mode().into(),
+      settings.graphics.max_frame_latency(),
+    )
+    .block_on();
 
     let egui_ctx = EguiContext::new(event_loop, &graphics);
     egui_ctx.egui_ctx().set_visuals(egui::Visuals::dark().tap_mut(|vis| {

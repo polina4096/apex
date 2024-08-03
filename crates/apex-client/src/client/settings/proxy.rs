@@ -34,6 +34,11 @@ impl<'a, 'window> SettingsProxy for ClientSettingsProxy<'a, 'window> {
     self.proxy.send_event(CoreEvent::UpdateFrameLimiterConfiguration).unwrap();
   }
 
+  fn update_graphics_max_frame_latency(&mut self, value: usize) {
+    self.config.desired_maximum_frame_latency = value as u32;
+    self.proxy.send_event(CoreEvent::ReconfigureSurface).unwrap();
+  }
+
   fn update_graphics_macos_stutter_fix(&mut self, _value: bool) {
     self.proxy.send_event(CoreEvent::UpdateFrameLimiterConfiguration).unwrap();
   }

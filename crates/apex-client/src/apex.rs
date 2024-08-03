@@ -186,11 +186,12 @@ impl ApplicationHandler<CoreEvent<ClientEvent>> for ApexApp {
       CoreEvent::RecreateGraphicsContext => {
         let present_mode = self.settings.graphics.present_mode();
         let backend = self.settings.graphics.rendering_backend();
+        let max_frame_latency = self.settings.graphics.max_frame_latency();
 
         #[rustfmt::skip]
         let RenderingBackend::Wgpu(backend) = backend else { todo!() };
 
-        core.graphics = Graphics::new(&core.window, backend.into(), present_mode.into()).block_on();
+        core.graphics = Graphics::new(&core.window, backend.into(), present_mode.into(), max_frame_latency).block_on();
 
         let display_handle = event_loop.display_handle().unwrap();
         core.egui_ctx = EguiContext::new(&display_handle, &core.graphics);
