@@ -209,7 +209,7 @@ impl BeatmapPreview {
 
         ui.painter().rect(rect, rounding, inactive_color, egui::Stroke::NONE);
 
-        let value = time.to_seconds() / clock.length().to_seconds();
+        let value = (time.to_seconds() / clock.length().to_seconds()).min(1.0);
         rect.set_width((rect.width() as f64 * value) as f32);
 
         ui.painter().rect(rect, rounding, active_color, egui::Stroke::NONE);
