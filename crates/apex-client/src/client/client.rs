@@ -293,10 +293,15 @@ impl Client {
       }
 
       ClientEvent::ShowResultScreen { path, score } => {
-        self.game_state = GameState::Results;
         let score_id = self.score_cache.insert(path.clone(), score);
-        self.result_screen.finish(&self.beatmap_cache, &path, score_id);
+        self.result_screen.set_score(&self.beatmap_cache, &path, score_id);
         self.selection_screen.update_scores(&mut self.score_cache, &path);
+        self.game_state = GameState::Results;
+      }
+
+      ClientEvent::ViewScore { path, score_id } => {
+        self.result_screen.set_score(&self.beatmap_cache, &path, score_id);
+        self.game_state = GameState::Results;
       }
 
       ClientEvent::ToggleRecordingWindow => {

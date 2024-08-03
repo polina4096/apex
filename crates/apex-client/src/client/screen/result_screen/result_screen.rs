@@ -23,7 +23,7 @@ impl ResultScreen {
     return Self { play_results };
   }
 
-  pub fn finish(&mut self, beatmap_cache: &BeatmapCache, path: &Path, score: ScoreId) {
+  pub fn set_score(&mut self, beatmap_cache: &BeatmapCache, path: &Path, score: ScoreId) {
     let bg = beatmap_cache.get(path).map(|x| path.parent().unwrap().join(&x.bg_path)).unwrap_or_default();
     let bg = format!("file://{}", bg.to_str().unwrap());
 

@@ -67,7 +67,7 @@ impl BeatmapSelectionView {
       beatmap_list: BeatmapList::new(event_bus.clone(), beatmap_cards),
       beatmap_stats: BeatmapStats::new(),
       beatmap_preview: BeatmapPreview::new(graphics, egui_ctx, settings),
-      beatmap_scores: BeatmapScores::new(),
+      beatmap_scores: BeatmapScores::new(event_bus.clone()),
       action_bar: ActionBar::new(event_bus, clock),
     };
   }
@@ -125,7 +125,7 @@ impl BeatmapSelectionView {
               ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
                 self.beatmap_stats.prepare(ui, info);
                 self.beatmap_preview.prepare(ui, clock, &mut core.egui_ctx.renderer);
-                self.beatmap_scores.prepare(ui, score_cache, &self.score_ids);
+                self.beatmap_scores.prepare(ui, score_cache, &self.score_ids, path);
               });
 
               ui.with_layout(egui::Layout::left_to_right(egui::Align::Max), |ui| {

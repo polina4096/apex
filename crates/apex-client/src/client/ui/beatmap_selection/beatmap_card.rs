@@ -33,7 +33,7 @@ impl BeatmapCard {
     self.card.selected = selected;
 
     let card = self.card.prepare(ui, |ui| {
-      egui::Label::new(self.title.clone()).selectable(false).ui(ui);
+      egui::Label::new(self.title.clone()).ui(ui);
     });
 
     card.context_menu(|ui| {

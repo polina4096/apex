@@ -41,6 +41,10 @@ impl EguiContext {
     let image_loader = Arc::new(BackgroundImageLoader::new(ctx.clone()));
     ctx.add_image_loader(image_loader.clone());
 
+    ctx.style_mut(|style| {
+      style.interaction.selectable_labels = false;
+    });
+
     return Self {
       renderer,
       screen_desc,
