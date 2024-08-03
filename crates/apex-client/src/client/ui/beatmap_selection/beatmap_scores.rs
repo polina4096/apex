@@ -1,5 +1,4 @@
 use std::fmt::Write as _;
-use std::time::Duration;
 
 use egui::Widget;
 use jiff::Timestamp;

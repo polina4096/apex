@@ -10,6 +10,7 @@ use super::{background_component::BackgroundComponent, card_component::CardCompo
 pub struct PlayResultsView {
   preview: CardComponent,
   background: BackgroundComponent,
+  #[allow(dead_code)]
   score_id: ScoreId,
 }
 

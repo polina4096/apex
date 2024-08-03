@@ -2,7 +2,6 @@ use std::{
   fs::File,
   io::BufReader,
   path::{Path, PathBuf},
-  time::UNIX_EPOCH,
 };
 
 use jiff::Timestamp;

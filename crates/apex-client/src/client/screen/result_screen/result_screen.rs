@@ -35,7 +35,7 @@ impl ResultScreen {
     core: &mut Core<Client>,
     settings: &mut Settings,
     _beatmap_cache: &BeatmapCache,
-    score_cache: &ScoreCache,
+    _score_cache: &ScoreCache,
   ) {
     self.play_results.prepare(core, settings);
   }

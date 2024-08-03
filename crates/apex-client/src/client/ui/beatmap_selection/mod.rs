@@ -6,7 +6,6 @@ use beatmap_list::BeatmapList;
 use beatmap_preview::BeatmapPreview;
 use beatmap_scores::BeatmapScores;
 use beatmap_stats::BeatmapStats;
-use egui::Widget;
 
 use crate::{
   client::{
