@@ -99,10 +99,9 @@ impl ScoreCache {
     let id = ScoreId(self.scores.len());
 
     self.conn.execute(
-      "insert into scores (id, path, date, username, score_points, result_300, result_150, result_miss, last_combo, max_combo, accuracy, grade)
-       values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+      "insert into scores (path, date, username, score_points, result_300, result_150, result_miss, last_combo, max_combo, accuracy, grade)
+       values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
        (
-          id.0 as i64,
           path.to_str().unwrap(),
           score.date().as_millisecond(),
           score.username(),
