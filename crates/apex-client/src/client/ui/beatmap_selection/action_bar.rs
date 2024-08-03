@@ -39,7 +39,13 @@ impl ActionBar {
           .inner_margin(egui::Margin::symmetric(20.0, 16.0).tap_mut(|x| x.right = 10.0))
           .show(ui, |ui| {
             let text = egui::RichText::new("⛭").line_height(Some(24.0)).size(24.0);
-            if egui::Button::new(text).frame(false).ui(ui).clicked() {
+            let button = egui::Button::new(text).frame(false).ui(ui);
+
+            if button.hovered() {
+              ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+            }
+
+            if button.clicked() {
               self.event_bus.send(ClientEvent::ToggleSettings);
             }
           });
@@ -52,7 +58,13 @@ impl ActionBar {
           .show(ui, |ui| {
             let symbol = if clock.is_playing() { "⏸" } else { "⏵" };
             let text = egui::RichText::new(symbol).line_height(Some(24.0)).size(24.0);
-            if egui::Button::new(text).frame(false).ui(ui).clicked() {
+            let button = egui::Button::new(text).frame(false).ui(ui);
+
+            if button.hovered() {
+              ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+            }
+
+            if button.clicked() {
               clock.toggle();
             }
 
@@ -73,6 +85,10 @@ impl ActionBar {
                   .smart_aim(false)
                   .trailing_fill(true)
                   .ui(ui);
+
+                if slider.hovered() {
+                  ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+                }
 
                 if slider.drag_started() {
                   self.last_state = clock.is_playing();

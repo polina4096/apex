@@ -167,5 +167,6 @@ fn render_score(ui: &mut egui::Ui, score: &Score, idx: &str) -> egui::Response {
       });
     })
     .response
+    .on_hover_cursor(egui::CursorIcon::PointingHand)
     .interact(egui::Sense::click());
 }

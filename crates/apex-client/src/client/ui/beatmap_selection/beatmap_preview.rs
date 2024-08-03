@@ -166,6 +166,10 @@ impl BeatmapPreview {
         let (id, mut rect) = ui.allocate_space(egui::vec2(ui.available_width(), 12.0));
         let response = ui.interact(rect, id, egui::Sense::drag());
 
+        if response.hovered() {
+          ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+        }
+
         rect = rect.shrink(2.0);
 
         rect.set_top(

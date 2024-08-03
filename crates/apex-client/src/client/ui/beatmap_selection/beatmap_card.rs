@@ -36,6 +36,10 @@ impl BeatmapCard {
       egui::Label::new(self.title.clone()).ui(ui);
     });
 
+    if card.hovered() {
+      ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+    }
+
     card.context_menu(|ui| {
       ui.set_max_width(128.0);
       ui.style_mut().spacing.button_padding = egui::vec2(6.0, 2.0);
