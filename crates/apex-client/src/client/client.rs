@@ -254,7 +254,6 @@ impl Client {
             PhysicalKey::Code(KeyCode::Backspace) => {
               if self.selection_screen.beatmap_selector().has_query() {
                 self.selection_screen.beatmap_selector_mut().pop_query();
-                return;
               }
             }
 

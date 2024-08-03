@@ -16,6 +16,7 @@ pub struct BeatmapList {
   event_bus: EventBus<ClientEvent>,
   beatmap_cards: Vec<BeatmapCard>,
   prev_selected: usize,
+  scroll_to_selected: bool,
 
   last_update: Instant,
 }
@@ -26,8 +27,13 @@ impl BeatmapList {
       event_bus,
       beatmap_cards,
       prev_selected: 0,
+      scroll_to_selected: false,
       last_update: Instant::now(),
     };
+  }
+
+  pub fn scroll_to_selected(&mut self) {
+    self.scroll_to_selected = true;
   }
 
   pub fn prepare(&mut self, ui: &mut egui::Ui, beatmap_cache: &BeatmapCache, selector: &mut BeatmapSelector) {
@@ -150,8 +156,11 @@ impl BeatmapList {
               }
 
               let selected_idx = selector.selected();
-              if self.prev_selected != selected_idx {
+              if self.prev_selected != selected_idx || self.scroll_to_selected {
                 self.prev_selected = selected_idx;
+                if self.scroll_to_selected {
+                  self.scroll_to_selected = false;
+                }
 
                 let mut height = 0.0;
                 for idx in selector.matched() {

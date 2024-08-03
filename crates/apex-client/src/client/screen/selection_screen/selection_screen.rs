@@ -47,6 +47,10 @@ impl SelectionScreen {
     self.beatmap_selection.prepare(core, beatmap_cache, score_cache, &mut self.beatmap_selector, clock);
   }
 
+  pub fn scroll_to_selected(&mut self) {
+    self.beatmap_selection.scroll_to_selected();
+  }
+
   pub fn scale(&mut self, scale_factor: f64) {
     self.beatmap_selection.scale(scale_factor);
   }

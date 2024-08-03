@@ -14,6 +14,7 @@ impl Action<Client> for ClearQuery {
     match client.game_state {
       GameState::Selection => {
         client.selection_screen.beatmap_selector_mut().clear_query();
+        client.selection_screen.scroll_to_selected();
       }
 
       _ => {}

@@ -76,6 +76,10 @@ impl BeatmapSelectionView {
     self.beatmap_preview.scale(scale_factor);
   }
 
+  pub fn scroll_to_selected(&mut self) {
+    self.beatmap_list.scroll_to_selected();
+  }
+
   pub fn prepare(
     &mut self,
     core: &mut Core<Client>,

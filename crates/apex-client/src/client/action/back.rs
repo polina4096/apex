@@ -15,6 +15,7 @@ impl Action<Client> for Back {
       GameState::Selection => {
         if client.selection_screen.beatmap_selector().has_query() {
           client.selection_screen.beatmap_selector_mut().clear_query();
+          client.selection_screen.scroll_to_selected();
         } else {
           core.exit();
         }
