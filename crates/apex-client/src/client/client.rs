@@ -101,6 +101,8 @@ impl App for Client {
       },
     );
 
+    self.debug_screen.prepare(core);
+
     match self.game_state {
       GameState::Selection => {
         self
@@ -131,7 +133,7 @@ impl App for Client {
       }
     }
 
-    core.egui_ctx.end_frame(&core.graphics, encoder);
+    core.egui_ctx.end_frame(&core.window, &core.graphics, encoder);
   }
 
   fn render<'rpass>(&'rpass self, core: &'rpass mut Core<Self>, rpass: &mut wgpu::RenderPass<'rpass>) {

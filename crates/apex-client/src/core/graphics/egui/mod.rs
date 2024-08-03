@@ -41,6 +41,10 @@ impl EguiContext {
     let image_loader = Arc::new(BackgroundImageLoader::new(ctx.clone()));
     ctx.add_image_loader(image_loader.clone());
 
+    ctx.options_mut(|options| {
+      options.zoom_with_keyboard = false;
+    });
+
     ctx.style_mut(|style| {
       style.interaction.selectable_labels = false;
     });
@@ -65,8 +69,11 @@ impl EguiContext {
     self.winit_state.egui_ctx().begin_frame(new_input);
   }
 
-  pub fn end_frame(&mut self, graphics: &Graphics, encoder: &mut wgpu::CommandEncoder) {
+  pub fn end_frame(&mut self, window: &Window, graphics: &Graphics, encoder: &mut wgpu::CommandEncoder) {
     let egui_output = self.winit_state.egui_ctx().end_frame();
+
+    // Handle platform interactions
+    self.winit_state.handle_platform_output(window, egui_output.platform_output);
 
     // Free textures
     for id in &egui_output.textures_delta.free {
@@ -79,7 +86,7 @@ impl EguiContext {
     }
 
     // Generate vertices and render commands
-    #[rustfmt::skip] let clipped_primitives = self.winit_state.egui_ctx().tessellate(egui_output.shapes, self.screen_desc.pixels_per_point);
+    #[rustfmt::skip] let clipped_primitives = self.winit_state.egui_ctx().tessellate(egui_output.shapes, egui_output.pixels_per_point);
     #[rustfmt::skip] let commands = self.renderer.update_buffers(&graphics.device, &graphics.queue, encoder, &clipped_primitives, &self.screen_desc);
 
     self.clipped_primitives = clipped_primitives;
