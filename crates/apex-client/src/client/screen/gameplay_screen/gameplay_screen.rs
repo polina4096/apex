@@ -5,12 +5,7 @@ use std::{
 };
 
 use jiff::Timestamp;
-use rodio::{
-  buffer::SamplesBuffer,
-  cpal::{ChannelCount, SampleRate},
-  source::UniformSourceIterator,
-  Decoder, DeviceTrait, Source as _,
-};
+use rodio::{source::UniformSourceIterator, Decoder, DeviceTrait, Source as _};
 use tap::Tap;
 
 use crate::{
@@ -31,7 +26,7 @@ use crate::{
     },
   },
   core::{
-    audio::{audio_engine::AudioEngine, audio_mixer::AudioController},
+    audio::{arc_buffer::ArcSamplesBuffer, audio_engine::AudioEngine, audio_mixer::AudioController},
     core::Core,
     event::EventBus,
     graphics::{color::Color, drawable::Drawable, graphics::Graphics},
@@ -47,10 +42,8 @@ pub struct GameplayScreen {
   ingame_overlay: IngameOverlayView,
   break_overlay: BreakOverlayView,
 
-  channels: ChannelCount,
-  sample_rate: SampleRate,
-  don_hitsound: Vec<f32>,
-  kat_hitsound: Vec<f32>,
+  don_hitsound: ArcSamplesBuffer<f32>,
+  kat_hitsound: ArcSamplesBuffer<f32>,
 
   beatmap_path: PathBuf,
   play_date: Timestamp,
@@ -106,11 +99,11 @@ impl GameplayScreen {
 
     let source = Decoder::new(BufReader::new(File::open("./assets/red.wav").unwrap())).unwrap();
     let source = UniformSourceIterator::new(source, config.channels(), config.sample_rate().0);
-    let don_hitsound = source.collect::<Vec<_>>();
+    let don_hitsound = ArcSamplesBuffer::<f32>::new(channels, sample_rate.0, source.collect::<Vec<_>>());
 
     let source = Decoder::new(BufReader::new(File::open("./assets/blue.wav").unwrap())).unwrap();
     let source = UniformSourceIterator::new(source, config.channels(), config.sample_rate().0);
-    let kat_hitsound = source.collect::<Vec<_>>();
+    let kat_hitsound = ArcSamplesBuffer::<f32>::new(channels, sample_rate.0, source.collect::<Vec<_>>());
 
     return Self {
       event_bus,
@@ -120,8 +113,6 @@ impl GameplayScreen {
       ingame_overlay,
       break_overlay,
 
-      channels,
-      sample_rate,
       don_hitsound,
       kat_hitsound,
 
@@ -144,15 +135,11 @@ impl GameplayScreen {
 
     match input {
       TaikoPlayerInput::DonOne | TaikoPlayerInput::DonTwo => {
-        let source = SamplesBuffer::<f32>::new(self.channels, self.sample_rate.0, self.don_hitsound.clone());
-
-        self.audio_controller.play_sound(source);
+        self.audio_controller.play_sound(self.don_hitsound.clone());
       }
 
       TaikoPlayerInput::KatOne | TaikoPlayerInput::KatTwo => {
-        let source = SamplesBuffer::<f32>::new(self.channels, self.sample_rate.0, self.kat_hitsound.clone());
-
-        self.audio_controller.play_sound(source);
+        self.audio_controller.play_sound(self.kat_hitsound.clone());
       }
     }
 

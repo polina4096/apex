@@ -1,5 +1,6 @@
 use rodio::{cpal::traits::HostTrait as _, OutputStream, OutputStreamHandle, StreamError};
 
+pub mod arc_buffer;
 pub mod audio_engine;
 pub mod audio_mixer;
 
