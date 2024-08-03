@@ -1,10 +1,6 @@
-use std::hash::BuildHasherDefault;
-
-use ahash::AHashMap;
-use egui::Widget;
+use egui::{NumExt as _, Widget};
 use instant::Instant;
 use log::debug;
-use nohash_hasher::{BuildNoHashHasher, NoHashHasher};
 
 use crate::{
   client::{
@@ -19,7 +15,6 @@ use super::beatmap_card::BeatmapCard;
 pub struct BeatmapList {
   event_bus: EventBus<ClientEvent>,
   beatmap_cards: Vec<BeatmapCard>,
-  response_cache: AHashMap<usize, egui::Response, BuildHasherDefault<NoHashHasher<usize>>>,
   prev_selected: usize,
 
   last_update: Instant,
@@ -31,7 +26,6 @@ impl BeatmapList {
       event_bus,
       beatmap_cards,
       prev_selected: 0,
-      response_cache: AHashMap::with_hasher(BuildNoHashHasher::<usize>::default()),
       last_update: Instant::now(),
     };
   }
@@ -88,56 +82,94 @@ impl BeatmapList {
               .ui(ui);
           });
 
+        let total_rows = selector.matched().count();
+        let row_height_sans_spacing = 72.0;
+
+        let spacing = ui.spacing().item_spacing;
+        let row_height_with_spacing = row_height_sans_spacing + spacing.y;
+
         egui::ScrollArea::vertical()
           .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)
-          .show(ui, |ui| {
-            ui.add_space(54.0);
+          .show_viewport(ui, |ui, viewport| {
+            ui.set_height((row_height_with_spacing * total_rows as f32 - spacing.y).at_least(0.0));
 
-            let mut new_selected = None;
-            let selected_idx = selector.selected();
-
-            for orig_idx in selector.matched() {
-              let card = &mut self.beatmap_cards[orig_idx];
-              let (path, _) = beatmap_cache.get_index(orig_idx).unwrap();
-
-              ui.push_id(orig_idx, |ui| {
-                let is_selected = orig_idx == selected_idx;
-                let response = card.prepare(ui, is_selected, path, &self.event_bus);
-                let sense = response.interact(egui::Sense::click());
-                self.response_cache.insert(orig_idx, response);
-
-                let clicked_secondary = sense.clicked_by(egui::PointerButton::Secondary);
-
-                if clicked_secondary {
-                  self.prev_selected = orig_idx;
-                }
-
-                if sense.clicked() || clicked_secondary {
-                  new_selected = Some(orig_idx);
-
-                  self.event_bus.send(ClientEvent::SelectBeatmap);
-
-                  if is_selected && !clicked_secondary {
-                    self.event_bus.send(ClientEvent::PickBeatmap { path: path.clone() });
-                  }
-                }
-              });
+            let mut min_row = (viewport.min.y / row_height_with_spacing).floor() as usize;
+            let mut max_row = (viewport.max.y / row_height_with_spacing).ceil() as usize + 1;
+            if max_row > total_rows {
+              let diff = max_row.saturating_sub(min_row);
+              max_row = total_rows;
+              min_row = total_rows.saturating_sub(diff);
             }
 
-            if let Some(new_selected) = new_selected {
-              selector.set_selected(new_selected);
-            }
+            let y_min = ui.max_rect().top() + min_row as f32 * row_height_with_spacing;
+            let y_max = ui.max_rect().top() + max_row as f32 * row_height_with_spacing;
 
-            let selected_idx = selector.selected();
-            if self.prev_selected != selected_idx {
-              self.prev_selected = selected_idx;
+            let rect = egui::Rect::from_x_y_ranges(ui.max_rect().x_range(), y_min - 54.0 ..= y_max);
 
-              if let Some(response) = self.response_cache.get(&selected_idx) {
-                response.scroll_to_me(Some(egui::Align::Center));
+            ui.allocate_ui_at_rect(rect, |ui| {
+              ui.skip_ahead_auto_ids(min_row);
+
+              if min_row == 0 {
+                ui.add_space(54.0 + 54.0);
+              } else {
+                ui.add_space(32.0);
               }
-            }
 
-            ui.add_space(4.0);
+              let mut new_selected = None;
+              let selected_idx = selector.selected();
+
+              for orig_idx in selector.matched().skip(if min_row == 0 { min_row } else { min_row - 1 }).take(max_row) {
+                let card = &mut self.beatmap_cards[orig_idx];
+                let (path, _) = beatmap_cache.get_index(orig_idx).unwrap();
+
+                ui.push_id(orig_idx, |ui| {
+                  let is_selected = orig_idx == selected_idx;
+                  let response = card.prepare(ui, is_selected, path, &self.event_bus);
+                  let sense = response.interact(egui::Sense::click());
+
+                  let clicked_secondary = sense.clicked_by(egui::PointerButton::Secondary);
+
+                  if clicked_secondary {
+                    self.prev_selected = orig_idx;
+                  }
+
+                  if sense.clicked() || clicked_secondary {
+                    new_selected = Some(orig_idx);
+
+                    self.event_bus.send(ClientEvent::SelectBeatmap);
+
+                    if is_selected && !clicked_secondary {
+                      self.event_bus.send(ClientEvent::PickBeatmap { path: path.clone() });
+                    }
+                  }
+                });
+              }
+
+              if let Some(new_selected) = new_selected {
+                selector.set_selected(new_selected);
+              }
+
+              let selected_idx = selector.selected();
+              if self.prev_selected != selected_idx {
+                self.prev_selected = selected_idx;
+
+                let mut height = 0.0;
+                for idx in selector.matched() {
+                  if idx == selected_idx {
+                    break;
+                  }
+
+                  height += row_height_with_spacing;
+                }
+
+                let screen_center_offset_y = viewport.height() / 2.0;
+                let delta_y = viewport.top() - height + screen_center_offset_y - row_height_with_spacing;
+
+                ui.scroll_with_delta(egui::vec2(0.0, delta_y));
+              }
+
+              ui.add_space(4.0);
+            });
           });
       });
   }
