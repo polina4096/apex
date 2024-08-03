@@ -10,6 +10,9 @@ crate-type = ["cdylib", "rlib"]
 workspace = true
 
 [dependencies]
+# OS
+atty = "0.2.14"
+
 # Logging
 log = "0.4.22"
 pretty_env_logger = "0.5.0"
