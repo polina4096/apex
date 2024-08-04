@@ -127,9 +127,7 @@ impl BeatmapPreview {
   ) {
     let hit_pos = PREVIEW_HEIGHT as f32 / 2.0;
 
-    egui::Frame::canvas(ui.style())
-      .outer_margin(egui::Margin::symmetric(12.0, 0.0))
-      // .inner_margin(egui::Margin::ZERO)
+    egui::Frame::canvas(ui.style()) //
       .rounding(6.0)
       .show(ui, |ui| {
         let time = clock.position();

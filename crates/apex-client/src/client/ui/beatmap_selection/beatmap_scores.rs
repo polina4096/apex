@@ -28,13 +28,7 @@ impl BeatmapScores {
 
   pub fn prepare(&mut self, ui: &mut egui::Ui, score_cache: &ScoreCache, score_ids: &[ScoreId], path: &Path) {
     egui::Frame::window(ui.style())
-      .outer_margin(egui::Margin {
-        left: 12.0,
-        right: 12.0,
-        top: 6.0,
-        bottom: 0.0,
-      })
-      .inner_margin(egui::Margin::symmetric(12.0, 8.0))
+      .inner_margin(egui::Margin::symmetric(12.0, 8.0).tap_mut(|x| x.right += 12.0))
       .show(ui, |ui| {
         ui.set_width(ui.available_width().min(512.0 + 32.0));
         ui.horizontal(|ui| {
@@ -52,35 +46,27 @@ impl BeatmapScores {
         });
       });
 
-    egui::Frame::none()
-      .outer_margin(egui::Margin {
-        left: 0.0,
-        right: 12.0,
-        top: 0.0,
-        bottom: 0.0,
-      })
-      .inner_margin(egui::Margin::symmetric(0.0, 0.0))
-      .show(ui, |ui| {
-        egui::ScrollArea::vertical().max_height(ui.available_height() - 71.0).show(ui, |ui| {
-          ui.add_space(4.0);
+    egui::Frame::none().inner_margin(egui::Margin::symmetric(0.0, 0.0)).show(ui, |ui| {
+      egui::ScrollArea::vertical().max_height(ui.available_height() - 71.0).show(ui, |ui| {
+        ui.add_space(4.0);
 
-          let mut sorted = score_ids.iter().copied().map(|id| (id, score_cache.score_details(id))).collect::<Vec<_>>();
-          sorted.sort_unstable_by_key(|b| std::cmp::Reverse(b.1.score_points()));
+        let mut sorted = score_ids.iter().copied().map(|id| (id, score_cache.score_details(id))).collect::<Vec<_>>();
+        sorted.sort_unstable_by_key(|b| std::cmp::Reverse(b.1.score_points()));
 
-          for (i, (score_id, score)) in sorted.iter().copied().enumerate() {
-            write!(&mut self.buffer, "{}", i + 1).unwrap();
-            if render_score(ui, score, &self.buffer).clicked() {
-              self.event_bus.send(ClientEvent::ViewScore {
-                path: path.to_owned(),
-                score_id: score_id,
-              });
-            }
-            self.buffer.clear();
-
-            ui.add_space(4.0);
+        for (i, (score_id, score)) in sorted.iter().copied().enumerate() {
+          write!(&mut self.buffer, "{}", i + 1).unwrap();
+          if render_score(ui, score, &self.buffer).clicked() {
+            self.event_bus.send(ClientEvent::ViewScore {
+              path: path.to_owned(),
+              score_id: score_id,
+            });
           }
-        });
+          self.buffer.clear();
+
+          ui.add_space(4.0);
+        }
       });
+    });
   }
 }
 
@@ -153,7 +139,7 @@ fn render_score(ui: &mut egui::Ui, score: &Score, idx: &str) -> egui::Response {
 
                         ui.label(egui::RichText::new(text).weak().size(14.0));
 
-                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Max), |ui| {
                           ui.label(egui::RichText::new(format!("{}x", score.max_combo())).size(14.0));
                           ui.label(egui::RichText::new("∙").size(14.0));
                           ui.label(egui::RichText::new(format!("{:.2}%", score.accuracy() * 100.0)).size(14.0));

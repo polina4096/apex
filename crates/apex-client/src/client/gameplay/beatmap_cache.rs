@@ -9,7 +9,7 @@ use log::warn;
 
 use crate::core::time::time::Time;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct BeatmapInfo {
   pub title: String,
   pub artist: String,

@@ -32,8 +32,12 @@ impl BeatmapCard {
   ) -> egui::Response {
     self.card.selected = selected;
 
-    let card = self.card.prepare(ui, |ui| {
-      egui::Label::new(self.title.clone()).ui(ui);
+    let card = self.card.prepare(ui, 64.0, |ui| {
+      egui::Frame::none() //
+        .inner_margin(egui::Margin::same(8.0))
+        .show(ui, |ui| {
+          egui::Label::new(self.title.clone()).ui(ui);
+        });
     });
 
     if card.hovered() {

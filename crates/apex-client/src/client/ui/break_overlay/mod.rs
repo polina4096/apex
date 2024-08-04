@@ -18,10 +18,7 @@ impl BreakOverlayView {
     break_leniency_start: Time,
     break_leniency_end: Time,
   ) {
-    let frame = egui::Frame::none() //
-      .inner_margin(egui::Margin::ZERO);
-
-    egui::CentralPanel::default().frame(frame).show(core.egui_ctx(), |ui| {
+    egui::CentralPanel::default().frame(egui::Frame::none()).show(core.egui_ctx(), |ui| {
       // Start a break this much later to not distract the player
       if time > Time::zero() && time - break_leniency_start < break_point.start {
         return;

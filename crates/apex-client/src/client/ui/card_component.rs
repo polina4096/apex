@@ -13,7 +13,7 @@ impl CardComponent {
     return Self { selected, image };
   }
 
-  pub fn prepare(&mut self, ui: &mut egui::Ui, inner: impl FnOnce(&mut egui::Ui)) -> egui::Response {
+  pub fn prepare(&mut self, ui: &mut egui::Ui, height: f32, inner: impl FnOnce(&mut egui::Ui)) -> egui::Response {
     return ui
       .with_layout(egui::Layout::top_down_justified(egui::Align::Min), |ui| {
         egui::Frame::window(ui.style())
@@ -25,7 +25,7 @@ impl CardComponent {
           })
           .outer_margin(egui::Margin { bottom: 6.0, ..Default::default() })
           .show(ui, |ui| {
-            ui.set_height(64.0);
+            ui.set_height(height);
 
             // Safety: replace_with on a budget.
             //
@@ -66,9 +66,7 @@ impl CardComponent {
               }
             }
 
-            egui::Frame::none().inner_margin(egui::Margin::same(8.0)).show(ui, |ui| {
-              inner(ui);
-            });
+            inner(ui);
           });
       })
       .response;

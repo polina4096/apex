@@ -123,13 +123,16 @@ impl BeatmapSelectionView {
           .size(Size::relative(0.4))
           .horizontal(|mut builder| {
             builder.cell(|ui| {
-              // let max_width = ui.available_width();
-              // ui.set_width(max_width.min(640.0));
-
               ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
-                self.beatmap_stats.prepare(ui, info);
-                self.beatmap_preview.prepare(ui, clock, &mut core.egui_ctx.renderer);
-                self.beatmap_scores.prepare(ui, score_cache, &self.score_ids, path);
+                egui::Frame::none() //
+                  .inner_margin(egui::Margin::same(12.0))
+                  .show(ui, |ui| {
+                    self.beatmap_stats.prepare(ui, info);
+                    ui.add_space(8.0);
+                    self.beatmap_preview.prepare(ui, clock, &mut core.egui_ctx.renderer);
+                    ui.add_space(8.0);
+                    self.beatmap_scores.prepare(ui, score_cache, &self.score_ids, path);
+                  });
               });
 
               ui.with_layout(egui::Layout::left_to_right(egui::Align::Max), |ui| {

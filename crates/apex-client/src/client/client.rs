@@ -129,7 +129,7 @@ impl App for Client {
       }
 
       GameState::Results => {
-        self.result_screen.prepare(core, settings, &self.beatmap_cache, &self.score_cache);
+        self.result_screen.prepare(core, &self.beatmap_cache, &self.score_cache);
       }
     }
 
@@ -192,7 +192,7 @@ impl Client {
     let score_cache = ScoreCache::new(conn);
 
     #[rustfmt::skip] let selection_screen = SelectionScreen::new(event_bus.clone(), &beatmap_cache, &mut audio_engine, &core.graphics, &mut core.egui_ctx, settings);
-    #[rustfmt::skip] let result_screen = ResultScreen::new(event_bus.clone(), &beatmap_cache, &PathBuf::new());
+    #[rustfmt::skip] let result_screen = ResultScreen::new(event_bus.clone());
     #[rustfmt::skip] let gameplay_screen = GameplayScreen::new(event_bus.clone(), &core.graphics, &audio_engine, audio_controller.clone(), settings);
     #[rustfmt::skip] let settings_screen = SettingsScreen::new();
     #[rustfmt::skip] let recording_screen = RecordingScreen::new();
