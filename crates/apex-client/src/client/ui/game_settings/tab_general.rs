@@ -24,6 +24,7 @@ impl GameSettingsView {
       .body(|mut body| {
         self.audio_category(&mut body, text_height, settings, proxy);
         self.graphics_category(&mut body, text_height, settings, proxy);
+        self.profile_category(&mut body, text_height, settings, proxy);
         self.gameplay_category(&mut body, text_height, settings, proxy);
         self.taiko_category(&mut body, text_height, settings, proxy);
       });
@@ -198,6 +199,38 @@ impl GameSettingsView {
           settings.graphics.set_frame_limiter(prev, proxy);
           settings.graphics.set_macos_stutter_fix(value, proxy);
         }
+      });
+    });
+  }
+
+  fn profile_category(
+    &mut self,
+    body: &mut egui_extras::TableBody,
+    text_height: f32,
+    settings: &mut Settings,
+    proxy: &mut impl SettingsProxy,
+  ) {
+    body.row(text_height + 8.0, |mut row| {
+      row.col(|ui| {
+        let text = egui::RichText::new("Profile").strong().heading();
+        egui::Label::new(text).ui(ui);
+      });
+
+      row.col(|_| {});
+    });
+
+    body.row(text_height, |mut row| {
+      row.col(|ui| {
+        ui.label("Username");
+      });
+
+      row.col(|ui| {
+        self.buffer.clone_from(settings.profile.borrowed_username());
+        if egui::TextEdit::singleline(&mut self.buffer).desired_width(256.0).ui(ui).changed() {
+          settings.profile.set_borrowed_username(&self.buffer, proxy);
+        }
+
+        self.buffer.clear();
       });
     });
   }

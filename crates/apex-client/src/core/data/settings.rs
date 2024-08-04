@@ -1,4 +1,59 @@
 #[macro_export]
+macro_rules! settings_ref_ty_helper {
+  (, $type:ty) => {
+    $type
+  };
+
+  ($borrowed_ty:ty, $type:ty) => {
+    $borrowed_ty
+  };
+}
+
+#[macro_export]
+macro_rules! settings_ref_borrowed_ty_helper {
+  (, $type:ty) => {
+    $type
+  };
+
+  ($borrowed_ty:ty, $type:ty) => {
+    &$type
+  };
+}
+
+#[macro_export]
+macro_rules! settings_ref_borrow_helper {
+  (, $e:expr) => {
+    $e
+  };
+
+  ($borrowed_ty:ty, $e:expr) => {
+    &$e
+  };
+}
+
+#[macro_export]
+macro_rules! settings_ref_borrowed_setter_helper {
+  (, $place:expr, $value:expr) => {
+    $place = $value;
+  };
+
+  ($borrowed_ty:ty, $place:expr, $value:expr) => {
+    $place.clone_from($value);
+  };
+}
+
+#[macro_export]
+macro_rules! settings_ref_setter_helper {
+  (, $place:expr, $value:expr) => {
+    $place = $value;
+  };
+
+  ($borrowed_ty:ty, $place:expr, $value:expr) => {
+    $place = $value.to_owned();
+  };
+}
+
+#[macro_export]
 macro_rules! settings {
   (
     $(
@@ -6,7 +61,7 @@ macro_rules! settings {
       $category:ident {
         $(
           $(#[$($attrs_setting:tt)*])*
-          $setting:ident: $type:ty = $default_value:expr
+          $setting:ident: $type:ty $(as $borrowed_ty:ty)? = $default_value:expr,
         )+
       }
     )+
@@ -37,17 +92,30 @@ macro_rules! settings {
 
         impl [<$category:camel Settings>] {
           $(
-            pub fn $setting(&self) -> $type {
-              return self.$setting;
+            pub fn $setting(&self) -> $crate::settings_ref_ty_helper!($($borrowed_ty)?, $type) {
+              return $crate::settings_ref_borrow_helper!($($borrowed_ty)?, self.$setting);
             }
 
-            pub fn [<set_ $setting>](&mut self, value: $type, proxy: &mut impl SettingsProxy) {
-              self.$setting = value;
-              proxy.[<update_ $category _ $setting>](value);
+            pub fn [<set_ $setting>](&mut self, value: $crate::settings_ref_ty_helper!($($borrowed_ty)?, $type), proxy: &mut impl SettingsProxy) {
+              $crate::settings_ref_setter_helper!($($borrowed_ty)?, self.$setting, value);
+              proxy.[<update_ $category _ $setting>]($crate::settings_ref_borrow_helper!($($borrowed_ty)?, self.$setting));
+            }
+
+            pub fn [<borrowed_ $setting>](&self) -> $crate::settings_ref_borrowed_ty_helper!($($borrowed_ty)?, $type) {
+              return $crate::settings_ref_borrow_helper!($($borrowed_ty)?, self.$setting);
+            }
+
+            pub fn [<set_borrowed_ $setting>](&mut self, value: $crate::settings_ref_borrowed_ty_helper!($($borrowed_ty)?, $type), proxy: &mut impl SettingsProxy) {
+              $crate::settings_ref_borrowed_setter_helper!($($borrowed_ty)?, self.$setting, value);
+              proxy.[<update_ $category _ $setting>]($crate::settings_ref_borrow_helper!($($borrowed_ty)?, self.$setting));
             }
           )+
         }
       )+
+
+      pub trait SettingsProxy {
+        $($(fn [<update_ $category _ $setting>](&mut self, _value: $crate::settings_ref_ty_helper!($($borrowed_ty)?, $type)) {})+)+
+      }
 
       impl Default for Settings {
         fn default() -> Self {
@@ -114,10 +182,6 @@ macro_rules! settings {
           let path = path.as_ref().canonicalize().unwrap_or(path.as_ref().to_owned());
           log::info!("Settings successfully written to `{}`", path.display());
         }
-      }
-
-      pub trait SettingsProxy {
-        $($(fn [<update_ $category _ $setting>](&mut self, _value: $type) {})+)+
       }
     }
   };

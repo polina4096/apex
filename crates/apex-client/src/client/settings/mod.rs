@@ -11,13 +11,13 @@ use crate::{
 settings! {
   audio {
     /// Master volume
-    master_volume: f32 = 0.25
+    master_volume: f32 = 0.25,
 
     /// Music volume
-    music_volume: f32 = 1.0
+    music_volume: f32 = 1.0,
 
     /// Effect volume
-    effect_volume: f32 = 1.0
+    effect_volume: f32 = 1.0,
   }
 
   graphics {
@@ -28,13 +28,13 @@ settings! {
       } else {
         FrameLimiterOptions::Unlimited
       }
-    }
+    },
 
     /// Graphics API presentation mode
-    present_mode: PresentModeOptions = PresentModeOptions::VSync
+    present_mode: PresentModeOptions = PresentModeOptions::VSync,
 
     /// Rendering backend to use
-    rendering_backend: RenderingBackend = RenderingBackend::Wgpu(WgpuBackend::Auto)
+    rendering_backend: RenderingBackend = RenderingBackend::Wgpu(WgpuBackend::Auto),
 
     /// Hints the GPU how many frames to buffer
     max_frame_latency: usize = {
@@ -43,43 +43,48 @@ settings! {
       } else {
         2
       }
-    }
+    },
 
     /// Fixes massive macOS game stutter when alt-tabbing occluded window
-    macos_stutter_fix: bool = true
+    macos_stutter_fix: bool = true,
+  }
+
+  profile {
+    /// Username
+    username: String as &str = String::from("player"),
   }
 
   gameplay {
     /// Offset of the audio in milliseconds
-    universal_offset: i64 = 0
+    universal_offset: i64 = 0,
 
     /// Additional time before the first note
-    lead_in: u64 = 1000
+    lead_in: u64 = 1000,
 
     /// Additional time after the last note
-    lead_out: u64 = 1000
+    lead_out: u64 = 1000,
   }
 
   taiko {
     /// Hit object distance multiplier
-    zoom: f64 = 0.215
+    zoom: f64 = 0.215,
 
     /// Gameplay scale
-    scale: f64 = 0.85
+    scale: f64 = 0.85,
 
     /// Hit position X
-    hit_position_x: f32 = 256.0
+    hit_position_x: f32 = 256.0,
 
     /// Hit position Y
-    hit_position_y: f32 = 192.0
+    hit_position_y: f32 = 192.0,
 
     /// Color of the don hit object
-    don_color: Color = Color::new(0.92, 0.00, 0.27, 1.00)
+    don_color: Color = Color::new(0.92, 0.00, 0.27, 1.00),
 
     /// Color of the kat hit object
-    kat_color: Color = Color::new(0.00, 0.47, 0.67, 1.00)
+    kat_color: Color = Color::new(0.00, 0.47, 0.67, 1.00),
 
     /// Hit animation
-    hit_animation: bool = true
+    hit_animation: bool = true,
   }
 }

@@ -1,4 +1,4 @@
-use egui::{ImageSource, Widget as _};
+use egui::ImageSource;
 use jiff::fmt::strtime;
 use tap::Tap;
 
@@ -14,10 +14,7 @@ use crate::{
   core::core::Core,
 };
 
-use super::{
-  background_component::BackgroundComponent, beatmap_selection::beatmap_stats::BeatmapStats,
-  card_component::CardComponent,
-};
+use super::{background_component::BackgroundComponent, beatmap_selection::beatmap_stats::BeatmapStats};
 
 pub struct PlayResultsView {
   background: BackgroundComponent,
@@ -103,7 +100,7 @@ impl PlayResultsView {
                 });
             });
 
-            strip.cell(|ui| {});
+            strip.empty();
           });
       });
     });

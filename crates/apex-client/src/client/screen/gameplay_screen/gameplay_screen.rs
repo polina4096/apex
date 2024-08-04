@@ -46,6 +46,8 @@ pub struct GameplayScreen {
   kat_hitsound: ArcSamplesBuffer<f32>,
 
   beatmap_path: PathBuf,
+
+  username: String,
   play_date: Timestamp,
 
   beatmap: Option<Beatmap>,
@@ -83,6 +85,8 @@ impl GameplayScreen {
     );
 
     let beatmap_path = PathBuf::new();
+
+    let username = String::from("player");
     let play_date = Timestamp::default();
 
     let beatmap = None;
@@ -117,6 +121,8 @@ impl GameplayScreen {
       kat_hitsound,
 
       beatmap_path,
+
+      username,
       play_date,
 
       beatmap,
@@ -150,12 +156,14 @@ impl GameplayScreen {
     });
   }
 
-  pub fn reset(&mut self, graphics: &Graphics, audio: &mut AudioEngine) {
+  pub fn reset(&mut self, graphics: &Graphics, audio: &mut AudioEngine, settings: &Settings) {
     self.taiko_renderer.restart_beatmap(&graphics.queue);
     self.player.reset();
 
     std::mem::take(&mut self.score_processor);
+
     self.play_date = Timestamp::now();
+    self.username = settings.profile.username().to_owned();
 
     let mut audio = self.audio.borrow(audio);
 
@@ -189,6 +197,8 @@ impl GameplayScreen {
     audio.set_length(end_time);
 
     self.beatmap = Some(beatmap);
+
+    self.username = settings.profile.username().to_owned();
     self.play_date = Timestamp::now();
 
     // audio.set_position(Time::zero() - audio.lead_in);
@@ -253,7 +263,7 @@ impl GameplayScreen {
     // delay after the last hit object before result screen
     if time >= audio.length() + audio.lead_out {
       let path = self.beatmap_path.clone();
-      let score = self.score_processor.export(self.play_date, "player".to_string());
+      let score = self.score_processor.export(self.play_date, self.username.clone());
       self.event_bus.send(ClientEvent::ShowResultScreen { path, score });
     }
 

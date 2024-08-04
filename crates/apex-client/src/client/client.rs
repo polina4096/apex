@@ -286,7 +286,7 @@ impl Client {
       }
 
       ClientEvent::RetryBeatmap => {
-        self.gameplay_screen.reset(&core.graphics, &mut self.audio_engine);
+        self.gameplay_screen.reset(&core.graphics, &mut self.audio_engine, settings);
       }
 
       ClientEvent::ToggleSettings => {
