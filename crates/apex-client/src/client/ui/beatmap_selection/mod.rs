@@ -6,6 +6,7 @@ use beatmap_list::BeatmapList;
 use beatmap_preview::BeatmapPreview;
 use beatmap_scores::BeatmapScores;
 use beatmap_stats::BeatmapStats;
+use tap::Tap;
 
 use crate::{
   client::{
@@ -125,7 +126,7 @@ impl BeatmapSelectionView {
             builder.cell(|ui| {
               ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
                 egui::Frame::none() //
-                  .inner_margin(egui::Margin::same(12.0))
+                  .inner_margin(egui::Margin::same(12.0).tap_mut(|x| x.bottom = 0.0))
                   .show(ui, |ui| {
                     self.beatmap_stats.prepare(ui, info);
                     ui.add_space(8.0);
