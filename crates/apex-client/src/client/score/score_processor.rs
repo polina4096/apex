@@ -1,12 +1,10 @@
 use jiff::Timestamp;
 
-use crate::client::ui::ingame_overlay::HitResult;
+use crate::{client::ui::ingame_overlay::HitResult, core::time::time::Time};
 
 use super::{grades::Grade, score::Score};
 
 pub struct ScoreProcessor {
-  events: Vec<ScoreProcessorEvent>,
-
   score_points: usize,
   result_300: usize,
   result_150: usize,
@@ -14,12 +12,14 @@ pub struct ScoreProcessor {
   curr_combo: usize,
   max_combo: usize,
   accuracy: f32,
+
+  hits: Vec<Time>,
 }
 
 impl Default for ScoreProcessor {
   fn default() -> Self {
     return Self {
-      events: Vec::new(),
+      hits: Vec::new(),
       score_points: 0,
       result_300: 0,
       result_150: 0,
@@ -32,8 +32,8 @@ impl Default for ScoreProcessor {
 }
 
 impl ScoreProcessor {
-  pub fn feed(&mut self, event: ScoreProcessorEvent) {
-    match event.result {
+  pub fn feed(&mut self, time: Time, result: HitResult) {
+    match result {
       HitResult::Hit300 => {
         self.result_300 += 1;
         self.curr_combo += 1;
@@ -59,7 +59,7 @@ impl ScoreProcessor {
     }
 
     self.accuracy = self.calc_accuracy();
-    self.events.push(event);
+    self.hits.push(time);
   }
 
   pub fn accuracy(&self) -> f32 {
@@ -106,10 +106,7 @@ impl ScoreProcessor {
       max_combo: self.max_combo,
       accuracy: self.accuracy,
       grade: Grade::from_osu_stable(self.result_300, self.result_150, self.result_miss),
+      hits: self.hits.clone(),
     };
   }
-}
-
-pub struct ScoreProcessorEvent {
-  pub result: HitResult,
 }

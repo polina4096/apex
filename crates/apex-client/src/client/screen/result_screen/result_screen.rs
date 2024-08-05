@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::{
   client::{
@@ -16,13 +16,14 @@ pub struct ResultScreen {
 }
 
 impl ResultScreen {
-  pub fn new(_event_bus: EventBus<ClientEvent>) -> Self {
-    let play_results = PlayResultsView::new("", BeatmapInfo::default(), ScoreId::default());
+  pub fn new(_event_bus: EventBus<ClientEvent>, score_cache: &ScoreCache) -> Self {
+    let play_results =
+      PlayResultsView::new("", PathBuf::new().as_path(), BeatmapInfo::default(), ScoreId::default(), score_cache);
 
     return Self { play_results };
   }
 
-  pub fn set_score(&mut self, beatmap_cache: &BeatmapCache, path: &Path, score: ScoreId) {
+  pub fn set_score(&mut self, beatmap_cache: &BeatmapCache, score_cache: &ScoreCache, path: &Path, score: ScoreId) {
     let Some(beatmap) = beatmap_cache.get(path) else {
       return;
     };
@@ -30,7 +31,7 @@ impl ResultScreen {
     let bg = path.parent().unwrap().join(&beatmap.bg_path);
     let bg = format!("file://{}", bg.to_str().unwrap());
 
-    self.play_results = PlayResultsView::new(bg, beatmap.clone(), score);
+    self.play_results = PlayResultsView::new(bg, path, beatmap.clone(), score, score_cache);
   }
 
   pub fn prepare(&mut self, core: &mut Core<Client>, _beatmap_cache: &BeatmapCache, score_cache: &ScoreCache) {

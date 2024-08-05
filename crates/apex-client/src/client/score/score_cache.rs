@@ -1,8 +1,12 @@
+use std::fmt::Write as _;
 use std::path::PathBuf;
 
 use ahash::AHashMap;
 use jiff::Timestamp;
 use rusqlite::Connection;
+use tap::Tap;
+
+use crate::core::time::time::Time;
 
 use super::{grades::Grade, score::Score};
 
@@ -37,7 +41,7 @@ impl ScoreCache {
            last_combo integer not null,
            max_combo integer not null,
            accuracy real not null,
-           grade integer not null
+           hits text not null
        )",
         (),
       )
@@ -56,25 +60,41 @@ impl ScoreCache {
       return self.cache.get(path).map(|x| x.as_slice());
     }
 
-    let mut stmt = self.conn.prepare(
-      "select date, username, score_points, result_300, result_150, result_miss, last_combo, max_combo, accuracy, grade
+    let mut stmt = self
+      .conn
+      .prepare(
+        "select date, username, score_points, result_300, result_150, result_miss, last_combo, max_combo, accuracy, hits
        from scores
-       where path = ?1"
-      ).unwrap();
+       where path = ?1",
+      )
+      .unwrap();
 
     let scores = stmt
       .query_map((path.to_str().unwrap(),), |row| {
+        let result_300 = row.get::<_, i64>(3).unwrap() as usize;
+        let result_150 = row.get::<_, i64>(4).unwrap() as usize;
+        let result_miss = row.get::<_, i64>(5).unwrap() as usize;
+
+        let hits = row
+          .get::<_, String>(9)
+          .unwrap()
+          .split(',')
+          .map(|x| x.parse::<i64>().unwrap())
+          .map(|x| Time::from_ms(x as f64))
+          .collect::<Vec<_>>();
+
         return Ok(Score {
           date: Timestamp::from_millisecond(row.get(0).unwrap()).unwrap(),
           username: row.get(1).unwrap(),
           score_points: row.get::<_, i64>(2).unwrap() as usize,
-          result_300: row.get::<_, i64>(3).unwrap() as usize,
-          result_150: row.get::<_, i64>(4).unwrap() as usize,
-          result_miss: row.get::<_, i64>(5).unwrap() as usize,
+          result_300,
+          result_150,
+          result_miss,
           last_combo: row.get::<_, i64>(6).unwrap() as usize,
           max_combo: row.get::<_, i64>(7).unwrap() as usize,
           accuracy: row.get::<_, f32>(8).unwrap(),
-          grade: Grade::from(row.get::<_, i64>(9).unwrap() as u8),
+          grade: Grade::from_osu_stable(result_300, result_150, result_miss),
+          hits,
         });
       })
       .unwrap();
@@ -99,7 +119,7 @@ impl ScoreCache {
     let id = ScoreId(self.scores.len());
 
     self.conn.execute(
-      "insert into scores (path, date, username, score_points, result_300, result_150, result_miss, last_combo, max_combo, accuracy, grade)
+      "insert into scores (path, date, username, score_points, result_300, result_150, result_miss, last_combo, max_combo, accuracy, hits)
        values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
        (
           path.to_str().unwrap(),
@@ -112,7 +132,12 @@ impl ScoreCache {
           score.last_combo() as i64,
           score.max_combo() as i64,
           score.accuracy() as f64,
-          score.grade() as i64,
+          score.hits().iter().map(|x| x.to_ms()).fold(String::new(), |mut acc, x| {
+            write!(&mut acc, "{},", x).unwrap();
+            return acc;
+          }).tap_mut(|x| {
+            x.pop();
+          }),
        )
     ).unwrap();
 

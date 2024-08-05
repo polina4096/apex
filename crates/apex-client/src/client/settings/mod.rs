@@ -8,6 +8,8 @@ use crate::{
   settings,
 };
 
+use super::score::score::Score;
+
 settings! {
   audio {
     /// Master volume
@@ -51,7 +53,7 @@ settings! {
 
   profile {
     /// Username
-    username: String as &str = String::from("player"),
+    username: String as &str = String::from(Score::DEFAULT_USERNAME),
   }
 
   gameplay {

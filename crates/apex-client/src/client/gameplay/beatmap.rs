@@ -52,7 +52,13 @@ pub struct Beatmap {
   pub audio: PathBuf,
 }
 
-pub enum BeatmapParseError {}
+pub fn calc_hit_window_150(od: f32) -> Time {
+  return Time::from_ms(if od <= 5.0 { 120.0 - 8.0 * od } else { 110.0 - 6.0 * od });
+}
+
+pub fn calc_hit_window_300(od: f32) -> Time {
+  return Time::from_ms(50.0 - 3.0 * od);
+}
 
 impl Beatmap {
   pub fn parse<T: AsRef<str>>(data: T) -> Self {

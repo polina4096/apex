@@ -18,7 +18,7 @@ use crate::{
       taiko_player::{TaikoPlayer, TaikoPlayerInput},
     },
     graphics::taiko_renderer::taiko_renderer::{TaikoRenderer, TaikoRendererConfig},
-    score::score_processor::{ScoreProcessor, ScoreProcessorEvent},
+    score::{score::Score, score_processor::ScoreProcessor},
     settings::Settings,
     ui::{
       break_overlay::BreakOverlayView,
@@ -86,7 +86,7 @@ impl GameplayScreen {
 
     let beatmap_path = PathBuf::new();
 
-    let username = String::from("player");
+    let username = String::from(Score::DEFAULT_USERNAME);
     let play_date = Timestamp::default();
 
     let beatmap = None;
@@ -149,11 +149,13 @@ impl GameplayScreen {
       }
     }
 
-    self.player.hit(time, input, beatmap, |result, idx| {
-      self.score_processor.feed(ScoreProcessorEvent { result });
-      self.taiko_renderer.set_hit(&graphics.queue, time, idx);
-      self.ingame_overlay.update_last_hit_result(result);
-    });
+    self
+      .player
+      .hit(time, input, beatmap.overall_difficulty, &beatmap.hit_objects, |result, idx, _delta| {
+        self.score_processor.feed(time, result);
+        self.taiko_renderer.set_hit(&graphics.queue, time, idx);
+        self.ingame_overlay.update_last_hit_result(result);
+      });
   }
 
   pub fn reset(&mut self, graphics: &Graphics, audio: &mut AudioEngine, settings: &Settings) {
@@ -268,8 +270,8 @@ impl GameplayScreen {
     }
 
     if let Some(beatmap) = &self.beatmap {
-      self.player.tick(time, beatmap, |_idx| {
-        self.score_processor.feed(ScoreProcessorEvent { result: HitResult::Miss });
+      self.player.tick(time, beatmap.overall_difficulty, &beatmap.hit_objects, |_idx| {
+        self.score_processor.feed(time, HitResult::Miss);
         self.ingame_overlay.update_last_hit_result(HitResult::Miss);
       });
     }

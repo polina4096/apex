@@ -192,7 +192,7 @@ impl Client {
     let score_cache = ScoreCache::new(conn);
 
     #[rustfmt::skip] let selection_screen = SelectionScreen::new(event_bus.clone(), &beatmap_cache, &mut audio_engine, &core.graphics, &mut core.egui_ctx, settings);
-    #[rustfmt::skip] let result_screen = ResultScreen::new(event_bus.clone());
+    #[rustfmt::skip] let result_screen = ResultScreen::new(event_bus.clone(), &score_cache);
     #[rustfmt::skip] let gameplay_screen = GameplayScreen::new(event_bus.clone(), &core.graphics, &audio_engine, audio_controller.clone(), settings);
     #[rustfmt::skip] let settings_screen = SettingsScreen::new();
     #[rustfmt::skip] let recording_screen = RecordingScreen::new();
@@ -295,13 +295,13 @@ impl Client {
 
       ClientEvent::ShowResultScreen { path, score } => {
         let score_id = self.score_cache.insert(path.clone(), score);
-        self.result_screen.set_score(&self.beatmap_cache, &path, score_id);
+        self.result_screen.set_score(&self.beatmap_cache, &self.score_cache, &path, score_id);
         self.selection_screen.update_scores(&mut self.score_cache, &path);
         self.game_state = GameState::Results;
       }
 
       ClientEvent::ViewScore { path, score_id } => {
-        self.result_screen.set_score(&self.beatmap_cache, &path, score_id);
+        self.result_screen.set_score(&self.beatmap_cache, &self.score_cache, &path, score_id);
         self.game_state = GameState::Results;
       }
 

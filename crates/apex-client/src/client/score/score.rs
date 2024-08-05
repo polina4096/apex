@@ -1,5 +1,7 @@
 use jiff::Timestamp;
 
+use crate::core::time::time::Time;
+
 use super::grades::Grade;
 
 #[derive(Debug)]
@@ -14,13 +16,14 @@ pub struct Score {
   pub(crate) max_combo: usize,
   pub(crate) accuracy: f32,
   pub(crate) grade: Grade,
+  pub(crate) hits: Vec<Time>,
 }
 
 impl Default for Score {
   fn default() -> Self {
     Self {
       date: Timestamp::default(),
-      username: String::from("player"),
+      username: String::from(Score::DEFAULT_USERNAME),
       score_points: 0,
       result_300: 0,
       result_150: 0,
@@ -29,11 +32,14 @@ impl Default for Score {
       max_combo: 0,
       accuracy: 0.0,
       grade: Grade::D,
+      hits: Vec::new(),
     }
   }
 }
 
 impl Score {
+  pub const DEFAULT_USERNAME: &'static str = "player";
+
   pub fn date(&self) -> Timestamp {
     return self.date;
   }
@@ -72,5 +78,9 @@ impl Score {
 
   pub fn grade(&self) -> Grade {
     return self.grade;
+  }
+
+  pub fn hits(&self) -> &[Time] {
+    return &self.hits;
   }
 }

@@ -2,7 +2,10 @@ use kiam::when;
 
 use crate::{client::ui::ingame_overlay::HitResult, core::time::time::Time};
 
-use super::{beatmap::Beatmap, taiko_hit_object::TaikoColor};
+use super::{
+  beatmap::{calc_hit_window_150, calc_hit_window_300},
+  taiko_hit_object::{TaikoColor, TaikoHitObject},
+};
 
 /// Player can hit a circle with either the inner or outer side of the drum, this
 /// enum represents exactly how the player hit the drum. See [`TaikoInput`] for
@@ -27,7 +30,7 @@ pub enum TaikoInput {
 
 /// Logcial actions that a player can perform while playing taiko.
 pub struct TaikoPlayer {
-  current_circle: usize,
+  pub current_circle: usize,
 }
 
 impl TaikoPlayer {
@@ -40,14 +43,17 @@ impl TaikoPlayer {
     self.current_circle = 0;
   }
 
-  pub fn tick(&mut self, curr_time: Time, beatmap: &Beatmap, mut on_miss: impl FnMut(usize)) {
-    let od = beatmap.overall_difficulty;
-    // let hit_window_300 = Time::from_ms(50.0 - 3.0 * od);
-    let hit_window_150 = Time::from_ms(if od <= 5.0 { 120.0 - 8.0 * od } else { 110.0 - 6.0 * od });
-    let tolerance = hit_window_150;
+  pub fn tick(
+    &mut self,
+    curr_time: Time,
+    overall_difficulty: f32,
+    hit_objects: &[TaikoHitObject],
+    mut on_miss: impl FnMut(usize),
+  ) {
+    let tolerance = calc_hit_window_150(overall_difficulty);
 
     // Skip unhit circles until we find the next circle that should be hit.
-    while let Some(circle) = beatmap.hit_objects.get(self.current_circle) {
+    while let Some(circle) = hit_objects.get(self.current_circle) {
       let time = circle.time.to_ms() + tolerance.to_ms();
       if time > curr_time.to_ms() {
         break;
@@ -62,16 +68,16 @@ impl TaikoPlayer {
     &mut self,
     hit_time: Time,
     input: TaikoPlayerInput,
-    beatmap: &Beatmap,
-    on_hit: impl FnOnce(HitResult, usize),
+    overall_difficulty: f32,
+    hit_objects: &[TaikoHitObject],
+    on_hit: impl FnOnce(HitResult, usize, i64),
   ) {
-    let od = beatmap.overall_difficulty;
-    let hit_window_300 = Time::from_ms(50.0 - 3.0 * od);
-    let hit_window_150 = Time::from_ms(if od <= 5.0 { 120.0 - 8.0 * od } else { 110.0 - 6.0 * od });
+    let hit_window_300 = calc_hit_window_300(overall_difficulty);
+    let hit_window_150 = calc_hit_window_150(overall_difficulty);
     let tolerance = hit_window_150;
 
     // Check if the hit was within the hit window of the current circle.
-    if let Some(circle) = beatmap.hit_objects.get(self.current_circle) {
+    if let Some(circle) = hit_objects.get(self.current_circle) {
       let time = circle.time.to_ms();
       let hit_delta = time - hit_time.to_ms();
 
@@ -88,15 +94,15 @@ impl TaikoPlayer {
 
         when! {
           hit_delta.abs() < hit_window_300.to_ms() => {
-            on_hit(HitResult::Hit300, self.current_circle);
+            on_hit(HitResult::Hit300, self.current_circle, hit_delta);
           },
 
           hit_delta.abs() < hit_window_150.to_ms() => {
-            on_hit(HitResult::Hit150, self.current_circle);
+            on_hit(HitResult::Hit150, self.current_circle, hit_delta);
           },
 
           _ => {
-            on_hit(HitResult::Miss, self.current_circle);
+            on_hit(HitResult::Miss, self.current_circle, hit_delta);
           }
         }
       }
