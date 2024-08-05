@@ -2,22 +2,17 @@ use instant::Instant;
 
 use crate::{
   client::{
-    client::Client, gameplay::taiko_player::TaikoPlayerInput, score::score_processor::ScoreProcessor,
+    client::Client,
+    gameplay::taiko_player::TaikoInput,
+    score::{judgement_processor::Judgement, score_processor::ScoreProcessor},
     settings::Settings,
   },
   core::{core::Core, time::clock::AbstractClock},
 };
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum HitResult {
-  Hit300,
-  Hit150,
-  Miss,
-}
-
 pub struct IngameOverlayView {
   last_hit_result_time: Instant,
-  last_hit_result_kind: HitResult,
+  last_hit_result_kind: Judgement,
 
   last_hit_kat_one: Instant,
   last_hit_kat_two: Instant,
@@ -29,7 +24,7 @@ impl IngameOverlayView {
   pub fn new() -> Self {
     return Self {
       last_hit_result_time: Instant::now(),
-      last_hit_result_kind: HitResult::Miss,
+      last_hit_result_kind: Judgement::Miss,
 
       last_hit_kat_one: Instant::now(),
       last_hit_kat_two: Instant::now(),
@@ -38,29 +33,29 @@ impl IngameOverlayView {
     };
   }
 
-  pub fn update_last_hit_result(&mut self, result: HitResult) {
-    if result != HitResult::Hit300 {
+  pub fn update_last_hit_result(&mut self, result: Judgement) {
+    if result != Judgement::Hit300 {
       self.last_hit_result_time = Instant::now();
     }
 
     self.last_hit_result_kind = result;
   }
 
-  pub fn hit(&mut self, input: TaikoPlayerInput) {
+  pub fn hit(&mut self, input: TaikoInput) {
     match input {
-      TaikoPlayerInput::KatOne => {
+      TaikoInput::KatOne => {
         self.last_hit_kat_one = Instant::now();
       }
 
-      TaikoPlayerInput::KatTwo => {
+      TaikoInput::KatTwo => {
         self.last_hit_kat_two = Instant::now();
       }
 
-      TaikoPlayerInput::DonOne => {
+      TaikoInput::DonOne => {
         self.last_hit_don_one = Instant::now();
       }
 
-      TaikoPlayerInput::DonTwo => {
+      TaikoInput::DonTwo => {
         self.last_hit_don_two = Instant::now();
       }
     }
@@ -123,8 +118,8 @@ impl IngameOverlayView {
 
           #[rustfmt::skip]
           let color = match self.last_hit_result_kind {
-            HitResult::Hit150 => egui::Color32::from_rgba_unmultiplied( 60, 185, 255, value),
-            HitResult::Miss   => egui::Color32::from_rgba_unmultiplied(255,  20,  60, value),
+            Judgement::Hit150 => egui::Color32::from_rgba_unmultiplied( 60, 185, 255, value),
+            Judgement::Miss   => egui::Color32::from_rgba_unmultiplied(255,  20,  60, value),
 
             _ => { break 'a }
           };

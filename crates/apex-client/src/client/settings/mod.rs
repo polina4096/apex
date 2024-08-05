@@ -65,6 +65,12 @@ settings! {
 
     /// Additional time after the last note
     lead_out: u64 = 1000,
+
+    /// Additional time before a break overlay is show
+    break_leniency_start: u64 = 1000,
+
+    /// Break overlay is hidden this much earlier
+    break_leniency_end: u64 = 1000,
   }
 
   taiko {

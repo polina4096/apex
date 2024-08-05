@@ -17,7 +17,7 @@ use winit::{
 
 use crate::core::{
   app::App,
-  audio::{self, audio_engine::AudioEngine, audio_mixer::AudioController},
+  audio::{self, audio_engine::AudioEngine},
   core::Core,
   data::persistent::Persistent as _,
   event::EventBus,
@@ -32,6 +32,7 @@ use crate::core::{
 
 use super::{
   action::ClientAction,
+  audio::game_audio::GameAudio,
   event::ClientEvent,
   gameplay::beatmap_cache::{BeatmapCache, BeatmapInfo},
   score::score_cache::ScoreCache,
@@ -54,8 +55,7 @@ pub enum GameState {
 
 pub struct Client {
   pub(crate) input: Input<ClientAction>,
-  pub(crate) audio_engine: AudioEngine,
-  pub(crate) audio_controller: AudioController,
+  pub(crate) audio: GameAudio,
   pub(crate) event_bus: EventBus<ClientEvent>,
 
   pub(crate) game_state: GameState,
@@ -92,7 +92,7 @@ impl App for Client {
         proxy: &core.proxy,
 
         gameplay_screen: &mut self.gameplay_screen,
-        audio_controller: &mut self.audio_controller,
+        audio: &mut self.audio,
 
         device: &core.graphics.device,
         queue: &core.graphics.queue,
@@ -105,22 +105,18 @@ impl App for Client {
 
     match self.game_state {
       GameState::Selection => {
-        self
-          .selection_screen
-          .prepare(core, &self.beatmap_cache, &mut self.score_cache, &mut self.audio_engine);
+        self.selection_screen.prepare(core, &self.beatmap_cache, &mut self.score_cache, &mut self.audio);
       }
 
       GameState::Playing => {
-        self.gameplay_screen.prepare(core, &mut self.audio_engine, settings);
+        self.gameplay_screen.prepare(core, &mut self.audio, settings);
       }
 
       GameState::Paused => {
-        self.gameplay_screen.prepare(core, &mut self.audio_engine, settings);
+        self.gameplay_screen.prepare(core, &mut self.audio, settings);
         self.pause_screen.prepare(
           core,
-          &mut self.audio_engine,
-          &mut self.audio_controller,
-          &mut self.gameplay_screen,
+          &mut self.audio,
           &mut self.selection_screen,
           &self.beatmap_cache,
           &mut self.game_state,
@@ -157,11 +153,11 @@ impl App for Client {
   }
 
   fn resize(&mut self, core: &mut Core<Self>, size: winit::dpi::PhysicalSize<u32>) {
-    self.gameplay_screen.resize(&core.graphics.queue, size);
+    self.gameplay_screen.taiko_renderer().resize(&core.graphics.queue, size.width, size.height);
   }
 
   fn scale(&mut self, core: &mut Core<Self>, scale_factor: f64) {
-    self.gameplay_screen.scale(&core.graphics.queue, scale_factor);
+    self.gameplay_screen.taiko_renderer().scale(&core.graphics.queue, scale_factor);
     self.selection_screen.scale(scale_factor);
   }
 }
@@ -179,8 +175,10 @@ impl Client {
 
     let (m, a, s) = (settings.audio.master_volume(), settings.audio.music_volume(), settings.audio.effect_volume());
     let (audio_mixer, audio_controller) = audio::mixer(Empty::new(), m, a, s);
-    let mut audio_engine = AudioEngine::new();
-    audio_engine.set_source(audio_mixer);
+    let audio_engine = AudioEngine::new().tap_mut(|x| x.set_source(audio_mixer));
+    let mut audio = GameAudio::new(audio_engine, audio_controller)
+      .with_lead_in(Time::from_ms(settings.gameplay.lead_in() as f64))
+      .with_lead_out(Time::from_ms(settings.gameplay.lead_out() as f64));
 
     let game_state = GameState::Selection;
 
@@ -191,9 +189,9 @@ impl Client {
     let conn = Connection::open("./scores.db").unwrap();
     let score_cache = ScoreCache::new(conn);
 
-    #[rustfmt::skip] let selection_screen = SelectionScreen::new(event_bus.clone(), &beatmap_cache, &mut audio_engine, &core.graphics, &mut core.egui_ctx, settings);
+    #[rustfmt::skip] let selection_screen = SelectionScreen::new(event_bus.clone(), &beatmap_cache, &mut audio, &core.graphics, &mut core.egui_ctx, settings);
     #[rustfmt::skip] let result_screen = ResultScreen::new(event_bus.clone(), &score_cache);
-    #[rustfmt::skip] let gameplay_screen = GameplayScreen::new(event_bus.clone(), &core.graphics, &audio_engine, audio_controller.clone(), settings);
+    #[rustfmt::skip] let gameplay_screen = GameplayScreen::new(event_bus.clone(), &core.graphics, &audio, settings);
     #[rustfmt::skip] let settings_screen = SettingsScreen::new();
     #[rustfmt::skip] let recording_screen = RecordingScreen::new();
     #[rustfmt::skip] let pause_screen = PauseScreen::new(event_bus.clone());
@@ -204,8 +202,7 @@ impl Client {
 
     return Self {
       input,
-      audio_engine,
-      audio_controller,
+      audio,
       event_bus,
       game_state,
       prev_audio_path,
@@ -274,11 +271,11 @@ impl Client {
     self.input.state.modifiers = modifiers.state();
   }
 
-  pub fn dispatch(&mut self, core: &mut Core<Self>, settings: &mut Settings, event: ClientEvent) {
+  pub fn dispatch(&mut self, core: &mut Core<Self>, event: ClientEvent) {
     match event {
       ClientEvent::PickBeatmap { path } => {
         self.game_state = GameState::Playing;
-        self.gameplay_screen.play(&path, &core.graphics, &mut self.audio_engine, settings);
+        self.gameplay_screen.play(&path, &core.graphics, &mut self.audio);
       }
 
       ClientEvent::SelectBeatmap => {
@@ -286,7 +283,7 @@ impl Client {
       }
 
       ClientEvent::RetryBeatmap => {
-        self.gameplay_screen.reset(&core.graphics, &mut self.audio_engine, settings);
+        self.gameplay_screen.reset(&core.graphics, &mut self.audio);
       }
 
       ClientEvent::ToggleSettings => {
@@ -338,31 +335,26 @@ impl Client {
       return;
     }
 
-    Self::play_beatmap_audio_unchecked(&mut self.audio_engine, &mut self.audio_controller, path, beatmap);
+    Self::play_beatmap_audio_unchecked(&mut self.audio, path, beatmap);
   }
 
-  pub fn play_beatmap_audio_unchecked(
-    audio_engine: &mut AudioEngine,
-    audio_controller: &mut AudioController,
-    path: &Path,
-    beatmap: &BeatmapInfo,
-  ) {
+  pub fn play_beatmap_audio_unchecked(audio: &mut GameAudio, path: &Path, beatmap: &BeatmapInfo) {
     use std::time::Duration;
 
     let audio_path = path.parent().unwrap().join(&beatmap.audio_path);
     let file = BufReader::new(File::open(audio_path).unwrap());
     let source = Decoder::new(file).unwrap();
 
-    let config = audio_engine.device().default_output_config().unwrap();
+    let config = audio.device().default_output_config().unwrap();
     let source = UniformSourceIterator::new(source, config.channels(), config.sample_rate().0);
 
     // TODO: calculate length of the audio
     let length = source.total_duration().unwrap_or(Duration::from_secs(0));
-    audio_engine.set_length(length.into());
+    audio.set_length(length.into());
 
-    audio_engine.set_playing(false);
-    audio_controller.play_audio(source);
-    audio_engine.set_position(Time::from_ms(beatmap.preview_time as f64));
-    audio_engine.set_playing(true);
+    audio.set_playing(false);
+    audio.set_source(source);
+    audio.set_position(Time::from_ms(beatmap.preview_time as f64));
+    audio.set_playing(true);
   }
 }

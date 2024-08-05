@@ -254,9 +254,9 @@ impl TaikoRenderer {
     // rpass.draw(0 .. self.vertex_buffer_data.len() as u32, 0 .. (self.instances.len() - self.culling) as u32);
   }
 
-  pub fn set_hit(&mut self, queue: &wgpu::Queue, hit_time: Time, hit_idx: usize) {
+  pub fn set_hit(&mut self, queue: &wgpu::Queue, hit_idx: usize, hit_time: Time) {
     let len = self.instances.len();
-    let idx = len - hit_idx;
+    let idx = len - hit_idx - 1;
     let instance = &mut self.instances[idx];
     instance.hit = hit_time * 1000.0 * self.config.zoom * -1.0;
 

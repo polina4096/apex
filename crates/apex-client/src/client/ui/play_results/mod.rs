@@ -1,8 +1,7 @@
 use std::path::Path;
 
-use egui::{ImageSource, Widget};
+use egui::ImageSource;
 use jiff::fmt::strtime;
-use kiam::when;
 use tap::Tap;
 
 use crate::{
@@ -11,9 +10,9 @@ use crate::{
     gameplay::{
       beatmap::{calc_hit_window_150, calc_hit_window_300, Beatmap},
       beatmap_cache::BeatmapInfo,
-      taiko_player::TaikoPlayer,
     },
     score::{
+      judgement_processor::{check_hit, Judgement},
       score::Score,
       score_cache::{ScoreCache, ScoreId},
     },
@@ -21,16 +20,14 @@ use crate::{
   core::{core::Core, time::time::Time},
 };
 
-use super::{
-  background_component::BackgroundComponent, beatmap_selection::beatmap_stats::BeatmapStats, ingame_overlay::HitResult,
-};
+use super::{background_component::BackgroundComponent, beatmap_selection::beatmap_stats::BeatmapStats};
 
 pub struct PlayResultsView {
   background: BackgroundComponent,
   beatmap_stats: BeatmapStats,
   beatmap_info: BeatmapInfo,
   score_id: ScoreId,
-  hits: Vec<(Time, i64, HitResult)>,
+  hits: Vec<(Time, Time, Judgement)>,
 }
 
 impl PlayResultsView {
@@ -50,51 +47,36 @@ impl PlayResultsView {
     if let Ok(data) = std::fs::read_to_string(beatmap) {
       let beatmap = Beatmap::parse(data);
 
-      let mut player = TaikoPlayer::new();
-      for hit in score.hits.iter() {
+      let mut current_circle = 0;
+      for (hit_time, hit_input) in score.hits.iter().copied() {
         let hit_window_300 = calc_hit_window_300(beatmap.overall_difficulty);
         let hit_window_150 = calc_hit_window_150(beatmap.overall_difficulty);
         let tolerance = hit_window_150;
 
         // Check if the hit was within the hit window of the current circle.
-        if let Some(circle) = beatmap.hit_objects.get(player.current_circle) {
-          let time = circle.time.to_ms();
-          let hit_delta = time - hit.to_ms();
+        if let Some(hit_object) = beatmap.hit_objects.get(current_circle) {
+          let time = hit_object.time;
+          let hit_delta = time - hit_time;
 
-          if hit_delta.abs() >= tolerance.to_ms() {
-            player.tick(*hit, beatmap.overall_difficulty, &beatmap.hit_objects, |_| {
-              hits.push((*hit, hit_delta, HitResult::Miss));
-            });
+          if hit_delta.abs() >= tolerance {
+            // Skip unhit (if any) until we find the next hit object that can be hit.
+            while let Some(hit_object) = beatmap.hit_objects.get(current_circle) {
+              let obj_time = hit_object.time + hit_window_150;
+              if obj_time > time {
+                break;
+              }
+
+              // Unhit hit object which can not be hit anymore counts as a miss.
+              hits.push((hit_time, hit_delta, Judgement::Miss));
+
+              current_circle += 1;
+            }
           }
 
-          if hit_delta.abs() < tolerance.to_ms() {
-            // if circle.color == TaikoColor::Don
-            //   && (input != TaikoPlayerInput::DonOne && input != TaikoPlayerInput::DonTwo)
-            // {
-            //   return;
-            // }
+          if let Some(result) = check_hit(hit_time, hit_object, hit_input, hit_window_150, hit_window_300) {
+            hits.push((hit_time, result.hit_delta, result.judgement));
 
-            // if circle.color == TaikoColor::Kat
-            //   && (input != TaikoPlayerInput::KatOne && input != TaikoPlayerInput::KatTwo)
-            // {
-            //   return;
-            // }
-
-            player.current_circle += 1;
-
-            when! {
-              hit_delta.abs() < hit_window_300.to_ms() => {
-                hits.push((*hit, hit_delta, HitResult::Hit300));
-              },
-
-              hit_delta.abs() < hit_window_150.to_ms() => {
-                hits.push((*hit, hit_delta, HitResult::Hit150));
-              },
-
-              _ => {
-                hits.push((*hit, hit_delta, HitResult::Miss));
-              },
-            }
+            current_circle += 1;
           }
         }
       }
@@ -191,13 +173,13 @@ impl PlayResultsView {
                           let length = self.beatmap_info.length.to_seconds();
                           for (hit, delta, result) in self.hits.iter() {
                             let color = match result {
-                              HitResult::Hit300 => egui::Color32::GOLD,
-                              HitResult::Hit150 => egui::Color32::LIGHT_BLUE,
-                              HitResult::Miss => egui::Color32::RED,
+                              Judgement::Hit300 => egui::Color32::GOLD,
+                              Judgement::Hit150 => egui::Color32::LIGHT_BLUE,
+                              Judgement::Miss => egui::Color32::RED,
                             };
 
                             let pos_x = pos.x + (hit.to_seconds() / length * width as f64) as f32;
-                            let pos_y = mid + (*delta as f32).clamp(-height / 2.0, height / 2.0);
+                            let pos_y = mid + (delta.to_ms() as f32).clamp(-height / 2.0, height / 2.0);
                             let rect = egui::Rect::from_center_size(egui::pos2(pos_x, pos_y), egui::vec2(2.0, 2.0));
                             ui.painter().rect_filled(rect, 0.0, color);
                           }

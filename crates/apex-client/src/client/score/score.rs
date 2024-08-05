@@ -1,6 +1,6 @@
 use jiff::Timestamp;
 
-use crate::core::time::time::Time;
+use crate::{client::gameplay::taiko_player::TaikoInput, core::time::time::Time};
 
 use super::grades::Grade;
 
@@ -16,7 +16,7 @@ pub struct Score {
   pub(crate) max_combo: usize,
   pub(crate) accuracy: f32,
   pub(crate) grade: Grade,
-  pub(crate) hits: Vec<Time>,
+  pub(crate) hits: Vec<(Time, TaikoInput)>,
 }
 
 impl Default for Score {
@@ -80,7 +80,7 @@ impl Score {
     return self.grade;
   }
 
-  pub fn hits(&self) -> &[Time] {
+  pub fn hits(&self) -> &[(Time, TaikoInput)] {
     return &self.hits;
   }
 }

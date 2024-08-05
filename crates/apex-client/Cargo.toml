@@ -22,7 +22,6 @@ color-eyre = "0.6.3"
 paste = "1.0.15"
 cfg-if = "1.0.0"
 tap = "1.0.1"
-kiam = "0.1.1"
 
 # Graphics
 wgpu = "22.1.0"

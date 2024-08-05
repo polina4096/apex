@@ -2,14 +2,13 @@ use std::path::PathBuf;
 
 use ahash::AHashMap;
 use intbits::Bits;
-use kiam::when;
 use log::warn;
 
 use crate::core::time::time::Time;
 
 use super::taiko_hit_object::{TaikoColor, TaikoHitObject};
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct TimingPoint {
   pub time: Time,
   pub bpm: f64,
@@ -21,7 +20,7 @@ impl Default for TimingPoint {
   }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct VelocityPoint {
   pub time: Time,
   pub velocity: f64,
@@ -33,7 +32,7 @@ impl Default for VelocityPoint {
   }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct BreakPoint {
   pub start: Time,
   pub end: Time,
@@ -50,6 +49,22 @@ pub struct Beatmap {
   pub velocity_multiplier: f32,
 
   pub audio: PathBuf,
+}
+
+impl Default for Beatmap {
+  fn default() -> Self {
+    return Self {
+      hit_objects: Vec::new(),
+      timing_points: Vec::new(),
+      velocity_points: Vec::new(),
+      break_points: Vec::new(),
+
+      overall_difficulty: 5.0,
+      velocity_multiplier: 0.6,
+
+      audio: PathBuf::new(),
+    };
+  }
 }
 
 pub fn calc_hit_window_150(od: f32) -> Time {
@@ -165,36 +180,32 @@ impl Beatmap {
             continue;
           };
 
-          when! {
-            object_type.bit(0) => {
-              when! {
-                // Whistles or claps become kat
-                hitsounds.bit(1) || hitsounds.bit(3) => {
-                  objects.push(TaikoHitObject {
-                    time: Time::from_ms(time_in_ms),
-                    color: TaikoColor::Kat,
-                    big: hitsounds.bit(2),
-                  });
-                },
-
-                // Everything else becomes don
-                _ => {
-                  objects.push(TaikoHitObject {
-                    time: Time::from_ms(time_in_ms),
-                    color: TaikoColor::Don,
-                    big: hitsounds.bit(2),
-                  });
-                },
-              }
-            },
-
-            object_type.bit(1) => {
-              // sliders
-            },
-
-            object_type.bit(3) => {
-              // spinners
-            },
+          // Circles
+          if object_type.bit(0) {
+            // Whistles or claps become kat
+            if hitsounds.bit(1) || hitsounds.bit(3) {
+              objects.push(TaikoHitObject {
+                time: Time::from_ms(time_in_ms),
+                color: TaikoColor::Kat,
+                big: hitsounds.bit(2),
+              });
+            }
+            // Everything else becomes don
+            else {
+              objects.push(TaikoHitObject {
+                time: Time::from_ms(time_in_ms),
+                color: TaikoColor::Don,
+                big: hitsounds.bit(2),
+              });
+            }
+          }
+          // Sliders
+          else if object_type.bit(1) {
+            /* sliders here */
+          }
+          // Spinners
+          else if object_type.bit(3) {
+            /* spinners here */
           }
         }
 

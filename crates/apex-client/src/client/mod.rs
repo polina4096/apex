@@ -1,4 +1,5 @@
 pub mod action;
+pub mod audio;
 pub mod client;
 pub mod event;
 pub mod gameplay;

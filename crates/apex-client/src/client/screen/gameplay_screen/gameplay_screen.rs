@@ -1,69 +1,46 @@
-use std::{
-  fs::File,
-  io::BufReader,
-  path::{Path, PathBuf},
-};
+use std::{fs::File, io::BufReader, path::Path};
 
-use jiff::Timestamp;
-use rodio::{source::UniformSourceIterator, Decoder, DeviceTrait, Source as _};
-use tap::Tap;
+use rodio::{source::UniformSourceIterator, Decoder, DeviceTrait};
 
 use crate::{
   client::{
+    audio::game_audio::{GameAudio, GameAudioController},
     client::Client,
     event::ClientEvent,
     gameplay::{
-      beatmap::{Beatmap, BreakPoint},
-      beatmap_audio::BeatmapAudio,
-      taiko_player::{TaikoPlayer, TaikoPlayerInput},
+      beatmap::Beatmap,
+      taiko_player::{BreakState, TaikoInput, TaikoPlayer},
     },
     graphics::taiko_renderer::taiko_renderer::{TaikoRenderer, TaikoRendererConfig},
-    score::{score::Score, score_processor::ScoreProcessor},
+    score::{judgement_processor::Judgement, score_processor::ScoreProcessor},
     settings::Settings,
-    ui::{
-      break_overlay::BreakOverlayView,
-      ingame_overlay::{HitResult, IngameOverlayView},
-    },
+    ui::{break_overlay::BreakOverlayView, ingame_overlay::IngameOverlayView},
   },
   core::{
-    audio::{arc_buffer::ArcSamplesBuffer, audio_engine::AudioEngine, audio_mixer::AudioController},
+    audio::arc_buffer::ArcSamplesBuffer,
     core::Core,
     event::EventBus,
-    graphics::{color::Color, drawable::Drawable, graphics::Graphics},
+    graphics::{drawable::Drawable, graphics::Graphics},
     time::{clock::AbstractClock, time::Time},
   },
 };
 
 pub struct GameplayScreen {
-  audio_controller: AudioController,
-  event_bus: EventBus<ClientEvent>,
+  audio_controller: GameAudioController,
 
   taiko_renderer: TaikoRenderer,
   ingame_overlay: IngameOverlayView,
   break_overlay: BreakOverlayView,
 
+  taiko_player: TaikoPlayer,
+  score_processor: ScoreProcessor,
+
   don_hitsound: ArcSamplesBuffer<f32>,
   kat_hitsound: ArcSamplesBuffer<f32>,
-
-  beatmap_path: PathBuf,
-
-  username: String,
-  play_date: Timestamp,
-
-  beatmap: Option<Beatmap>,
-  score_processor: ScoreProcessor,
-  player: TaikoPlayer,
-  audio: BeatmapAudio,
 }
 
 impl GameplayScreen {
-  pub fn new(
-    event_bus: EventBus<ClientEvent>,
-    graphics: &Graphics,
-    audio_engine: &AudioEngine,
-    audio_controller: AudioController,
-    settings: &Settings,
-  ) -> Self {
+  pub fn new(event_bus: EventBus<ClientEvent>, graphics: &Graphics, audio: &GameAudio, settings: &Settings) -> Self {
     let ingame_overlay = IngameOverlayView::new();
     let break_overlay = BreakOverlayView::new();
     let taiko_renderer = TaikoRenderer::new(
@@ -80,223 +57,122 @@ impl GameplayScreen {
         hit_position_y: settings.taiko.hit_position_y(),
         don: settings.taiko.don_color(),
         kat: settings.taiko.kat_color(),
-        hit_height: if settings.taiko.hit_animation() { 12.5 } else { 9999.0 },
+        hit_height: if settings.taiko.hit_animation() { 12.5 } else { f64::INFINITY },
       },
     );
 
-    let beatmap_path = PathBuf::new();
+    let taiko_player = TaikoPlayer::new(event_bus.clone());
+    let score_processor = ScoreProcessor::default();
 
-    let username = String::from(Score::DEFAULT_USERNAME);
-    let play_date = Timestamp::default();
-
-    let beatmap = None;
-    let score = ScoreProcessor::default();
-    let player = TaikoPlayer::new();
-    let audio = BeatmapAudio::new(audio_controller.clone()).tap_mut(|x| {
-      x.lead_in = Time::from_ms(1000);
-      x.lead_out = Time::from_ms(1000);
-    });
-
-    let config = audio_engine.device().default_output_config().unwrap();
-    let channels = config.channels();
-    let sample_rate = config.sample_rate();
-
-    let source = Decoder::new(BufReader::new(File::open("./assets/red.wav").unwrap())).unwrap();
-    let source = UniformSourceIterator::new(source, config.channels(), config.sample_rate().0);
-    let don_hitsound = ArcSamplesBuffer::<f32>::new(channels, sample_rate.0, source.collect::<Vec<_>>());
-
-    let source = Decoder::new(BufReader::new(File::open("./assets/blue.wav").unwrap())).unwrap();
-    let source = UniformSourceIterator::new(source, config.channels(), config.sample_rate().0);
-    let kat_hitsound = ArcSamplesBuffer::<f32>::new(channels, sample_rate.0, source.collect::<Vec<_>>());
+    let don_hitsound = audio.load_sound("./assets/red.wav");
+    let kat_hitsound = audio.load_sound("./assets/blue.wav");
 
     return Self {
-      event_bus,
-      audio_controller,
+      audio_controller: audio.controller(),
 
       taiko_renderer,
       ingame_overlay,
       break_overlay,
 
+      score_processor,
+      taiko_player,
+
       don_hitsound,
       kat_hitsound,
-
-      beatmap_path,
-
-      username,
-      play_date,
-
-      beatmap,
-      score_processor: score,
-      player,
-      audio,
     };
   }
 
-  pub fn hit(&mut self, input: TaikoPlayerInput, graphics: &Graphics, audio: &mut AudioEngine) {
-    let Some(beatmap) = &self.beatmap else { return };
-    let mut audio = self.audio.borrow(audio);
+  pub fn hit(&mut self, input: TaikoInput, graphics: &Graphics, audio: &mut GameAudio) {
     let time = audio.position();
 
-    self.ingame_overlay.hit(input);
-
     match input {
-      TaikoPlayerInput::DonOne | TaikoPlayerInput::DonTwo => {
+      TaikoInput::DonOne | TaikoInput::DonTwo => {
         self.audio_controller.play_sound(self.don_hitsound.clone());
       }
 
-      TaikoPlayerInput::KatOne | TaikoPlayerInput::KatTwo => {
+      TaikoInput::KatOne | TaikoInput::KatTwo => {
         self.audio_controller.play_sound(self.kat_hitsound.clone());
       }
     }
 
-    self
-      .player
-      .hit(time, input, beatmap.overall_difficulty, &beatmap.hit_objects, |result, idx, _delta| {
-        self.score_processor.feed(time, result);
-        self.taiko_renderer.set_hit(&graphics.queue, time, idx);
-        self.ingame_overlay.update_last_hit_result(result);
-      });
+    self.ingame_overlay.hit(input);
+
+    if let Some((result, hit_idx)) = self.taiko_player.hit(time, input) {
+      self.score_processor.feed(time, Some(input), result.judgement);
+      self.ingame_overlay.update_last_hit_result(result.judgement);
+
+      if result.judgement != Judgement::Miss {
+        self.taiko_renderer.set_hit(&graphics.queue, hit_idx, time);
+      }
+    }
   }
 
-  pub fn reset(&mut self, graphics: &Graphics, audio: &mut AudioEngine, settings: &Settings) {
-    self.taiko_renderer.restart_beatmap(&graphics.queue);
-    self.player.reset();
+  pub fn play(&mut self, beatmap_path: &Path, graphics: &Graphics, audio: &mut GameAudio) {
+    let data = std::fs::read_to_string(beatmap_path).unwrap();
+    let beatmap = Beatmap::parse(data);
 
+    let config = audio.device().default_output_config().unwrap();
+    let audio_path = beatmap_path.parent().unwrap().join(&beatmap.audio);
+    let file = BufReader::new(File::open(audio_path).unwrap());
+    let source = Decoder::new(file).unwrap();
+    let source = UniformSourceIterator::new(source, config.channels(), config.sample_rate().0);
+
+    let end_time = beatmap.hit_objects.last().unwrap().time;
+
+    audio.set_playing(false);
+    audio.set_source(source);
+    audio.set_length(end_time);
+
+    self.taiko_renderer.load_beatmap(&graphics.device, beatmap.clone());
+    self.taiko_player.play(beatmap, beatmap_path.to_owned());
     std::mem::take(&mut self.score_processor);
 
-    self.play_date = Timestamp::now();
-    self.username = settings.profile.username().to_owned();
+    audio.set_position(Time::zero() - audio.lead_in);
+    audio.set_playing(true);
+  }
 
-    let mut audio = self.audio.borrow(audio);
+  pub fn reset(&mut self, graphics: &Graphics, audio: &mut GameAudio) {
+    self.taiko_renderer.restart_beatmap(&graphics.queue);
+    self.taiko_player.reset();
+
+    std::mem::take(&mut self.score_processor);
 
     audio.set_playing(false);
     audio.set_position(Time::zero() - audio.lead_in);
     audio.set_playing(true);
   }
 
-  pub fn play(&mut self, beatmap_path: &Path, graphics: &Graphics, audio: &mut AudioEngine, settings: &Settings) {
-    let data = std::fs::read_to_string(beatmap_path).unwrap();
-    let beatmap = Beatmap::parse(data);
-    let end_time = beatmap.hit_objects.last().unwrap().time;
-
-    self.taiko_renderer.load_beatmap(&graphics.device, beatmap.clone());
-    std::mem::take(&mut self.score_processor);
-    self.player.reset();
-
-    self.beatmap_path = beatmap_path.to_owned();
-
-    let audio_path = beatmap_path.parent().unwrap().join(&beatmap.audio);
-    let file = BufReader::new(File::open(audio_path).unwrap());
-    let source = Decoder::new(file).unwrap().delay(std::time::Duration::from_millis(settings.gameplay.lead_in()));
-
-    let config = audio.device().default_output_config().unwrap();
-    let source = UniformSourceIterator::new(source, config.channels(), config.sample_rate().0);
-
-    let mut audio = self.audio.borrow(audio);
-
-    audio.set_playing(false);
-    audio.set_source(source);
-    audio.set_length(end_time);
-
-    self.beatmap = Some(beatmap);
-
-    self.username = settings.profile.username().to_owned();
-    self.play_date = Timestamp::now();
-
-    // audio.set_position(Time::zero() - audio.lead_in);
-    audio.set_clock_position(Time::zero());
-    audio.set_source_position(Time::zero());
-    audio.set_playing(true);
-  }
-
-  pub fn set_paused(&mut self, state: bool, audio: &mut AudioEngine) {
-    let mut audio = self.audio.borrow(audio);
-
-    if state {
-      audio.set_playing(false);
-    } else {
-      audio.set_playing(true);
-    }
-  }
-
-  pub fn skip_break(&mut self, audio: &mut AudioEngine, break_leniency_end: Time) {
-    // TOOD: error handling
-    if let Some(beatmap) = &self.beatmap {
-      let lead_in = self.audio.lead_in;
-      let audio_offset = self.audio.audio_offset;
-      let mut audio = self.audio.borrow(audio);
-      let time = audio.position();
-
-      let Some(obj) = beatmap.hit_objects.first() else {
-        return;
-      };
-
-      if time < obj.time - break_leniency_end && obj.time > Time::from_seconds(10.0) {
-        let point = BreakPoint { start: Time::zero(), end: obj.time };
-        let delay_compensation = time - audio_offset;
-        let pos = point.end - break_leniency_end;
-
-        if delay_compensation < Time::zero() {
-          audio.set_source_position(pos - delay_compensation + lead_in);
-          audio.set_clock_position(pos + lead_in);
-        } else {
-          audio.set_position(pos);
-        }
-      }
-
-      // TODO: optimize
-      let p = beatmap.break_points.iter().find(|x| time >= x.start && time < x.end);
-
-      if let Some(break_point) = p {
-        audio.set_playing(false);
-        // TOOD: make this a setting
-        let break_leniency = Time::from_seconds(1.0);
-
-        audio.set_position(break_point.end - break_leniency);
-        audio.set_playing(true);
-      }
-    }
-  }
-
-  pub fn prepare(&mut self, core: &mut Core<Client>, audio: &mut AudioEngine, settings: &Settings) {
-    let mut audio = self.audio.borrow(audio);
+  pub fn prepare(&mut self, core: &mut Core<Client>, audio: &mut GameAudio, settings: &Settings) {
     let time = audio.position();
 
-    // delay after the last hit object before result screen
-    if time >= audio.length() + audio.lead_out {
-      let path = self.beatmap_path.clone();
-      let score = self.score_processor.export(self.play_date, self.username.clone());
-      self.event_bus.send(ClientEvent::ShowResultScreen { path, score });
-    }
-
-    if let Some(beatmap) = &self.beatmap {
-      self.player.tick(time, beatmap.overall_difficulty, &beatmap.hit_objects, |_idx| {
-        self.score_processor.feed(time, HitResult::Miss);
-        self.ingame_overlay.update_last_hit_result(HitResult::Miss);
-      });
-    }
+    self.taiko_player.tick(time, audio, &mut self.score_processor, &mut self.ingame_overlay);
 
     self.taiko_renderer.prepare(&core.graphics.queue, time);
-    self.ingame_overlay.prepare(core, &mut audio, &self.score_processor, settings);
+    self.ingame_overlay.prepare(core, audio, &self.score_processor, settings);
 
-    if let Some(beatmap) = &self.beatmap {
-      let Some(obj) = beatmap.hit_objects.first() else {
-        return;
-      };
-
-      if obj.time > Time::from_seconds(10.0) {
-        let point = BreakPoint { start: Time::zero(), end: obj.time };
-        self.break_overlay.prepare(core, time, &point, Time::zero(), Time::from_seconds(1.0));
-      } else {
-        // TODO: optimize
-        let p = beatmap.break_points.iter().find(|x| time >= x.start && time < x.end);
-
-        if let Some(break_point) = p {
-          self
-            .break_overlay
-            .prepare(core, time, break_point, Time::from_seconds(1.0), Time::from_seconds(1.0));
-        }
+    let leniency = Time::from_ms(settings.gameplay.break_leniency_end() as f64);
+    match self.taiko_player.is_break(time, leniency) {
+      BreakState::Break(break_point) => {
+        self.break_overlay.prepare(
+          core,
+          time,
+          &break_point,
+          Time::from_ms(settings.gameplay.break_leniency_start() as f64),
+          Time::from_ms(settings.gameplay.break_leniency_end() as f64),
+        );
       }
+
+      BreakState::Intro(break_point) => {
+        self.break_overlay.prepare(
+          core,
+          time,
+          &break_point,
+          Time::zero(),
+          Time::from_ms(settings.gameplay.break_leniency_end() as f64),
+        );
+      }
+
+      BreakState::None => {}
     }
   }
 
@@ -304,56 +180,12 @@ impl GameplayScreen {
     self.taiko_renderer.render(rpass);
   }
 
-  pub fn resize(&mut self, queue: &wgpu::Queue, size: winit::dpi::PhysicalSize<u32>) {
-    self.taiko_renderer.resize(queue, size.width, size.height);
+  pub fn taiko_player(&mut self) -> &mut TaikoPlayer {
+    return &mut self.taiko_player;
   }
 
-  pub fn scale(&mut self, queue: &wgpu::Queue, scale_factor: f64) {
-    self.taiko_renderer.scale(queue, scale_factor);
-  }
-
-  pub fn set_taiko_zoom(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, zoom: f64) {
-    self.taiko_renderer.set_zoom(device, queue, zoom);
-  }
-
-  pub fn set_taiko_scale(&mut self, queue: &wgpu::Queue, scale: f64) {
-    self.taiko_renderer.set_scale(queue, scale);
-  }
-
-  pub fn set_taiko_hit_position_x(&mut self, queue: &wgpu::Queue, value: f32) {
-    self.taiko_renderer.set_hit_position_x(queue, value);
-  }
-
-  pub fn set_taiko_hit_position_y(&mut self, queue: &wgpu::Queue, value: f32) {
-    self.taiko_renderer.set_hit_position_y(queue, value);
-  }
-
-  pub fn set_taiko_don_color(&mut self, device: &wgpu::Device, color: Color) {
-    self.taiko_renderer.set_don_color(device, color);
-  }
-
-  pub fn set_taiko_kat_color(&mut self, device: &wgpu::Device, color: Color) {
-    self.taiko_renderer.set_kat_color(device, color);
-  }
-
-  pub fn set_taiko_hit_animation(&mut self, device: &wgpu::Device, format: wgpu::TextureFormat, value: bool) {
-    self.taiko_renderer.set_hit_height(device, format, if value { 12.5 } else { 9999.0 });
-  }
-
-  pub fn set_audio_offset(&mut self, offset: Time) {
-    self.audio.audio_offset = offset;
-  }
-
-  pub fn set_audio_lead_in(&mut self, lead_in: Time) {
-    self.audio.lead_in = lead_in;
-  }
-
-  pub fn set_audio_lead_out(&mut self, lead_out: Time) {
-    self.audio.lead_out = lead_out;
-  }
-
-  pub fn audio(&mut self) -> &mut BeatmapAudio {
-    return &mut self.audio;
+  pub fn taiko_renderer(&mut self) -> &mut TaikoRenderer {
+    return &mut self.taiko_renderer;
   }
 }
 

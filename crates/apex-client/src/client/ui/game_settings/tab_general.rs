@@ -271,7 +271,7 @@ impl GameSettingsView {
 
       row.col(|ui| {
         let mut value = settings.gameplay.lead_in();
-        if egui::Slider::new(&mut value, 0 ..= 100).clamp_to_range(false).ui(ui).changed() {
+        if egui::Slider::new(&mut value, 0 ..= 2000).clamp_to_range(false).ui(ui).changed() {
           settings.gameplay.set_lead_in(value, proxy);
         }
       });
@@ -284,8 +284,34 @@ impl GameSettingsView {
 
       row.col(|ui| {
         let mut value = settings.gameplay.lead_out();
-        if egui::Slider::new(&mut value, 0 ..= 100).clamp_to_range(false).ui(ui).changed() {
+        if egui::Slider::new(&mut value, 0 ..= 2000).clamp_to_range(false).ui(ui).changed() {
           settings.gameplay.set_lead_out(value, proxy);
+        }
+      });
+    });
+
+    body.row(text_height, |mut row| {
+      row.col(|ui| {
+        ui.label("Start Break Leniency");
+      });
+
+      row.col(|ui| {
+        let mut value = settings.gameplay.break_leniency_start();
+        if egui::Slider::new(&mut value, 0 ..= 2000).clamp_to_range(false).ui(ui).changed() {
+          settings.gameplay.set_break_leniency_start(value, proxy);
+        }
+      });
+    });
+
+    body.row(text_height, |mut row| {
+      row.col(|ui| {
+        ui.label("End Break Leniency");
+      });
+
+      row.col(|ui| {
+        let mut value = settings.gameplay.break_leniency_end();
+        if egui::Slider::new(&mut value, 0 ..= 2000).clamp_to_range(false).ui(ui).changed() {
+          settings.gameplay.set_break_leniency_end(value, proxy);
         }
       });
     });

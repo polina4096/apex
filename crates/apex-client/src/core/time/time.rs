@@ -34,6 +34,10 @@ impl Time {
   pub fn min(self, other: Self) -> Self {
     return Time(self.0.min(other.0));
   }
+
+  pub fn abs(self) -> Self {
+    return Time(self.0.abs());
+  }
 }
 
 impl From<Instant> for Time {

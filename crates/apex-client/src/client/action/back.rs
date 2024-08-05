@@ -1,6 +1,6 @@
 use crate::{
   client::client::{Client, GameState},
-  core::{core::Core, input::action::Action},
+  core::{core::Core, input::action::Action, time::clock::AbstractClock},
 };
 
 pub struct Back;
@@ -22,13 +22,13 @@ impl Action<Client> for Back {
       }
 
       GameState::Playing => {
-        client.gameplay_screen.set_paused(true, &mut client.audio_engine);
+        client.audio.set_playing(false);
         client.game_state = GameState::Paused;
       }
 
       GameState::Paused => {
         client.pause_screen.deselect();
-        client.gameplay_screen.set_paused(false, &mut client.audio_engine);
+        client.audio.set_playing(true);
         client.game_state = GameState::Playing;
       }
 

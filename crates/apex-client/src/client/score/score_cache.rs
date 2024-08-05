@@ -79,8 +79,13 @@ impl ScoreCache {
           .get::<_, String>(9)
           .unwrap()
           .split(',')
-          .map(|x| x.parse::<i64>().unwrap())
-          .map(|x| Time::from_ms(x as f64))
+          .map(|x| x.split_once("|").unwrap())
+          .map(|(time, input)| {
+            (
+              Time::from_ms(time.parse::<i64>().unwrap() as f64), //
+              input.parse::<u8>().unwrap().try_into().unwrap(),
+            )
+          })
           .collect::<Vec<_>>();
 
         return Ok(Score {
@@ -132,8 +137,8 @@ impl ScoreCache {
           score.last_combo() as i64,
           score.max_combo() as i64,
           score.accuracy() as f64,
-          score.hits().iter().map(|x| x.to_ms()).fold(String::new(), |mut acc, x| {
-            write!(&mut acc, "{},", x).unwrap();
+          score.hits().iter().fold(String::new(), |mut acc, (time, input)| {
+            write!(&mut acc, "{}|{},", time.to_ms(), *input as u8).unwrap();
             return acc;
           }).tap_mut(|x| {
             x.pop();

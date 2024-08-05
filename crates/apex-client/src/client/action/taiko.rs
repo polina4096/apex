@@ -1,7 +1,7 @@
 use crate::{
   client::{
     client::{Client, GameState},
-    gameplay::taiko_player::TaikoPlayerInput,
+    gameplay::taiko_player::TaikoInput,
   },
   core::{core::Core, input::action::Action},
 };
@@ -16,7 +16,7 @@ macro_rules! impl_taiko_button {
 
         match client.game_state {
           GameState::Playing => {
-            client.gameplay_screen.hit(TaikoPlayerInput::$name, &core.graphics, &mut client.audio_engine);
+            client.gameplay_screen.hit(TaikoInput::$name, &core.graphics, &mut client.audio);
 
             return true;
           }
@@ -30,12 +30,12 @@ macro_rules! impl_taiko_button {
   };
 }
 
-pub struct KatOne;
-pub struct KatTwo;
 pub struct DonOne;
 pub struct DonTwo;
+pub struct KatOne;
+pub struct KatTwo;
 
-impl_taiko_button!(KatOne);
-impl_taiko_button!(KatTwo);
 impl_taiko_button!(DonOne);
 impl_taiko_button!(DonTwo);
+impl_taiko_button!(KatOne);
+impl_taiko_button!(KatTwo);

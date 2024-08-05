@@ -1,8 +1,8 @@
 use jiff::Timestamp;
 
-use crate::{client::ui::ingame_overlay::HitResult, core::time::time::Time};
+use crate::{client::gameplay::taiko_player::TaikoInput, core::time::time::Time};
 
-use super::{grades::Grade, score::Score};
+use super::{grades::Grade, judgement_processor::Judgement, score::Score};
 
 pub struct ScoreProcessor {
   score_points: usize,
@@ -13,7 +13,7 @@ pub struct ScoreProcessor {
   max_combo: usize,
   accuracy: f32,
 
-  hits: Vec<Time>,
+  hits: Vec<(Time, TaikoInput)>,
 }
 
 impl Default for ScoreProcessor {
@@ -32,23 +32,23 @@ impl Default for ScoreProcessor {
 }
 
 impl ScoreProcessor {
-  pub fn feed(&mut self, time: Time, result: HitResult) {
+  pub fn feed(&mut self, time: Time, input: Option<TaikoInput>, result: Judgement) {
     match result {
-      HitResult::Hit300 => {
+      Judgement::Hit300 => {
         self.result_300 += 1;
         self.curr_combo += 1;
 
         self.score_points += 300 * self.curr_combo;
       }
 
-      HitResult::Hit150 => {
+      Judgement::Hit150 => {
         self.result_150 += 1;
         self.curr_combo += 1;
 
         self.score_points += 150 * self.curr_combo;
       }
 
-      HitResult::Miss => {
+      Judgement::Miss => {
         self.result_miss += 1;
         self.curr_combo = 0;
       }
@@ -59,7 +59,10 @@ impl ScoreProcessor {
     }
 
     self.accuracy = self.calc_accuracy();
-    self.hits.push(time);
+
+    if let Some(input) = input {
+      self.hits.push((time, input));
+    }
   }
 
   pub fn accuracy(&self) -> f32 {

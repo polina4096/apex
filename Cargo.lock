@@ -182,7 +182,6 @@ dependencies = [
  "instant",
  "intbits",
  "jiff",
- "kiam",
  "log",
  "nohash-hasher",
  "nucleo",
@@ -1797,12 +1796,6 @@ name = "khronos_api"
 version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
-
-[[package]]
-name = "kiam"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb0fc32485e41ae5e9dedd1442f36dec998431adc9f321224c2c5d645f38fdcb"
 
 [[package]]
 name = "lazy_static"

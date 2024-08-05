@@ -220,7 +220,7 @@ impl ApplicationHandler<CoreEvent<ClientEvent>> for ApexApp {
       }
 
       CoreEvent::User(event) => {
-        client.dispatch(core, &mut self.settings, event);
+        client.dispatch(core, event);
       }
     }
   }

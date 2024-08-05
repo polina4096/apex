@@ -12,8 +12,8 @@ use rodio::{Sample as _, Source};
 pub enum AudioMixerEvent {
   PlaySound(Box<dyn Source<Item = f32> + Send + Sync>),
   SetMasterVolume(f32),
-  SetMusicVolume(f32),
-  SetEffectVolume(f32),
+  SetAudioVolume(f32),
+  SetSoundVolume(f32),
 }
 
 pub struct AudioMixer {
@@ -62,8 +62,8 @@ impl Iterator for AudioMixer {
         }
 
         AudioMixerEvent::SetMasterVolume(volume) => self.master_volume = volume,
-        AudioMixerEvent::SetMusicVolume(volume) => self.music_volume = volume,
-        AudioMixerEvent::SetEffectVolume(volume) => self.effect_volume = volume,
+        AudioMixerEvent::SetAudioVolume(volume) => self.music_volume = volume,
+        AudioMixerEvent::SetSoundVolume(volume) => self.effect_volume = volume,
       }
     }
 
@@ -118,23 +118,23 @@ pub struct AudioController {
 }
 
 impl AudioController {
-  pub fn play_sound(&mut self, sound: impl Source<Item = f32> + Send + Sync + 'static) {
+  pub fn play_sound(&self, sound: impl Source<Item = f32> + Send + Sync + 'static) {
     self.tx.send(AudioMixerEvent::PlaySound(Box::new(sound))).unwrap();
   }
 
-  pub fn play_audio(&mut self, source: impl Source<Item = f32> + Send + Sync + 'static) {
+  pub fn play_audio(&self, source: impl Source<Item = f32> + Send + Sync + 'static) {
     *self.source.lock() = Box::new(source);
   }
 
-  pub fn set_master_volume(&mut self, volume: f32) {
+  pub fn set_master_volume(&self, volume: f32) {
     self.tx.send(AudioMixerEvent::SetMasterVolume(volume)).unwrap();
   }
 
-  pub fn set_music_volume(&mut self, volume: f32) {
-    self.tx.send(AudioMixerEvent::SetMusicVolume(volume)).unwrap();
+  pub fn set_audio_volume(&self, volume: f32) {
+    self.tx.send(AudioMixerEvent::SetAudioVolume(volume)).unwrap();
   }
 
-  pub fn set_effect_volume(&mut self, volume: f32) {
-    self.tx.send(AudioMixerEvent::SetEffectVolume(volume)).unwrap();
+  pub fn set_sound_volume(&self, volume: f32) {
+    self.tx.send(AudioMixerEvent::SetSoundVolume(volume)).unwrap();
   }
 }

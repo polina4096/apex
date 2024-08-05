@@ -105,7 +105,7 @@ impl<'de, T: AppActions + Copy + Eq + Hash + Deserialize<'de>> Visitor<'de> for 
   type Value = Keybinds<T>;
 
   fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-    formatter.write_str("an integer between -2^31 and 2^31")
+    formatter.write_str("keybinds")
   }
 
   fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
@@ -136,12 +136,12 @@ impl<'de, T: AppActions + Copy + Eq + Hash + Deserialize<'de>> Deserialize<'de> 
 impl<T: AppActions + Copy + Eq + Hash + Serialize + DeserializeOwned> Persistent for Keybinds<T> {
   fn load(path: impl AsRef<std::path::Path>) -> Self {
     let absolute = path.as_ref().canonicalize().unwrap_or(path.as_ref().to_owned());
-    log::info!("Loading settings from `{}`", absolute.display());
+    log::info!("Loading keybinds from `{}`", absolute.display());
 
     return std::fs::read_to_string(&path)
       .map(|data| {
         return toml::from_str(&data).unwrap_or_else(|e| {
-          log::error!("Failed to parse config file, falling back to default config: {}", e);
+          log::error!("Failed to parse keybinds file, falling back to default keybinds: {}", e);
           return Self::default().tap_mut(T::insert_keybinds);
         });
       })
@@ -150,19 +150,19 @@ impl<T: AppActions + Copy + Eq + Hash + Serialize + DeserializeOwned> Persistent
 
         match e.kind() {
           std::io::ErrorKind::NotFound => {
-            log::warn!("Failed to open config file, file not found. Creating a default config file...");
-            let default_data = toml::to_string_pretty(&default).expect("Failed to serialize default config");
+            log::warn!("Failed to open keybinds file, file not found. Creating a default keybinds file...");
+            let default_data = toml::to_string_pretty(&default).expect("Failed to serialize default keybinds");
             if let Err(e) = std::fs::write(&path, default_data) {
-              log::error!("Failed to write default config file: {}", e);
+              log::error!("Failed to write default keybinds file: {}", e);
             }
           }
 
           std::io::ErrorKind::PermissionDenied => {
-            log::warn!("Failed to open config file, insufficient permissions. Falling back to default configuration.");
+            log::warn!("Failed to open keybinds file, insufficient permissions. Falling back to default keybinds.");
           }
 
           _ => {
-            log::error!("Failed to access config file: {}. Falling back to default configuration.", e);
+            log::error!("Failed to access keybinds file: {}. Falling back to default keybinds.", e);
           }
         }
 
@@ -174,18 +174,18 @@ impl<T: AppActions + Copy + Eq + Hash + Serialize + DeserializeOwned> Persistent
     let data = match toml::to_string_pretty(&self) {
       Ok(data) => data,
       Err(e) => {
-        log::error!("Failed to serialize settings: {}", e);
+        log::error!("Failed to serialize keybinds: {}", e);
         return;
       }
     };
 
     if let Err(e) = std::fs::write(&path, data) {
-      log::error!("Failed to write settings to file: {}", e);
+      log::error!("Failed to write keybinds to file: {}", e);
       return;
     }
 
     let path = path.as_ref().canonicalize().unwrap_or(path.as_ref().to_owned());
-    log::info!("Settings successfully written to `{}`", path.display());
+    log::info!("Keybinds successfully written to `{}`", path.display());
   }
 }
 

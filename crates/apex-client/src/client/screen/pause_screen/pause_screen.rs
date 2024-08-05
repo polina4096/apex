@@ -1,13 +1,13 @@
 use crate::{
   client::{
+    audio::game_audio::GameAudio,
     client::{Client, GameState},
     event::ClientEvent,
     gameplay::beatmap_cache::BeatmapCache,
-    screen::{gameplay_screen::gameplay_screen::GameplayScreen, selection_screen::selection_screen::SelectionScreen},
+    screen::selection_screen::selection_screen::SelectionScreen,
     settings::Settings,
   },
   core::{
-    audio::{audio_engine::AudioEngine, audio_mixer::AudioController},
     core::Core,
     event::EventBus,
     time::{clock::AbstractClock as _, time::Time},
@@ -40,9 +40,7 @@ impl PauseScreen {
   pub fn prepare(
     &mut self,
     core: &Core<Client>,
-    audio_engine: &mut AudioEngine,
-    audio_controller: &mut AudioController,
-    gameplay_screen: &mut GameplayScreen,
+    audio: &mut GameAudio,
     selection_screen: &mut SelectionScreen,
     beatmap_cache: &BeatmapCache,
     game_state: &mut GameState,
@@ -116,7 +114,7 @@ impl PauseScreen {
           draw_button(ui, "Continue", -1.0, selected, SelectedButton::Continue, &mut self.clicked, || {
             *game_state = GameState::Playing;
 
-            gameplay_screen.set_paused(false, audio_engine);
+            audio.set_playing(true);
           });
 
           draw_button(ui, "Retry", 0.0, selected, SelectedButton::Retry, &mut self.clicked, || {
@@ -129,13 +127,13 @@ impl PauseScreen {
             *game_state = GameState::Selection;
 
             let lead_in = Time::from_ms(settings.gameplay.lead_in() as f64);
-            let delay_adjusted_position = audio_engine.position() - lead_in;
+            let delay_adjusted_position = audio.position() - lead_in;
             let delay_adjusted_position = delay_adjusted_position.max(Time::zero());
 
             let selected = selection_screen.beatmap_selector().selected();
             if let Some((path, beatmap)) = beatmap_cache.get_index(selected) {
-              Client::play_beatmap_audio_unchecked(audio_engine, audio_controller, path, beatmap);
-              audio_engine.set_position(delay_adjusted_position);
+              Client::play_beatmap_audio_unchecked(audio, path, beatmap);
+              audio.set_position(delay_adjusted_position);
             };
           });
         });

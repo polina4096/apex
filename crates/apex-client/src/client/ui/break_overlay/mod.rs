@@ -24,18 +24,16 @@ impl BreakOverlayView {
         return;
       }
 
-      let break_length = break_point.end - break_point.start;
-
       // End the break this much earlier to not distract the player
-      let time = break_length - time - break_leniency_end;
+      let break_time = break_point.end - time - break_leniency_end;
 
-      if time > Time::zero() {
+      if break_time > Time::zero() || time < Time::zero() {
         ui.vertical_centered_justified(|ui| {
           const COUNTDOWN_TEXT_SIZE: f32 = 32.0;
           const SKIP_TEXT_SIZE: f32 = 24.0;
 
           let text = ui.painter().layout_no_wrap(
-            format!("{}", time.to_seconds().ceil() as i32),
+            format!("{}", break_time.to_seconds().ceil() as i32),
             egui::FontId::proportional(COUNTDOWN_TEXT_SIZE),
             egui::Color32::PLACEHOLDER,
           );
@@ -49,7 +47,8 @@ impl BreakOverlayView {
           let y = ui.available_height() / 2.0 + size.y / 2.0 + 8.0;
           let bar_length = 224.0;
           let bar_height = 6.0;
-          let value = (bar_length / 2.0 * (time.to_seconds() / break_length.to_seconds())) as f32;
+          let break_length = break_point.end - break_point.start - break_leniency_end;
+          let value = (bar_length / 2.0 * (break_time.to_seconds() / break_length.to_seconds())) as f32;
           ui.painter().rect(
             egui::Rect::from_two_pos(egui::pos2(x - value, y), egui::pos2(x + value, y + bar_height)),
             egui::Rounding::same(6.0),
