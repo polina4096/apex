@@ -1,15 +1,15 @@
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::AtomicBool;
 
 use triomphe::Arc;
 use winit::window::Window;
 
 pub struct FrameSync {
+  #[allow(dead_code)]
   app_focus: Arc<AtomicBool>,
 
   #[cfg(target_os = "macos")]
   display_link: Option<display_link::DisplayLink>,
 
-  #[cfg(target_os = "macos")]
   current_window: Option<Arc<Window>>,
 }
 
@@ -21,7 +21,6 @@ impl FrameSync {
       #[cfg(target_os = "macos")]
       display_link: None,
 
-      #[cfg(target_os = "macos")]
       current_window: None,
     };
   }
@@ -32,8 +31,12 @@ impl FrameSync {
 
   #[allow(clippy::result_unit_err)]
   pub fn enable_external_sync(&mut self, macos_fix: bool) -> Result<(), ()> {
+    _ = macos_fix;
+
     #[cfg(target_os = "macos")]
     {
+      use std::sync::atomic::Ordering;
+
       // Setup CVDisplayLink
       let Some(window) = self.current_window.clone() else {
         return Err(());
