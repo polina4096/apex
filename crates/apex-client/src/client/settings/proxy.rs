@@ -77,7 +77,8 @@ impl<'a, 'window> SettingsProxy for ClientSettingsProxy<'a, 'window> {
     self.gameplay_screen.taiko_renderer().set_hit_height(
       self.device,
       self.config.format,
-      if value { 12.5 } else { f64::INFINITY },
+      // Apparently setting it to f64::INFINITY leads to a crash, see https://github.com/gfx-rs/wgpu/issues/6082
+      if value { 12.5 } else { 9999999.0 },
     );
   }
 

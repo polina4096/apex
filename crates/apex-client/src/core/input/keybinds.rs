@@ -1,4 +1,4 @@
-use std::{fmt::Display, hash::Hash, marker::PhantomData};
+use std::{collections::HashSet, fmt::Display, hash::Hash, marker::PhantomData};
 
 use ahash::AHashMap;
 use log::warn;
@@ -27,12 +27,6 @@ impl<T> Default for Keybinds<T> {
 }
 
 impl<T> Keybinds<T> {
-  pub fn merge(&mut self, other: Self) {
-    for (key, bind) in other.binds {
-      self.binds.insert(key, bind);
-    }
-  }
-
   pub fn add(&mut self, key: KeyCombination, bind: Bind<T>) {
     self.binds.insert(key, bind);
   }
@@ -77,6 +71,16 @@ impl<T> Keybinds<T> {
 }
 
 impl<T: Copy + Eq + Hash> Keybinds<T> {
+  pub fn merge(&mut self, other: Self) {
+    let current_actions = self.binds.values().map(|x| x.id).collect::<HashSet<_, ahash::RandomState>>();
+
+    for (key, bind) in other.binds {
+      if !current_actions.contains(&bind.id) {
+        self.binds.insert(key, bind);
+      }
+    }
+  }
+
   pub fn as_vec(&self) -> Vec<(KeyCombination, Bind<T>)> {
     let mut cache: Vec<_> = self.binds.iter().map(|x| (*x.0, x.1.clone())).collect();
     cache.sort_by(|a, b| a.1.name.cmp(&b.1.name));

@@ -57,7 +57,8 @@ impl GameplayScreen {
         hit_position_y: settings.taiko.hit_position_y(),
         don: settings.taiko.don_color(),
         kat: settings.taiko.kat_color(),
-        hit_height: if settings.taiko.hit_animation() { 12.5 } else { f64::INFINITY },
+        // Apparently setting it to f64::INFINITY leads to a crash, see https://github.com/gfx-rs/wgpu/issues/6082
+        hit_height: if settings.taiko.hit_animation() { 12.5 } else { 9999999.0 },
       },
     );
 

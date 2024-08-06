@@ -1,3 +1,5 @@
+use std::hash::Hash;
+
 use action::AppActions;
 use tap::Tap;
 
@@ -14,7 +16,7 @@ pub struct Input<T> {
   pub grabbing : bool,
 }
 
-impl<T: AppActions> Input<T> {
+impl<T: AppActions + Copy + Eq + Hash> Input<T> {
   pub fn with_keybinds(keybinds: Keybinds<T>) -> Self {
     return Self {
       keybinds: Keybinds::<T>::default().tap_mut(|binds| {
