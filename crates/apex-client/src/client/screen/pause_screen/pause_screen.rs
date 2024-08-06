@@ -48,7 +48,7 @@ impl PauseScreen {
   ) {
     egui::CentralPanel::default() //
       .frame(egui::Frame::none().fill(egui::Color32::from_rgba_unmultiplied(0, 0, 0, 220)))
-      .show(core.egui_ctx.egui_ctx(), |ui| {
+      .show(core.egui.ctx(), |ui| {
         const TEXT_SIZE: f32 = 32.0;
 
         ui.with_layout(egui::Layout::top_down_justified(egui::Align::Center), |ui| {

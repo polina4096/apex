@@ -7,7 +7,7 @@ use crate::{
     settings::Settings,
   },
   core::{
-    graphics::{color::Color, drawable::Drawable, egui::EguiContext, graphics::Graphics},
+    graphics::{color::Color, drawable::Drawable, graphics::Graphics},
     time::{clock::AbstractClock, time::Time},
   },
 };
@@ -78,7 +78,7 @@ pub struct BeatmapPreview {
 }
 
 impl BeatmapPreview {
-  pub fn new(graphics: &Graphics, egui_ctx: &mut EguiContext, settings: &Settings) -> Self {
+  pub fn new(graphics: &Graphics, egui_renderer: &mut egui_wgpu::Renderer, settings: &Settings) -> Self {
     let hit_pos = PREVIEW_HEIGHT as f32 / 2.0;
     let taiko_renderer = TaikoRenderer::new(
       &graphics.device,
@@ -114,7 +114,7 @@ impl BeatmapPreview {
     // Because the graphics pipeline must have the same lifetime as the egui render pass,
     // instead of storing the pipeline in our `Custom3D` struct, we insert it into the
     // `paint_callback_resources` type map, which is stored alongside the render pass.
-    egui_ctx.renderer.callback_resources.insert(taiko_renderer);
+    egui_renderer.callback_resources.insert(taiko_renderer);
 
     return beatmap_preview;
   }
@@ -218,8 +218,8 @@ impl BeatmapPreview {
       });
   }
 
-  pub fn change_beatmap(&mut self, graphics: &Graphics, egui_ctx: &mut EguiContext, beatmap: &Beatmap) {
-    let resources: &mut TaikoRenderer = egui_ctx.renderer.callback_resources.get_mut().unwrap();
+  pub fn change_beatmap(&mut self, graphics: &Graphics, egui_renderer: &mut egui_wgpu::Renderer, beatmap: &Beatmap) {
+    let resources: &mut TaikoRenderer = egui_renderer.callback_resources.get_mut().unwrap();
 
     self.current_beatmap = Some(beatmap.clone());
     resources.load_beatmap(&graphics.device, beatmap.clone());

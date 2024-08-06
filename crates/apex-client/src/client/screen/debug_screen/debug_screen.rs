@@ -29,14 +29,14 @@ impl DebugScreen {
   }
 
   pub fn prepare(&mut self, core: &Core<Client>) {
-    let ctx = core.egui_ctx();
+    let ctx = core.egui.ctx();
 
     let mut is_open = self.is_open;
 
     if self.refresh_loaders {
       self.refresh_loaders = false;
 
-      let loaders = core.egui_ctx.egui_ctx().loaders();
+      let loaders = core.egui.ctx().loaders();
       self.image_loaders = loaders.image.lock().iter().cloned().collect();
       self.texture_loaders = loaders.texture.lock().iter().cloned().collect();
       self.bytes_loaders = loaders.bytes.lock().iter().cloned().collect();
@@ -71,21 +71,21 @@ impl DebugScreen {
           ui.label("Wipe caches:");
 
           if ui.button("All").clicked() {
-            core.egui_ctx.egui_ctx().loaders().image.lock().iter().for_each(|x| x.forget_all());
-            core.egui_ctx.egui_ctx().loaders().texture.lock().iter().for_each(|x| x.forget_all());
-            core.egui_ctx.egui_ctx().loaders().bytes.lock().iter().for_each(|x| x.forget_all());
+            core.egui.ctx().loaders().image.lock().iter().for_each(|x| x.forget_all());
+            core.egui.ctx().loaders().texture.lock().iter().for_each(|x| x.forget_all());
+            core.egui.ctx().loaders().bytes.lock().iter().for_each(|x| x.forget_all());
           };
 
           if ui.button("Image").clicked() {
-            core.egui_ctx.egui_ctx().loaders().image.lock().iter().for_each(|x| x.forget_all());
+            core.egui.ctx().loaders().image.lock().iter().for_each(|x| x.forget_all());
           };
 
           if ui.button("Texture").clicked() {
-            core.egui_ctx.egui_ctx().loaders().texture.lock().iter().for_each(|x| x.forget_all());
+            core.egui.ctx().loaders().texture.lock().iter().for_each(|x| x.forget_all());
           };
 
           if ui.button("Bytes").clicked() {
-            core.egui_ctx.egui_ctx().loaders().bytes.lock().iter().for_each(|x| x.forget_all());
+            core.egui.ctx().loaders().bytes.lock().iter().for_each(|x| x.forget_all());
           };
         });
       });

@@ -1,8 +1,6 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use pollster::FutureExt as _;
 use triomphe::Arc;
-use wgpu::rwh::HasDisplayHandle as _;
 use winit::{
   application::ApplicationHandler,
   dpi::LogicalSize,
@@ -15,14 +13,14 @@ use crate::{
   client::{
     client::Client,
     event::ClientEvent,
-    graphics::{frame_limiter::FrameLimiter, frame_sync::FrameSync, FrameLimiterOptions, RenderingBackend},
+    graphics::{frame_limiter::FrameLimiter, frame_sync::FrameSync, FrameLimiterOptions},
     settings::Settings,
   },
   core::{
     core::Core,
     data::persistent::Persistent as _,
     event::{CoreEvent, EventBus},
-    graphics::{drawable::Drawable as _, egui::EguiContext, graphics::Graphics},
+    graphics::drawable::Drawable as _,
   },
 };
 
@@ -106,12 +104,10 @@ impl ApplicationHandler<CoreEvent<ClientEvent>> for ApexApp {
     let Some(core) = &mut self.core else { return };
     let Some(client) = &mut self.client else { return };
 
-    let is_context_open = core.egui_ctx().is_context_menu_open();
-
+    let is_context_open = core.egui.ctx().is_context_menu_open();
     // TODO: this might not be the best way to capture (disable) unwanted scrolling
-    let winit_state = &mut core.egui_ctx.winit_state;
     if !(is_context_open && matches!(event, WindowEvent::MouseWheel { .. })) {
-      let result = winit_state.on_window_event(&core.window, &event);
+      let result = core.egui.handle_window_event(&core.window, &event);
       #[rustfmt::skip] if result.consumed { return };
     }
 
@@ -125,7 +121,7 @@ impl ApplicationHandler<CoreEvent<ClientEvent>> for ApexApp {
       }
 
       WindowEvent::KeyboardInput { event, .. } => {
-        if core.egui_ctx().is_context_menu_open() {
+        if core.egui.ctx().is_context_menu_open() {
           return;
         }
 
@@ -184,17 +180,7 @@ impl ApplicationHandler<CoreEvent<ClientEvent>> for ApexApp {
       }
 
       CoreEvent::RecreateGraphicsContext => {
-        let present_mode = self.settings.graphics.present_mode();
-        let backend = self.settings.graphics.rendering_backend();
-        let max_frame_latency = self.settings.graphics.max_frame_latency();
-
-        #[rustfmt::skip]
-        let RenderingBackend::Wgpu(backend) = backend else { todo!() };
-
-        core.graphics = Graphics::new(&core.window, backend.into(), present_mode.into(), max_frame_latency).block_on();
-
-        let display_handle = event_loop.display_handle().unwrap();
-        core.egui_ctx = EguiContext::new(&display_handle, &core.graphics);
+        core.recreate_context(&self.settings);
         client.recreate(&core.graphics.device, &core.graphics.queue, core.graphics.config.format);
       }
 

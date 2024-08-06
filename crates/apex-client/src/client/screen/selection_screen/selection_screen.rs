@@ -12,7 +12,7 @@ use crate::{
   core::{
     core::Core,
     event::EventBus,
-    graphics::{drawable::Drawable, egui::EguiContext, graphics::Graphics},
+    graphics::{drawable::Drawable, egui::Egui, graphics::Graphics},
     time::clock::AbstractClock,
   },
 };
@@ -28,10 +28,10 @@ impl SelectionScreen {
     beatmap_cache: &BeatmapCache,
     clock: &mut impl AbstractClock,
     graphics: &Graphics,
-    egui_ctx: &mut EguiContext,
+    egui: &mut Egui,
     settings: &Settings,
   ) -> Self {
-    let beatmap_selection = BeatmapSelectionView::new(event_bus, beatmap_cache, clock, graphics, egui_ctx, settings);
+    let beatmap_selection = BeatmapSelectionView::new(event_bus, beatmap_cache, clock, graphics, egui, settings);
     let beatmap_selector = BeatmapSelector::new(beatmap_cache);
 
     return Self { beatmap_selection, beatmap_selector };

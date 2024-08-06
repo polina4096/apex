@@ -12,7 +12,7 @@ use crate::client::{graphics::RenderingBackend, settings::Settings};
 use super::{
   app::App,
   event::CoreEvent,
-  graphics::{egui::EguiContext, graphics::Graphics},
+  graphics::{egui::Egui, graphics::Graphics},
 };
 
 pub struct Core<A: App> {
@@ -20,7 +20,7 @@ pub struct Core<A: App> {
 
   pub window: Arc<Window>,
   pub graphics: Graphics,
-  pub egui_ctx: EguiContext,
+  pub egui: Egui,
 }
 
 impl<A: App> Core<A> {
@@ -30,8 +30,11 @@ impl<A: App> Core<A> {
     window: Arc<Window>,
     settings: &Settings,
   ) -> Self {
-    #[rustfmt::skip]
-    let RenderingBackend::Wgpu(backend) = settings.graphics.rendering_backend() else { todo!() };
+    #[allow(clippy::infallible_destructuring_match)]
+    let backend = match settings.graphics.rendering_backend() {
+      RenderingBackend::Wgpu(wgpu_backend) => wgpu_backend,
+    };
+
     let graphics = Graphics::new(
       &window,
       backend.into(),
@@ -40,25 +43,36 @@ impl<A: App> Core<A> {
     )
     .block_on();
 
-    let egui_ctx = EguiContext::new(event_loop, &graphics);
-    egui_ctx.egui_ctx().set_visuals(egui::Visuals::dark().tap_mut(|vis| {
-      vis.window_highlight_topmost = false;
-    }));
+    let egui = Egui::new(event_loop, &graphics).tap(|egui| {
+      egui.ctx().tap_deref(|ctx| {
+        ctx.set_visuals(egui::Visuals::dark().tap_mut(|visuals| {
+          visuals.window_highlight_topmost = false;
+        }));
 
-    return Self { proxy, window, graphics, egui_ctx };
+        ctx.options_mut(|options| {
+          options.zoom_with_keyboard = false;
+        });
+
+        ctx.style_mut(|style| {
+          style.interaction.selectable_labels = false;
+        });
+      });
+    });
+
+    return Self { proxy, window, graphics, egui };
   }
 
   pub fn render(&mut self, app: &mut A, settings: &mut Settings) -> Result<(), wgpu::SurfaceError> {
     let output = self.graphics.surface.get_current_texture()?;
     let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
-    let cmd_encoder_desc = wgpu::CommandEncoderDescriptor { label: Some("render encoder") };
+    let cmd_encoder_desc = wgpu::CommandEncoderDescriptor { label: Some("main command encoder") };
     let mut encoder = self.graphics.device.create_command_encoder(&cmd_encoder_desc);
 
     {
       app.prepare(self, settings, &mut encoder);
 
       let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-        label: Some("egui render pass"),
+        label: Some("main render pass"),
         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
           view: &view,
           resolve_target: None,
@@ -90,7 +104,7 @@ impl<A: App> Core<A> {
       self.graphics.config.height = new_size.height;
       self.graphics.surface.configure(&self.graphics.device, &self.graphics.config);
 
-      self.egui_ctx.resize(new_size);
+      self.egui.resize(new_size);
 
       app.resize(self, new_size);
     }
@@ -98,13 +112,23 @@ impl<A: App> Core<A> {
 
   pub fn scale(&mut self, app: &mut A, scale_factor: f64) {
     self.graphics.scale = scale_factor;
-    self.egui_ctx.scale(scale_factor);
+    self.egui.scale(scale_factor);
 
     app.scale(self, scale_factor);
   }
 
-  pub fn egui_ctx(&self) -> &egui::Context {
-    return self.egui_ctx.egui_ctx();
+  pub fn recreate_context(&mut self, settings: &Settings) {
+    let present_mode = settings.graphics.present_mode();
+    let backend = settings.graphics.rendering_backend();
+    let max_frame_latency = settings.graphics.max_frame_latency();
+
+    #[allow(clippy::infallible_destructuring_match)]
+    let backend = match backend {
+      RenderingBackend::Wgpu(wgpu_backend) => wgpu_backend,
+    };
+
+    self.graphics = Graphics::new(&self.window, backend.into(), present_mode.into(), max_frame_latency).block_on();
+    self.egui.recreate_context(&*self.window, &self.graphics);
   }
 
   pub fn exit(&self) {

@@ -1159,6 +1159,7 @@ dependencies = [
  "log",
  "nohash-hasher",
  "parking_lot",
+ "rayon",
  "serde",
 ]
 

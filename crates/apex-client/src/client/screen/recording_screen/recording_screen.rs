@@ -33,7 +33,7 @@ impl RecordingScreen {
 
     self.exporter_config = VideoExporterConfig::default();
     self.recording_panel.prepare(
-      core.egui_ctx.egui_ctx(),
+      core.egui.ctx(),
       &core.graphics.adapter,
       core.graphics.config.format,
       &self.beatmap_path,

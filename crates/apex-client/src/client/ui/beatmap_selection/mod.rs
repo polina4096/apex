@@ -19,7 +19,7 @@ use crate::{
   core::{
     core::Core,
     event::EventBus,
-    graphics::{drawable::Drawable, egui::EguiContext, graphics::Graphics},
+    graphics::{drawable::Drawable, egui::Egui, graphics::Graphics},
     time::clock::AbstractClock,
   },
 };
@@ -51,7 +51,7 @@ impl BeatmapSelectionView {
     beatmap_cache: &BeatmapCache,
     clock: &mut impl AbstractClock,
     graphics: &Graphics,
-    egui_ctx: &mut EguiContext,
+    egui: &mut Egui,
     settings: &Settings,
   ) -> Self {
     let mut beatmap_cards = vec![];
@@ -67,7 +67,7 @@ impl BeatmapSelectionView {
       beatmap_bg: BackgroundComponent::new(""),
       beatmap_list: BeatmapList::new(event_bus.clone(), beatmap_cards),
       beatmap_stats: BeatmapStats::new(),
-      beatmap_preview: BeatmapPreview::new(graphics, egui_ctx, settings),
+      beatmap_preview: BeatmapPreview::new(graphics, egui.renderer_mut(), settings),
       beatmap_scores: BeatmapScores::new(event_bus.clone()),
       action_bar: ActionBar::new(event_bus, clock),
     };
@@ -109,43 +109,42 @@ impl BeatmapSelectionView {
       let data = std::fs::read_to_string(path).unwrap();
       let beatmap = Beatmap::parse(data);
 
-      self.beatmap_preview.change_beatmap(&core.graphics, &mut core.egui_ctx, &beatmap);
+      self.beatmap_preview.change_beatmap(&core.graphics, core.egui.renderer_mut(), &beatmap);
 
       self.update_scores(score_cache, path);
     }
 
-    egui::CentralPanel::default()
-      .frame(egui::Frame::none())
-      .show(core.egui_ctx.winit_state.egui_ctx(), |ui| {
-        self.beatmap_bg.prepare(ui);
+    let (egui_ctx, egui_renderer) = core.egui.ctx_renderer_mut();
+    egui::CentralPanel::default().frame(egui::Frame::none()).show(egui_ctx, |ui| {
+      self.beatmap_bg.prepare(ui);
 
-        StripBuilder::new(ui) //
-          .size(Size::remainder())
-          .size(Size::relative(0.4))
-          .horizontal(|mut builder| {
-            builder.cell(|ui| {
-              ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
-                egui::Frame::none() //
-                  .inner_margin(egui::Margin::same(12.0).tap_mut(|x| x.bottom = 0.0))
-                  .show(ui, |ui| {
-                    self.beatmap_stats.prepare(ui, info);
-                    ui.add_space(8.0);
-                    self.beatmap_preview.prepare(ui, clock, &mut core.egui_ctx.renderer);
-                    ui.add_space(8.0);
-                    self.beatmap_scores.prepare(ui, score_cache, &self.score_ids, path);
-                  });
-              });
-
-              ui.with_layout(egui::Layout::left_to_right(egui::Align::Max), |ui| {
-                self.action_bar.prepare(ui, clock);
-              });
+      StripBuilder::new(ui) //
+        .size(Size::remainder())
+        .size(Size::relative(0.4))
+        .horizontal(|mut builder| {
+          builder.cell(|ui| {
+            ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
+              egui::Frame::none() //
+                .inner_margin(egui::Margin::same(12.0).tap_mut(|x| x.bottom = 0.0))
+                .show(ui, |ui| {
+                  self.beatmap_stats.prepare(ui, info);
+                  ui.add_space(8.0);
+                  self.beatmap_preview.prepare(ui, clock, egui_renderer);
+                  ui.add_space(8.0);
+                  self.beatmap_scores.prepare(ui, score_cache, &self.score_ids, path);
+                });
             });
 
-            builder.cell(|ui| {
-              self.beatmap_list.prepare(ui, beatmap_cache, selector);
+            ui.with_layout(egui::Layout::left_to_right(egui::Align::Max), |ui| {
+              self.action_bar.prepare(ui, clock);
             });
           });
-      });
+
+          builder.cell(|ui| {
+            self.beatmap_list.prepare(ui, beatmap_cache, selector);
+          });
+        });
+    });
   }
 
   pub fn update_scores(&mut self, score_cache: &mut ScoreCache, path: &PathBuf) {

@@ -69,7 +69,7 @@ impl IngameOverlayView {
     settings: &Settings,
   ) {
     egui::CentralPanel::default().frame(egui::Frame::none().inner_margin(egui::Margin::same(8.0))).show(
-      core.egui_ctx(),
+      core.egui.ctx(),
       |ui| {
         let max_height = ui.available_height();
 

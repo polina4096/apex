@@ -93,7 +93,7 @@ impl PlayResultsView {
 
   pub fn prepare(&mut self, core: &Core<Client>, score_cache: &ScoreCache) {
     let score = score_cache.score_details(self.score_id);
-    egui::CentralPanel::default().frame(egui::Frame::none()).show(core.egui_ctx(), |ui| {
+    egui::CentralPanel::default().frame(egui::Frame::none()).show(core.egui.ctx(), |ui| {
       self.background.prepare(ui);
       egui::Frame::none().show(ui, |ui| {
         use egui_extras::{Size, StripBuilder};

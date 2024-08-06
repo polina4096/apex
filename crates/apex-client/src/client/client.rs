@@ -79,13 +79,13 @@ impl App for Client {
   type Event = ClientEvent;
 
   fn prepare(&mut self, core: &mut Core<Self>, settings: &mut Settings, encoder: &mut wgpu::CommandEncoder) {
-    core.egui_ctx.begin_frame(&core.window);
+    core.egui.begin_frame(&core.window);
 
     let beatmap_idx = self.selection_screen.beatmap_selector().selected();
     self.recording_screen.prepare(core, beatmap_idx, &self.beatmap_cache);
 
     self.settings_screen.prepare(
-      core.egui_ctx.egui_ctx(),
+      core.egui.ctx(),
       &mut self.input,
       settings,
       &mut ClientSettingsProxy {
@@ -129,7 +129,7 @@ impl App for Client {
       }
     }
 
-    core.egui_ctx.end_frame(&core.window, &core.graphics, encoder);
+    core.egui.end_frame(&core.window, &core.graphics, encoder);
   }
 
   fn render<'rpass>(&'rpass self, core: &'rpass mut Core<Self>, rpass: &mut wgpu::RenderPass<'rpass>) {
@@ -149,7 +149,7 @@ impl App for Client {
     }
 
     // Draw egui
-    core.egui_ctx.render(&core.graphics, rpass);
+    core.egui.render(&core.graphics, rpass);
   }
 
   fn resize(&mut self, core: &mut Core<Self>, size: winit::dpi::PhysicalSize<u32>) {
@@ -189,7 +189,7 @@ impl Client {
     let conn = Connection::open("./scores.db").unwrap();
     let score_cache = ScoreCache::new(conn);
 
-    #[rustfmt::skip] let selection_screen = SelectionScreen::new(event_bus.clone(), &beatmap_cache, &mut audio, &core.graphics, &mut core.egui_ctx, settings);
+    #[rustfmt::skip] let selection_screen = SelectionScreen::new(event_bus.clone(), &beatmap_cache, &mut audio, &core.graphics, &mut core.egui, settings);
     #[rustfmt::skip] let result_screen = ResultScreen::new(event_bus.clone(), &score_cache);
     #[rustfmt::skip] let gameplay_screen = GameplayScreen::new(event_bus.clone(), &core.graphics, &audio, settings);
     #[rustfmt::skip] let settings_screen = SettingsScreen::new();
