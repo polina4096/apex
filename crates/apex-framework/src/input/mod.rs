@@ -1,7 +1,7 @@
 use std::hash::Hash;
 
 use action::AppActions;
-use tap::Tap;
+use tap::Pipe as _;
 
 use self::{input_state::InputState, keybinds::Keybinds};
 
@@ -17,11 +17,12 @@ pub struct Input<T> {
 }
 
 impl<T: AppActions + Copy + Eq + Hash> Input<T> {
-  pub fn with_keybinds(keybinds: Keybinds<T>) -> Self {
+  pub fn with_keybinds(mut keybinds: Keybinds<T>) -> Self {
     return Self {
-      keybinds: Keybinds::<T>::default().tap_mut(|binds| {
-        T::insert_keybinds(binds);
-        binds.merge(keybinds);
+      keybinds: Keybinds::<T>::default().pipe(|mut binds| {
+        T::insert_keybinds(&mut binds);
+        keybinds.merge(binds);
+        return keybinds;
       }),
       state: InputState::default(),
       grabbing: false,

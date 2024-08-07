@@ -139,6 +139,11 @@ impl App for Client {
     .block_on();
   }
 
+  fn destroy(&self) {
+    self.settings.save("./config.toml");
+    self.input.keybinds.save("./keybinds.toml");
+  }
+
   fn prepare(&mut self, core: &mut Core<Self>, encoder: &mut wgpu::CommandEncoder) {
     core.egui.begin_frame(&core.window);
 
@@ -420,13 +425,6 @@ impl Client {
     audio.set_source(source);
     audio.set_position(Time::from_ms(beatmap.preview_time as f64));
     audio.set_playing(true);
-  }
-}
-
-impl Drop for Client {
-  fn drop(&mut self) {
-    self.settings.save("./config.toml");
-    self.input.keybinds.save("./keybinds.toml");
   }
 }
 

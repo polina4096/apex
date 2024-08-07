@@ -10,7 +10,7 @@ dependencies = ["make-dev-dirs", "copy-assets"]
 command = "cargo"
 args = ["run", "--bin", "apex-client"]
 cwd = "./debug/"
-env = { "RUST_LOG" = "apex_client=debug" }
+env = { "RUST_LOG" = "apex_client=debug, apex_framework=debug" }
 
 [tasks.build]
 command = "cargo"
@@ -21,7 +21,7 @@ dependencies = ["make-dev-dirs", "copy-assets"]
 command = "cargo"
 args = ["run", "--bin", "apex-client", "--release", "--", "-C", "target-cpu=native"]
 cwd = "./debug/"
-env = { "RUST_LOG" = "apex_client=debug" }
+env = { "RUST_LOG" = "apex_client=debug, apex_framework=debug" }
 
 [tasks.make-dev-dirs]
 script = '''

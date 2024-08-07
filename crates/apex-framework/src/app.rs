@@ -28,6 +28,8 @@ pub trait App: Drawable + Sized {
 
   fn recreate_graphics(&mut self, core: &mut Core<Self>) -> Graphics;
 
+  fn destroy(&self) {}
+
   fn prepare(&mut self, core: &mut Core<Self>, encoder: &mut wgpu::CommandEncoder) {}
   fn render<'rpass>(&'rpass self, core: &'rpass mut Core<Self>, rpass: &mut wgpu::RenderPass<'rpass>) {}
   fn resize(&mut self, core: &mut Core<Self>, size: winit::dpi::PhysicalSize<u32>) {}
@@ -174,5 +176,10 @@ impl<A: App> ApplicationHandler<CoreEvent<A::Event>> for ApexFrameworkApplicatio
         client.dispatch(core, event);
       }
     }
+  }
+
+  fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
+    let Some(client) = &self.client else { return };
+    client.destroy();
   }
 }
