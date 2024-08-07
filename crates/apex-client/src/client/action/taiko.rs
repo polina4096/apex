@@ -1,10 +1,10 @@
-use crate::{
-  client::{
-    client::{Client, GameState},
-    gameplay::taiko_player::TaikoInput,
-  },
-  core::{core::Core, input::action::Action},
+use crate::client::{
+  client::{Client, GameState},
+  gameplay::taiko_player::TaikoInput,
 };
+
+use apex_framework::core::Core;
+use apex_framework::input::action::Action;
 
 macro_rules! impl_taiko_button {
   ($name:ident) => {

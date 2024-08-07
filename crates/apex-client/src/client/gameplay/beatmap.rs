@@ -4,7 +4,7 @@ use ahash::AHashMap;
 use intbits::Bits;
 use log::warn;
 
-use crate::core::time::time::Time;
+use apex_framework::time::time::Time;
 
 use super::taiko_hit_object::{TaikoColor, TaikoHitObject};
 

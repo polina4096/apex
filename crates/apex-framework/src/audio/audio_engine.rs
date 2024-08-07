@@ -1,7 +1,7 @@
 use log::error;
 use rodio::{Device, OutputStream, OutputStreamHandle, Sink, Source};
 
-use crate::core::time::{
+use crate::time::{
   clock::{AbstractClock, Clock},
   time::Time,
 };

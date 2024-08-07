@@ -1,14 +1,13 @@
 use std::path::{Path, PathBuf};
 
-use crate::{
-  client::{
-    client::Client,
-    event::ClientEvent,
-    gameplay::beatmap_cache::{BeatmapCache, BeatmapInfo},
-    score::score_cache::{ScoreCache, ScoreId},
-    ui::play_results::PlayResultsView,
-  },
-  core::{core::Core, event::EventBus},
+use apex_framework::{core::Core, event::EventBus};
+
+use crate::client::{
+  client::Client,
+  event::ClientEvent,
+  gameplay::beatmap_cache::{BeatmapCache, BeatmapInfo},
+  score::score_cache::{ScoreCache, ScoreId},
+  ui::play_results::PlayResultsView,
 };
 
 pub struct ResultScreen {

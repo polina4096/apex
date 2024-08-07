@@ -10,7 +10,7 @@ use serde::{
 use tap::Tap;
 use winit::keyboard::{ModifiersState, PhysicalKey};
 
-use crate::core::data::persistent::Persistent;
+use crate::data::persistent::Persistent;
 
 use super::action::AppActions;
 

@@ -1,7 +1,6 @@
-use crate::{
-  client::{client::Client, gameplay::beatmap::BreakPoint},
-  core::{core::Core, time::time::Time},
-};
+use apex_framework::{core::Core, time::time::Time};
+
+use crate::client::{client::Client, gameplay::beatmap::BreakPoint};
 
 pub struct BreakOverlayView {}
 

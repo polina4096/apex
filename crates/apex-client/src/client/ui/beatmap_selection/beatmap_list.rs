@@ -1,13 +1,11 @@
+use apex_framework::event::EventBus;
 use egui::{NumExt as _, Widget};
 use instant::Instant;
 use log::debug;
 
-use crate::{
-  client::{
-    event::ClientEvent,
-    gameplay::{beatmap_cache::BeatmapCache, beatmap_selector::BeatmapSelector},
-  },
-  core::event::EventBus,
+use crate::client::{
+  event::ClientEvent,
+  gameplay::{beatmap_cache::BeatmapCache, beatmap_selector::BeatmapSelector},
 };
 
 use super::beatmap_card::BeatmapCard;

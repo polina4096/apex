@@ -1,15 +1,14 @@
 use std::num::{NonZero, NonZeroU32};
 
-use crate::{
-  client::{
-    gameplay::beatmap::Beatmap,
-    graphics::taiko_renderer::taiko_renderer::{TaikoRenderer, TaikoRendererConfig},
-    settings::Settings,
-  },
-  core::{
-    graphics::{color::Color, drawable::Drawable, graphics::Graphics},
-    time::{clock::AbstractClock, time::Time},
-  },
+use apex_framework::{
+  graphics::{color::Color, drawable::Drawable, graphics::Graphics},
+  time::{clock::AbstractClock, time::Time},
+};
+
+use crate::client::{
+  gameplay::beatmap::Beatmap,
+  graphics::taiko_renderer::taiko_renderer::{TaikoRenderer, TaikoRendererConfig},
+  settings::Settings,
 };
 
 pub const PREVIEW_HEIGHT: u32 = 160;
@@ -78,7 +77,7 @@ pub struct BeatmapPreview {
 }
 
 impl BeatmapPreview {
-  pub fn new(graphics: &Graphics, egui_renderer: &mut egui_wgpu::Renderer, settings: &Settings) -> Self {
+  pub fn new(graphics: &Graphics, settings: &Settings) -> Self {
     let hit_pos = PREVIEW_HEIGHT as f32 / 2.0;
     let taiko_renderer = TaikoRenderer::new(
       &graphics.device,
@@ -105,16 +104,11 @@ impl BeatmapPreview {
       don_color: settings.taiko.don_color(),
       kat_color: settings.taiko.kat_color(),
       current_beatmap: None,
-      new_renderer: None,
+      new_renderer: Some(taiko_renderer),
       new_scale_factor: None,
       last_state: false,
       last_bits: 0,
     };
-
-    // Because the graphics pipeline must have the same lifetime as the egui render pass,
-    // instead of storing the pipeline in our `Custom3D` struct, we insert it into the
-    // `paint_callback_resources` type map, which is stored alongside the render pass.
-    egui_renderer.callback_resources.insert(taiko_renderer);
 
     return beatmap_preview;
   }
@@ -156,6 +150,9 @@ impl BeatmapPreview {
         );
 
         if let Some(taiko_renderer) = self.new_renderer.take() {
+          // Because the graphics pipeline must have the same lifetime as the egui render pass,
+          // instead of storing the pipeline in our `Custom3D` struct, we insert it into the
+          // `paint_callback_resources` type map, which is stored alongside the render pass.
           egui_renderer.callback_resources.insert(taiko_renderer);
         }
 
@@ -219,7 +216,7 @@ impl BeatmapPreview {
   }
 
   pub fn change_beatmap(&mut self, graphics: &Graphics, egui_renderer: &mut egui_wgpu::Renderer, beatmap: &Beatmap) {
-    let resources: &mut TaikoRenderer = egui_renderer.callback_resources.get_mut().unwrap();
+    let resources = egui_renderer.callback_resources.entry().or_insert_with(|| self.new_renderer.take().unwrap());
 
     self.current_beatmap = Some(beatmap.clone());
     resources.load_beatmap(&graphics.device, beatmap.clone());

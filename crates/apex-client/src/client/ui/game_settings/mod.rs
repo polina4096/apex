@@ -1,15 +1,14 @@
 use egui::Widget;
 use log::debug;
 
-use crate::{
-  client::{
-    action::ClientAction,
-    settings::{Settings, SettingsProxy},
-  },
-  core::input::{
-    keybinds::{Bind, KeyCombination},
-    Input,
-  },
+use apex_framework::input::{
+  keybinds::{Bind, KeyCombination},
+  Input,
+};
+
+use crate::client::{
+  action::ClientAction,
+  settings::{Settings, SettingsProxy},
 };
 
 pub mod tab_controls;

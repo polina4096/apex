@@ -1,6 +1,6 @@
 use std::fmt::{self, Display, Formatter};
 
-use crate::core::graphics::color::Color;
+use apex_framework::graphics::color::Color;
 
 #[rustfmt::skip]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

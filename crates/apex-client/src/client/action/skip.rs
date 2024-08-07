@@ -1,7 +1,6 @@
-use crate::{
-  client::client::{Client, GameState},
-  core::{core::Core, input::action::Action, time::time::Time},
-};
+use apex_framework::{core::Core, input::action::Action, time::time::Time};
+
+use crate::client::client::{Client, GameState};
 
 pub struct Skip;
 

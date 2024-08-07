@@ -1,7 +1,7 @@
 use bytemuck::{Pod, Zeroable};
 use glam::{vec3, Mat4, Quat, Vec3};
 
-use crate::core::graphics::{color::Color, instance::Instance};
+use crate::graphics::{color::Color, instance::Instance};
 
 #[rustfmt::skip]
 #[derive(Copy, Clone)]

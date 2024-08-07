@@ -1,13 +1,18 @@
+use apex_framework::{
+  event::CoreEvent,
+  graphics::{
+    color::Color,
+    presentation::{frame_limiter::FrameLimiter, frame_sync::FrameSync},
+  },
+  time::time::Time,
+};
 use winit::event_loop::EventLoopProxy;
 
-use crate::{
-  client::{
-    audio::game_audio::GameAudio,
-    event::ClientEvent,
-    graphics::{FrameLimiterOptions, PresentModeOptions, RenderingBackend},
-    screen::gameplay_screen::gameplay_screen::GameplayScreen,
-  },
-  core::{event::CoreEvent, graphics::color::Color, time::time::Time},
+use crate::client::{
+  audio::game_audio::GameAudio,
+  event::ClientEvent,
+  graphics::{FrameLimiterOptions, PresentModeOptions, RenderingBackend},
+  screen::gameplay_screen::gameplay_screen::GameplayScreen,
 };
 
 use super::SettingsProxy;
@@ -15,6 +20,8 @@ use super::SettingsProxy;
 pub struct ClientSettingsProxy<'a, 'window> {
   pub proxy: &'a EventLoopProxy<CoreEvent<ClientEvent>>,
 
+  pub frame_limiter: &'a mut FrameLimiter,
+  pub frame_sync: &'a mut FrameSync,
   pub gameplay_screen: &'a mut GameplayScreen,
   pub audio: &'a mut GameAudio,
 
@@ -30,9 +37,9 @@ impl<'a, 'window> SettingsProxy for ClientSettingsProxy<'a, 'window> {
     self.proxy.send_event(CoreEvent::ReconfigureSurface).unwrap();
   }
 
-  // TODO: probably remove this event
   fn update_graphics_frame_limiter(&mut self, _value: FrameLimiterOptions) {
-    self.proxy.send_event(CoreEvent::UpdateFrameLimiterConfiguration).unwrap();
+    // TODO: fix
+    // self.proxy.send_event(CoreEvent::UpdateFrameLimiterConfiguration).unwrap();
   }
 
   fn update_graphics_max_frame_latency(&mut self, value: usize) {
@@ -41,10 +48,10 @@ impl<'a, 'window> SettingsProxy for ClientSettingsProxy<'a, 'window> {
   }
 
   fn update_graphics_macos_stutter_fix(&mut self, _value: bool) {
-    self.proxy.send_event(CoreEvent::UpdateFrameLimiterConfiguration).unwrap();
+    // self.frame_sync.disable_external_sync();
+    // self.proxy.send_event(CoreEvent::UpdateFrameLimiterConfiguration).unwrap();
   }
 
-  // TODO: probably remove this event too
   fn update_graphics_rendering_backend(&mut self, _value: RenderingBackend) {
     self.proxy.send_event(CoreEvent::RecreateGraphicsContext).unwrap();
   }

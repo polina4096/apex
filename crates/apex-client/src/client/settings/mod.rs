@@ -1,12 +1,9 @@
 pub mod proxy;
 
+use apex_framework::{graphics::color::Color, settings};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-  client::graphics::{FrameLimiterOptions, PresentModeOptions, RenderingBackend, WgpuBackend},
-  core::graphics::color::Color,
-  settings,
-};
+use crate::client::graphics::{FrameLimiterOptions, PresentModeOptions, RenderingBackend, WgpuBackend};
 
 use super::score::score::Score;
 

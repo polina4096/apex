@@ -2,26 +2,31 @@ use std::{
   fs::File,
   io::BufReader,
   path::{Path, PathBuf},
+  sync::atomic::AtomicBool,
 };
 
+use pollster::FutureExt as _;
 use rodio::{
   source::{Empty, UniformSourceIterator},
   Decoder, DeviceTrait as _, Source,
 };
 use rusqlite::Connection;
 use tap::Tap;
+use triomphe::Arc;
 use winit::{
   event::{KeyEvent, Modifiers},
+  event_loop::{ActiveEventLoop, EventLoopProxy},
   keyboard::{KeyCode, PhysicalKey},
+  window::Window,
 };
 
-use crate::core::{
+use apex_framework::{
   app::App,
   audio::{self, audio_engine::AudioEngine},
   core::Core,
   data::persistent::Persistent as _,
-  event::EventBus,
-  graphics::drawable::Drawable,
+  event::{CoreEvent, EventBus},
+  graphics::{drawable::Drawable, graphics::Graphics},
   input::{
     action::AppActions as _,
     keybinds::{KeyCombination, Keybinds},
@@ -35,6 +40,7 @@ use super::{
   audio::game_audio::GameAudio,
   event::ClientEvent,
   gameplay::beatmap_cache::{BeatmapCache, BeatmapInfo},
+  graphics::{FrameLimiterOptions, RenderingBackend},
   score::score_cache::ScoreCache,
   screen::{
     debug_screen::debug_screen::DebugScreen, gameplay_screen::gameplay_screen::GameplayScreen,
@@ -60,6 +66,8 @@ pub struct Client {
 
   pub(crate) game_state: GameState,
 
+  pub(crate) settings: Settings,
+
   pub(crate) beatmap_cache: BeatmapCache,
   pub(crate) score_cache: ScoreCache,
 
@@ -78,7 +86,72 @@ pub struct Client {
 impl App for Client {
   type Event = ClientEvent;
 
-  fn prepare(&mut self, core: &mut Core<Self>, settings: &mut Settings, encoder: &mut wgpu::CommandEncoder) {
+  fn create(
+    event_loop: &ActiveEventLoop,
+    window: Arc<Window>,
+    app_focus: Arc<AtomicBool>,
+    proxy: EventLoopProxy<CoreEvent<Self::Event>>,
+  ) -> (Self, Core<Self>) {
+    let settings = Settings::load("./config.toml");
+
+    #[allow(clippy::infallible_destructuring_match)]
+    let backend = match settings.graphics.rendering_backend() {
+      RenderingBackend::Wgpu(wgpu_backend) => wgpu_backend,
+    };
+
+    let graphics = Graphics::new(
+      &window,
+      backend.into(),
+      settings.graphics.present_mode().into(),
+      settings.graphics.max_frame_latency(),
+    )
+    .block_on();
+
+    let client = Client::new(&graphics, settings, EventBus::new(proxy.clone()));
+    let mut core = Core::new(event_loop, proxy, window.clone(), app_focus, graphics);
+
+    // Setup external frame synchronization
+    core.frame_sync.set_current_window(window);
+
+    // Setup frame limiter
+    match client.settings.graphics.frame_limiter() {
+      FrameLimiterOptions::Custom(fps) => {
+        core.frame_sync.disable_external_sync();
+
+        core.frame_limiter.set_unlimited(false);
+        core.frame_limiter.set_target_fps(fps as u16);
+      }
+
+      FrameLimiterOptions::DisplayLink => {
+        core.frame_sync.enable_external_sync(client.settings.graphics.macos_stutter_fix()).unwrap();
+      }
+
+      FrameLimiterOptions::Unlimited => {
+        core.frame_sync.disable_external_sync();
+
+        core.frame_limiter.set_unlimited(true);
+      }
+    }
+
+    return (client, core);
+  }
+
+  fn recreate_graphics(&mut self, core: &mut Core<Self>) -> Graphics {
+    #[allow(clippy::infallible_destructuring_match)]
+    let backend = match self.settings.graphics.rendering_backend() {
+      RenderingBackend::Wgpu(wgpu_backend) => wgpu_backend,
+    };
+
+    return Graphics::new(
+      &core.window,
+      backend.into(),
+      self.settings.graphics.present_mode().into(),
+      self.settings.graphics.max_frame_latency(),
+    )
+    .block_on();
+  }
+
+  fn prepare(&mut self, core: &mut Core<Self>, encoder: &mut wgpu::CommandEncoder) {
     core.egui.begin_frame(&core.window);
 
     let beatmap_idx = self.selection_screen.beatmap_selector().selected();
@@ -87,10 +160,12 @@ impl App for Client {
     self.settings_screen.prepare(
       core.egui.ctx(),
       &mut self.input,
-      settings,
+      &mut self.settings,
       &mut ClientSettingsProxy {
         proxy: &core.proxy,
 
+        frame_limiter: &mut core.frame_limiter,
+        frame_sync: &mut core.frame_sync,
         gameplay_screen: &mut self.gameplay_screen,
         audio: &mut self.audio,
 
@@ -109,18 +184,18 @@ impl App for Client {
       }
 
       GameState::Playing => {
-        self.gameplay_screen.prepare(core, &mut self.audio, settings);
+        self.gameplay_screen.prepare(core, &mut self.audio, &self.settings);
       }
 
       GameState::Paused => {
-        self.gameplay_screen.prepare(core, &mut self.audio, settings);
+        self.gameplay_screen.prepare(core, &mut self.audio, &self.settings);
         self.pause_screen.prepare(
           core,
           &mut self.audio,
           &mut self.selection_screen,
           &self.beatmap_cache,
           &mut self.game_state,
-          settings,
+          &self.settings,
         )
       }
 
@@ -160,66 +235,8 @@ impl App for Client {
     self.gameplay_screen.taiko_renderer().scale(&core.graphics.queue, scale_factor);
     self.selection_screen.scale(scale_factor);
   }
-}
 
-impl Drawable for Client {
-  fn recreate(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, format: wgpu::TextureFormat) {
-    self.gameplay_screen.recreate(device, queue, format);
-    self.selection_screen.recreate(device, queue, format);
-  }
-}
-
-impl Client {
-  pub fn new(core: &mut Core<Self>, settings: &Settings, event_bus: EventBus<ClientEvent>) -> Self {
-    let input = Input::with_keybinds(Keybinds::load("./keybinds.toml"));
-
-    let (m, a, s) = (settings.audio.master_volume(), settings.audio.music_volume(), settings.audio.effect_volume());
-    let (audio_mixer, audio_controller) = audio::mixer(Empty::new(), m, a, s);
-    let audio_engine = AudioEngine::new().tap_mut(|x| x.set_source(audio_mixer));
-    let mut audio = GameAudio::new(audio_engine, audio_controller)
-      .with_lead_in(Time::from_ms(settings.gameplay.lead_in() as f64))
-      .with_lead_out(Time::from_ms(settings.gameplay.lead_out() as f64));
-
-    let game_state = GameState::Selection;
-
-    let beatmap_cache = BeatmapCache::new().tap_mut(|cache| {
-      cache.load_beatmaps("./beatmaps");
-    });
-
-    let conn = Connection::open("./scores.db").unwrap();
-    let score_cache = ScoreCache::new(conn);
-
-    #[rustfmt::skip] let selection_screen = SelectionScreen::new(event_bus.clone(), &beatmap_cache, &mut audio, &core.graphics, &mut core.egui, settings);
-    #[rustfmt::skip] let result_screen = ResultScreen::new(event_bus.clone(), &score_cache);
-    #[rustfmt::skip] let gameplay_screen = GameplayScreen::new(event_bus.clone(), &core.graphics, &audio, settings);
-    #[rustfmt::skip] let settings_screen = SettingsScreen::new();
-    #[rustfmt::skip] let recording_screen = RecordingScreen::new();
-    #[rustfmt::skip] let pause_screen = PauseScreen::new(event_bus.clone());
-    #[rustfmt::skip] let debug_screen = DebugScreen::new();
-
-    let prev_audio_path = PathBuf::new();
-    let prev_beatmap_path = PathBuf::new();
-
-    return Self {
-      input,
-      audio,
-      event_bus,
-      game_state,
-      prev_audio_path,
-      prev_beatmap_path,
-      beatmap_cache,
-      score_cache,
-      selection_screen,
-      gameplay_screen,
-      result_screen,
-      settings_screen,
-      recording_screen,
-      pause_screen,
-      debug_screen,
-    };
-  }
-
-  pub fn input(&mut self, core: &mut Core<Self>, event: KeyEvent) {
+  fn input(&mut self, core: &mut Core<Self>, event: KeyEvent) {
     if { true }
       && event.physical_key != PhysicalKey::Code(KeyCode::SuperRight)
       && event.physical_key != PhysicalKey::Code(KeyCode::SuperLeft)
@@ -267,11 +284,11 @@ impl Client {
     }
   }
 
-  pub fn modifiers(&mut self, modifiers: Modifiers) {
+  fn modifiers(&mut self, modifiers: Modifiers) {
     self.input.state.modifiers = modifiers.state();
   }
 
-  pub fn dispatch(&mut self, core: &mut Core<Self>, event: ClientEvent) {
+  fn dispatch(&mut self, core: &mut Core<Self>, event: ClientEvent) {
     match event {
       ClientEvent::PickBeatmap { path } => {
         self.game_state = GameState::Playing;
@@ -310,7 +327,7 @@ impl Client {
     }
   }
 
-  pub fn file(&mut self, _core: &mut Core<Self>, path: PathBuf, file: Vec<u8>) {
+  fn file_dropped(&mut self, _core: &mut Core<Self>, path: PathBuf, file: Vec<u8>) {
     // TODO: this logic should be moved to the beatmap manager or whatever
     // TODO: properly parse beatmapset id
     let beatmapset_id = path.file_name().unwrap().to_str().unwrap().split_whitespace().next().unwrap();
@@ -320,6 +337,65 @@ impl Client {
       .unwrap();
 
     self.beatmap_cache.load_difficulties(format!("./beatmaps/{}", beatmapset_id));
+  }
+}
+
+impl Drawable for Client {
+  fn recreate(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, format: wgpu::TextureFormat) {
+    self.gameplay_screen.recreate(device, queue, format);
+    self.selection_screen.recreate(device, queue, format);
+  }
+}
+
+impl Client {
+  pub fn new(graphics: &Graphics, settings: Settings, event_bus: EventBus<ClientEvent>) -> Self {
+    let input = Input::with_keybinds(Keybinds::load("./keybinds.toml"));
+
+    let (m, a, s) = (settings.audio.master_volume(), settings.audio.music_volume(), settings.audio.effect_volume());
+    let (audio_mixer, audio_controller) = audio::mixer(Empty::new(), m, a, s);
+    let audio_engine = AudioEngine::new().tap_mut(|x| x.set_source(audio_mixer));
+    let mut audio = GameAudio::new(audio_engine, audio_controller)
+      .with_lead_in(Time::from_ms(settings.gameplay.lead_in() as f64))
+      .with_lead_out(Time::from_ms(settings.gameplay.lead_out() as f64));
+
+    let game_state = GameState::Selection;
+
+    let beatmap_cache = BeatmapCache::new().tap_mut(|cache| {
+      cache.load_beatmaps("./beatmaps");
+    });
+
+    let conn = Connection::open("./scores.db").unwrap();
+    let score_cache = ScoreCache::new(conn);
+
+    #[rustfmt::skip] let selection_screen = SelectionScreen::new(event_bus.clone(), &beatmap_cache, &mut audio, graphics, &settings);
+    #[rustfmt::skip] let result_screen = ResultScreen::new(event_bus.clone(), &score_cache);
+    #[rustfmt::skip] let gameplay_screen = GameplayScreen::new(event_bus.clone(), graphics, &audio, &settings);
+    #[rustfmt::skip] let settings_screen = SettingsScreen::new();
+    #[rustfmt::skip] let recording_screen = RecordingScreen::new();
+    #[rustfmt::skip] let pause_screen = PauseScreen::new(event_bus.clone());
+    #[rustfmt::skip] let debug_screen = DebugScreen::new();
+
+    let prev_audio_path = PathBuf::new();
+    let prev_beatmap_path = PathBuf::new();
+
+    return Self {
+      input,
+      audio,
+      event_bus,
+      game_state,
+      settings,
+      prev_audio_path,
+      prev_beatmap_path,
+      beatmap_cache,
+      score_cache,
+      selection_screen,
+      gameplay_screen,
+      result_screen,
+      settings_screen,
+      recording_screen,
+      pause_screen,
+      debug_screen,
+    };
   }
 
   pub fn play_beatmap_audio(&mut self) {
@@ -356,5 +432,12 @@ impl Client {
     audio.set_source(source);
     audio.set_position(Time::from_ms(beatmap.preview_time as f64));
     audio.set_playing(true);
+  }
+}
+
+impl Drop for Client {
+  fn drop(&mut self) {
+    self.settings.save("./config.toml");
+    self.input.keybinds.save("./keybinds.toml");
   }
 }

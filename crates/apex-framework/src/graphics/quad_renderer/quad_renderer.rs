@@ -2,7 +2,7 @@
 // use glam::{vec3, Quat};
 // use wgpu::util::DeviceExt;
 
-// use crate::core::graphics::{bindable::Bindable, camera::{Camera2D, ProjectionOrthographic}, color::Color, graphics::Graphics, instance::Instance, layout::Layout, scene::Scene, texture::Texture, uniform::Uniform};
+// use apex_framework::core::graphics::{bindable::Bindable, camera::{Camera2D, ProjectionOrthographic}, color::Color, graphics::Graphics, instance::Instance, layout::Layout, scene::Scene, texture::Texture, uniform::Uniform};
 
 // use super::{model::Model, vertex::Vertex};
 

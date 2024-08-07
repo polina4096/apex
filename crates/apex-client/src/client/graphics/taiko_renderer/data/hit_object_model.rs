@@ -1,10 +1,9 @@
-use bytemuck::{Pod, Zeroable};
-use glam::{vec3, Vec2, Vec3};
-
-use crate::core::{
+use apex_framework::{
   graphics::{color::Color, instance::Instance},
   time::time::Time,
 };
+use bytemuck::{Pod, Zeroable};
+use glam::{vec3, Vec2, Vec3};
 
 #[rustfmt::skip]
 #[repr(C)]

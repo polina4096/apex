@@ -1,9 +1,8 @@
-use crate::{
-  client::{
-    client::{Client, GameState},
-    event::ClientEvent,
-  },
-  core::{core::Core, input::action::Action},
+use apex_framework::{core::Core, input::action::Action};
+
+use crate::client::{
+  client::{Client, GameState},
+  event::ClientEvent,
 };
 
 pub struct Retry;

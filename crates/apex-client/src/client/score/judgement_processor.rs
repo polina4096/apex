@@ -1,9 +1,8 @@
-use crate::{
-  client::gameplay::{
-    taiko_hit_object::{TaikoColor, TaikoHitObject},
-    taiko_player::TaikoInput,
-  },
-  core::time::time::Time,
+use apex_framework::time::time::Time;
+
+use crate::client::gameplay::{
+  taiko_hit_object::{TaikoColor, TaikoHitObject},
+  taiko_player::TaikoInput,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

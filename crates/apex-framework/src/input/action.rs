@@ -1,4 +1,4 @@
-use crate::core::{app::App, core::Core};
+use crate::{app::App, core::Core};
 
 use super::keybinds::Keybinds;
 
@@ -27,12 +27,12 @@ macro_rules! actions {
       $($action),+
     }
 
-    impl $crate::core::input::action::AppActions for $name {
+    impl $crate::input::action::AppActions for $name {
       type App = $app;
 
       /// Returns true if the execution was successful and the input should be consumed.
-      fn execute(self, client: &mut $app, core: &mut $crate::core::core::Core<$app>, repeat: bool) -> bool {
-        use $crate::core::input::action::Action;
+      fn execute(self, client: &mut $app, core: &mut $crate::core::Core<$app>, repeat: bool) -> bool {
+        use $crate::input::action::Action;
 
         match self {
           $(
@@ -43,11 +43,11 @@ macro_rules! actions {
         }
       }
 
-      fn insert_keybinds(keybinds: &mut $crate::core::input::keybinds::Keybinds<Self>) {
+      fn insert_keybinds(keybinds: &mut $crate::input::keybinds::Keybinds<Self>) {
         $(
           keybinds.add(
             $action_comb,
-            $crate::core::input::keybinds::Bind {
+            $crate::input::keybinds::Bind {
               id: $name::$action,
               name: String::from({
                 #[allow(unused)]

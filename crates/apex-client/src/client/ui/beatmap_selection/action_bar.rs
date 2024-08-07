@@ -1,13 +1,11 @@
+use apex_framework::{
+  event::EventBus,
+  time::{clock::AbstractClock, time::Time},
+};
 use egui::Widget as _;
 use tap::Tap;
 
-use crate::{
-  client::event::ClientEvent,
-  core::{
-    event::EventBus,
-    time::{clock::AbstractClock, time::Time},
-  },
-};
+use crate::client::event::ClientEvent;
 
 pub struct ActionBar {
   event_bus: EventBus<ClientEvent>,

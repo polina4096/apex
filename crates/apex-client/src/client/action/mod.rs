@@ -11,7 +11,7 @@ use skip::Skip;
 use taiko::{DonOne, DonTwo, KatOne, KatTwo};
 use winit::keyboard::{KeyCode, ModifiersState, PhysicalKey};
 
-use crate::{actions, core::input::keybinds::KeyCombination, key_comb};
+use apex_framework::{actions, input::keybinds::KeyCombination, key_comb};
 
 use super::client::Client;
 

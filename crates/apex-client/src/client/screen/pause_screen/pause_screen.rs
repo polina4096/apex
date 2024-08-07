@@ -1,17 +1,15 @@
-use crate::{
-  client::{
-    audio::game_audio::GameAudio,
-    client::{Client, GameState},
-    event::ClientEvent,
-    gameplay::beatmap_cache::BeatmapCache,
-    screen::selection_screen::selection_screen::SelectionScreen,
-    settings::Settings,
-  },
-  core::{
-    core::Core,
-    event::EventBus,
-    time::{clock::AbstractClock as _, time::Time},
-  },
+use crate::client::{
+  audio::game_audio::GameAudio,
+  client::{Client, GameState},
+  event::ClientEvent,
+  gameplay::beatmap_cache::BeatmapCache,
+  screen::selection_screen::selection_screen::SelectionScreen,
+  settings::Settings,
+};
+use apex_framework::{
+  core::Core,
+  event::EventBus,
+  time::{clock::AbstractClock as _, time::Time},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -1,7 +1,6 @@
-use crate::{
-  client::client::Client,
-  core::{core::Core, input::action::Action},
-};
+use apex_framework::{core::Core, input::action::Action};
+
+use crate::client::client::Client;
 
 pub struct Settings;
 

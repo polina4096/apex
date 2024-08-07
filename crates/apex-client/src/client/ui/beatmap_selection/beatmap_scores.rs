@@ -1,18 +1,16 @@
 use std::{fmt::Write as _, path::Path};
 
+use apex_framework::event::EventBus;
 use egui::Widget;
 use jiff::Timestamp;
 use tap::Tap as _;
 
-use crate::{
-  client::{
-    event::ClientEvent,
-    score::{
-      score::Score,
-      score_cache::{ScoreCache, ScoreId},
-    },
+use crate::client::{
+  event::ClientEvent,
+  score::{
+    score::Score,
+    score_cache::{ScoreCache, ScoreId},
   },
-  core::event::EventBus,
 };
 
 pub struct BeatmapScores {

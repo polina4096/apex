@@ -1,20 +1,18 @@
 use std::{fmt::Write as _, path::Path};
 
+use apex_framework::graphics::{
+  color::Color,
+  video_exporter::{EncodingPreset, VideoExporter, VideoExporterConfig},
+};
 use egui::Widget as _;
 use pollster::FutureExt as _;
 use tap::Tap as _;
 
-use crate::{
-  client::{
-    gameplay::{beatmap::Beatmap, beatmap_cache::BeatmapCache},
-    graphics::{
-      taiko_renderer::taiko_renderer::{TaikoRenderer, TaikoRendererConfig},
-      taiko_video_exporter::TaikoVideoExporterCallback,
-    },
-  },
-  core::graphics::{
-    color::Color,
-    video_exporter::{EncodingPreset, VideoExporter, VideoExporterConfig},
+use crate::client::{
+  gameplay::{beatmap::Beatmap, beatmap_cache::BeatmapCache},
+  graphics::{
+    taiko_renderer::taiko_renderer::{TaikoRenderer, TaikoRendererConfig},
+    taiko_video_exporter::TaikoVideoExporterCallback,
   },
 };
 

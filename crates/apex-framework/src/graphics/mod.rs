@@ -6,6 +6,7 @@ pub mod egui;
 pub mod graphics;
 pub mod instance;
 pub mod layout;
+pub mod presentation;
 pub mod quad_renderer;
 pub mod scene;
 pub mod texture;

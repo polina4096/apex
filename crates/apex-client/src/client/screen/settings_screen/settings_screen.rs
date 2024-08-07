@@ -1,10 +1,9 @@
-use crate::{
-  client::{
-    action::ClientAction,
-    settings::{Settings, SettingsProxy},
-    ui::game_settings::GameSettingsView,
-  },
-  core::input::Input,
+use apex_framework::input::Input;
+
+use crate::client::{
+  action::ClientAction,
+  settings::{Settings, SettingsProxy},
+  ui::game_settings::GameSettingsView,
 };
 
 pub struct SettingsScreen {

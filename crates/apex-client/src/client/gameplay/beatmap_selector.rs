@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use apex_framework::event::EventBus;
 use instant::Instant;
 use log::debug;
 use nucleo::{
@@ -7,10 +8,7 @@ use nucleo::{
   Nucleo,
 };
 
-use crate::{
-  client::{event::ClientEvent, gameplay::beatmap_cache::BeatmapCache},
-  core::event::EventBus,
-};
+use crate::client::{event::ClientEvent, gameplay::beatmap_cache::BeatmapCache};
 
 pub struct BeatmapSelector {
   matcher: Nucleo<(usize, String)>,

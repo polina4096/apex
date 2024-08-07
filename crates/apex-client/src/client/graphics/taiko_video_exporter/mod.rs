@@ -1,4 +1,4 @@
-use crate::core::{graphics::video_exporter::VideoExporterCallback, time::time::Time};
+use apex_framework::{graphics::video_exporter::VideoExporterCallback, time::time::Time};
 
 use super::taiko_renderer::taiko_renderer::TaikoRenderer;
 

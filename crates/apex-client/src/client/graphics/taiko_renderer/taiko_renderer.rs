@@ -6,23 +6,22 @@ use tap::Tap;
 use wgpu::util::DeviceExt;
 use winit::dpi::PhysicalSize;
 
-use crate::{
-  client::gameplay::beatmap::Beatmap,
-  core::{
-    graphics::{
-      bindable::Bindable,
-      camera::{Camera as _, Camera2D, ProjectionOrthographic},
-      color::Color,
-      drawable::Drawable,
-      instance::Instance,
-      layout::Layout,
-      quad_renderer::data::quad_vertex::QuadVertex,
-      scene::Scene,
-      texture::Texture,
-      uniform::Uniform,
-    },
-    time::time::Time,
+use crate::client::gameplay::beatmap::Beatmap;
+
+use apex_framework::{
+  graphics::{
+    bindable::Bindable,
+    camera::{Camera as _, Camera2D, ProjectionOrthographic},
+    color::Color,
+    drawable::Drawable,
+    instance::Instance,
+    layout::Layout,
+    quad_renderer::data::quad_vertex::QuadVertex,
+    scene::Scene,
+    texture::Texture,
+    uniform::Uniform,
   },
+  time::time::Time,
 };
 
 use super::data::hit_object_model::{BakedHitObjectModel, HitObjectModel};

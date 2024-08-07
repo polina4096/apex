@@ -1,17 +1,12 @@
 [package]
-name = "apex-client"
+name = "apex-framework"
 version = "0.1.0"
 edition = "2021"
-
-[lib]
-crate-type = ["cdylib", "rlib"]
 
 [lints]
 workspace = true
 
 [dependencies]
-apex-framework = { path = "../apex-framework" }
-
 # OS
 atty = "0.2.14"
 

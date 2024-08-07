@@ -1,4 +1,5 @@
-use pollster::FutureExt;
+use std::sync::atomic::AtomicBool;
+
 use tap::Tap as _;
 use triomphe::Arc;
 use winit::{
@@ -7,7 +8,7 @@ use winit::{
   window::Window,
 };
 
-use crate::client::{graphics::RenderingBackend, settings::Settings};
+use crate::graphics::presentation::{frame_limiter::FrameLimiter, frame_sync::FrameSync};
 
 use super::{
   app::App,
@@ -17,8 +18,9 @@ use super::{
 
 pub struct Core<A: App> {
   pub proxy: EventLoopProxy<CoreEvent<A::Event>>,
-
   pub window: Arc<Window>,
+  pub frame_limiter: FrameLimiter,
+  pub frame_sync: FrameSync,
   pub graphics: Graphics,
   pub egui: Egui,
 }
@@ -28,21 +30,9 @@ impl<A: App> Core<A> {
     event_loop: &ActiveEventLoop,
     proxy: EventLoopProxy<CoreEvent<A::Event>>,
     window: Arc<Window>,
-    settings: &Settings,
+    app_focus: Arc<AtomicBool>,
+    graphics: Graphics,
   ) -> Self {
-    #[allow(clippy::infallible_destructuring_match)]
-    let backend = match settings.graphics.rendering_backend() {
-      RenderingBackend::Wgpu(wgpu_backend) => wgpu_backend,
-    };
-
-    let graphics = Graphics::new(
-      &window,
-      backend.into(),
-      settings.graphics.present_mode().into(),
-      settings.graphics.max_frame_latency(),
-    )
-    .block_on();
-
     let egui = Egui::new(event_loop, &graphics).tap(|egui| {
       egui.ctx().tap_deref(|ctx| {
         ctx.set_visuals(egui::Visuals::dark().tap_mut(|visuals| {
@@ -59,17 +49,27 @@ impl<A: App> Core<A> {
       });
     });
 
-    return Self { proxy, window, graphics, egui };
+    let frame_limiter = FrameLimiter::new(false, 60, app_focus.clone());
+    let frame_sync = FrameSync::new(app_focus.clone());
+
+    return Self {
+      proxy,
+      window,
+      frame_limiter,
+      frame_sync,
+      graphics,
+      egui,
+    };
   }
 
-  pub fn render(&mut self, app: &mut A, settings: &mut Settings) -> Result<(), wgpu::SurfaceError> {
+  pub fn render(&mut self, app: &mut A) -> Result<(), wgpu::SurfaceError> {
     let output = self.graphics.surface.get_current_texture()?;
     let view = output.texture.create_view(&wgpu::TextureViewDescriptor::default());
     let cmd_encoder_desc = wgpu::CommandEncoderDescriptor { label: Some("main command encoder") };
     let mut encoder = self.graphics.device.create_command_encoder(&cmd_encoder_desc);
 
     {
-      app.prepare(self, settings, &mut encoder);
+      app.prepare(self, &mut encoder);
 
       let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
         label: Some("main render pass"),
@@ -117,17 +117,8 @@ impl<A: App> Core<A> {
     app.scale(self, scale_factor);
   }
 
-  pub fn recreate_context(&mut self, settings: &Settings) {
-    let present_mode = settings.graphics.present_mode();
-    let backend = settings.graphics.rendering_backend();
-    let max_frame_latency = settings.graphics.max_frame_latency();
-
-    #[allow(clippy::infallible_destructuring_match)]
-    let backend = match backend {
-      RenderingBackend::Wgpu(wgpu_backend) => wgpu_backend,
-    };
-
-    self.graphics = Graphics::new(&self.window, backend.into(), present_mode.into(), max_frame_latency).block_on();
+  pub fn recreate_context(&mut self, graphics: Graphics) {
+    self.graphics = graphics;
     self.egui.recreate_context(&*self.window, &self.graphics);
   }
 

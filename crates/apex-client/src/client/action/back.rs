@@ -1,7 +1,6 @@
-use crate::{
-  client::client::{Client, GameState},
-  core::{core::Core, input::action::Action, time::clock::AbstractClock},
-};
+use apex_framework::{core::Core, input::action::Action, time::clock::AbstractClock as _};
+
+use crate::client::client::{Client, GameState};
 
 pub struct Back;
 

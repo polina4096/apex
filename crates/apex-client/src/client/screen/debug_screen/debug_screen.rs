@@ -1,7 +1,8 @@
 use std::{fmt::Write as _, sync::Arc};
 
-use crate::{client::client::Client, core::core::Core};
+use crate::client::client::Client;
 
+use apex_framework::core::Core;
 use bytesize::ByteSize;
 use egui::load::{BytesLoader, ImageLoader, TextureLoader};
 

@@ -1,4 +1,4 @@
-use apex_client::core::log::install_logger;
+use apex_framework::log::install_logger;
 
 fn main() -> color_eyre::Result<()> {
   color_eyre::install()?;

@@ -1,9 +1,8 @@
 use std::path::PathBuf;
 
-use crate::{
-  client::{client::Client, gameplay::beatmap_cache::BeatmapCache, ui::recording_panel::RecordingPanelView},
-  core::{core::Core, graphics::video_exporter::VideoExporterConfig},
-};
+use apex_framework::{core::Core, graphics::video_exporter::VideoExporterConfig};
+
+use crate::client::{client::Client, gameplay::beatmap_cache::BeatmapCache, ui::recording_panel::RecordingPanelView};
 
 pub struct RecordingScreen {
   recording_panel: RecordingPanelView,

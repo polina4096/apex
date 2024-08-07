@@ -1,6 +1,12 @@
 use std::path::PathBuf;
 
 use action_bar::ActionBar;
+use apex_framework::{
+  core::Core,
+  event::EventBus,
+  graphics::{drawable::Drawable, graphics::Graphics},
+  time::clock::AbstractClock,
+};
 use beatmap_card::BeatmapCard;
 use beatmap_list::BeatmapList;
 use beatmap_preview::BeatmapPreview;
@@ -8,20 +14,12 @@ use beatmap_scores::BeatmapScores;
 use beatmap_stats::BeatmapStats;
 use tap::Tap;
 
-use crate::{
-  client::{
-    client::Client,
-    event::ClientEvent,
-    gameplay::{beatmap::Beatmap, beatmap_cache::BeatmapCache, beatmap_selector::BeatmapSelector},
-    score::score_cache::{ScoreCache, ScoreId},
-    settings::Settings,
-  },
-  core::{
-    core::Core,
-    event::EventBus,
-    graphics::{drawable::Drawable, egui::Egui, graphics::Graphics},
-    time::clock::AbstractClock,
-  },
+use crate::client::{
+  client::Client,
+  event::ClientEvent,
+  gameplay::{beatmap::Beatmap, beatmap_cache::BeatmapCache, beatmap_selector::BeatmapSelector},
+  score::score_cache::{ScoreCache, ScoreId},
+  settings::Settings,
 };
 
 use super::background_component::BackgroundComponent;
@@ -51,7 +49,6 @@ impl BeatmapSelectionView {
     beatmap_cache: &BeatmapCache,
     clock: &mut impl AbstractClock,
     graphics: &Graphics,
-    egui: &mut Egui,
     settings: &Settings,
   ) -> Self {
     let mut beatmap_cards = vec![];
@@ -67,7 +64,7 @@ impl BeatmapSelectionView {
       beatmap_bg: BackgroundComponent::new(""),
       beatmap_list: BeatmapList::new(event_bus.clone(), beatmap_cards),
       beatmap_stats: BeatmapStats::new(),
-      beatmap_preview: BeatmapPreview::new(graphics, egui.renderer_mut(), settings),
+      beatmap_preview: BeatmapPreview::new(graphics, settings),
       beatmap_scores: BeatmapScores::new(event_bus.clone()),
       action_bar: ActionBar::new(event_bus, clock),
     };

@@ -8,6 +8,7 @@ pub struct FrameLimiter {
   app_focus: Arc<AtomicBool>,
   last_frame: Instant,
 
+  is_enabled: bool,
   unlimited: bool,
   target_fps: u16,
 }
@@ -18,6 +19,7 @@ impl FrameLimiter {
       app_focus,
       last_frame: Instant::now(),
 
+      is_enabled: true,
       unlimited,
       target_fps,
     };
@@ -25,6 +27,10 @@ impl FrameLimiter {
 
   /// Requests a redraw if the frame limiter allows it.
   pub fn request_redraw(&mut self, window: &Window) {
+    if !self.is_enabled {
+      return;
+    }
+
     if self.unlimited {
       window.request_redraw();
       return;
@@ -50,5 +56,13 @@ impl FrameLimiter {
   /// Controls whether the frame limiter is enabled or not.
   pub fn set_unlimited(&mut self, unlimited: bool) {
     self.unlimited = unlimited;
+  }
+
+  pub fn set_enabled(&mut self, enabled: bool) {
+    self.is_enabled = enabled;
+  }
+
+  pub fn is_enabled(&self) -> bool {
+    return self.is_enabled;
   }
 }

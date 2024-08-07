@@ -1,6 +1,9 @@
+use std::fmt::Debug;
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use triomphe::Arc;
+use winit::event::{KeyEvent, Modifiers};
 use winit::{
   application::ApplicationHandler,
   dpi::LogicalSize,
@@ -9,95 +12,76 @@ use winit::{
   window::{Window, WindowId},
 };
 
-use crate::{
-  client::{
-    client::Client,
-    event::ClientEvent,
-    graphics::{frame_limiter::FrameLimiter, frame_sync::FrameSync, FrameLimiterOptions},
-    settings::Settings,
-  },
-  core::{
-    core::Core,
-    data::persistent::Persistent as _,
-    event::{CoreEvent, EventBus},
-    graphics::drawable::Drawable as _,
-  },
-};
+use crate::graphics::graphics::Graphics;
+use crate::{core::Core, event::CoreEvent, graphics::drawable::Drawable};
 
-pub struct ApexApp {
-  proxy: EventLoopProxy<CoreEvent<ClientEvent>>,
+#[allow(unused_variables)]
+pub trait App: Drawable + Sized {
+  type Event: Debug + 'static;
 
-  settings: Settings,
-  client: Option<Client>,
-  core: Option<Core<Client>>,
+  fn create(
+    event_loop: &ActiveEventLoop,
+    window: Arc<Window>,
+    app_focus: Arc<AtomicBool>,
+    proxy: EventLoopProxy<CoreEvent<Self::Event>>,
+  ) -> (Self, Core<Self>);
 
-  app_focus: Arc<AtomicBool>,
-  frame_limiter: FrameLimiter,
-  frame_sync: FrameSync,
+  fn recreate_graphics(&mut self, core: &mut Core<Self>) -> Graphics;
+
+  fn prepare(&mut self, core: &mut Core<Self>, encoder: &mut wgpu::CommandEncoder) {}
+  fn render<'rpass>(&'rpass self, core: &'rpass mut Core<Self>, rpass: &mut wgpu::RenderPass<'rpass>) {}
+  fn resize(&mut self, core: &mut Core<Self>, size: winit::dpi::PhysicalSize<u32>) {}
+  fn scale(&mut self, core: &mut Core<Self>, scale_factor: f64) {}
+  fn input(&mut self, core: &mut Core<Self>, event: KeyEvent) {}
+  fn modifiers(&mut self, modifiers: Modifiers) {}
+  fn dispatch(&mut self, core: &mut Core<Self>, event: Self::Event) {}
+  fn file_dropped(&mut self, _core: &mut Core<Self>, path: PathBuf, file: Vec<u8>) {}
 }
 
-impl ApexApp {
-  pub fn new(proxy: EventLoopProxy<CoreEvent<ClientEvent>>) -> Self {
+pub struct ApexFrameworkApplication<A: App> {
+  proxy: EventLoopProxy<CoreEvent<A::Event>>,
+
+  client: Option<A>,
+  core: Option<Core<A>>,
+
+  app_focus: Arc<AtomicBool>,
+}
+
+impl<A: App> ApexFrameworkApplication<A> {
+  pub fn new(proxy: EventLoopProxy<CoreEvent<A::Event>>) -> Self {
     let app_focus = Arc::new(AtomicBool::new(true));
-
-    let settings = Settings::load("./config.toml");
-
-    // Frame limiter setup
-    let is_unlimited = settings.graphics.frame_limiter() == FrameLimiterOptions::Unlimited;
-    let target_fps = match settings.graphics.frame_limiter() {
-      FrameLimiterOptions::Custom(fps) => fps as u16,
-      _ => 120,
-    };
-
-    let frame_limiter = FrameLimiter::new(is_unlimited, target_fps, app_focus.clone());
-    let frame_sync = FrameSync::new(app_focus.clone());
 
     return Self {
       proxy,
 
-      settings,
       client: None,
       core: None,
 
       app_focus,
-      frame_limiter,
-      frame_sync,
     };
   }
 }
 
-impl ApplicationHandler<CoreEvent<ClientEvent>> for ApexApp {
+impl<A: App> ApplicationHandler<CoreEvent<A::Event>> for ApexFrameworkApplication<A> {
   fn resumed(&mut self, event_loop: &ActiveEventLoop) {
     let window_attrs = Window::default_attributes() //
       .with_inner_size(LogicalSize::new(1200, 800));
 
     let window = Arc::new(event_loop.create_window(window_attrs).unwrap());
 
-    // Setup external frame synchronization
-    self.frame_sync.set_current_window(window.clone());
-
-    if self.settings.graphics.frame_limiter() == FrameLimiterOptions::DisplayLink {
-      self.frame_sync.enable_external_sync(self.settings.graphics.macos_stutter_fix()).unwrap();
-    }
-
     // Workaround for the first frame not being rendered on some platforms
     window.request_redraw();
 
-    let mut core = Core::new(event_loop, self.proxy.clone(), window.clone(), &self.settings);
-    let client = Client::new(&mut core, &self.settings, EventBus::new(self.proxy.clone()));
+    // Initialize the client and core
+    let (client, core) = A::create(event_loop, window.clone(), self.app_focus.clone(), self.proxy.clone());
 
     self.client = Some(client);
     self.core = Some(core);
   }
 
   fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
-    let Some(core) = &self.core else { return };
-
-    let external_sync = self.settings.graphics.frame_limiter() == FrameLimiterOptions::DisplayLink;
-
-    if !external_sync {
-      self.frame_limiter.request_redraw(&core.window);
-    }
+    let Some(core) = &mut self.core else { return };
+    core.frame_limiter.request_redraw(&core.window);
   }
 
   fn window_event(&mut self, event_loop: &ActiveEventLoop, _window_id: WindowId, event: WindowEvent) {
@@ -141,7 +125,7 @@ impl ApplicationHandler<CoreEvent<ClientEvent>> for ApexApp {
       }
 
       WindowEvent::RedrawRequested => {
-        match core.render(client, &mut self.settings) {
+        match core.render(client) {
           Ok(_) => {}
 
           // Reconfigure the surface if lost
@@ -157,7 +141,7 @@ impl ApplicationHandler<CoreEvent<ClientEvent>> for ApexApp {
 
       WindowEvent::DroppedFile(path) => {
         match std::fs::read(&path) {
-          Ok(file) => client.file(core, path, file),
+          Ok(file) => client.file_dropped(core, path, file),
           Err(err) => log::warn!("Failed to read dropped file: {:?}", err),
         };
       }
@@ -166,7 +150,7 @@ impl ApplicationHandler<CoreEvent<ClientEvent>> for ApexApp {
     }
   }
 
-  fn user_event(&mut self, event_loop: &ActiveEventLoop, event: CoreEvent<ClientEvent>) {
+  fn user_event(&mut self, event_loop: &ActiveEventLoop, event: CoreEvent<A::Event>) {
     let Some(core) = &mut self.core else { return };
     let Some(client) = &mut self.client else { return };
 
@@ -180,39 +164,15 @@ impl ApplicationHandler<CoreEvent<ClientEvent>> for ApexApp {
       }
 
       CoreEvent::RecreateGraphicsContext => {
-        core.recreate_context(&self.settings);
+        let graphics = client.recreate_graphics(core);
+
+        core.recreate_context(graphics);
         client.recreate(&core.graphics.device, &core.graphics.queue, core.graphics.config.format);
-      }
-
-      CoreEvent::UpdateFrameLimiterConfiguration => {
-        match self.settings.graphics.frame_limiter() {
-          FrameLimiterOptions::Custom(fps) => {
-            self.frame_sync.disable_external_sync();
-
-            self.frame_limiter.set_unlimited(false);
-            self.frame_limiter.set_target_fps(fps as u16);
-          }
-
-          FrameLimiterOptions::DisplayLink => {
-            self.frame_sync.enable_external_sync(self.settings.graphics.macos_stutter_fix()).unwrap();
-          }
-
-          FrameLimiterOptions::Unlimited => {
-            self.frame_sync.disable_external_sync();
-
-            self.frame_limiter.set_unlimited(true);
-          }
-        }
       }
 
       CoreEvent::User(event) => {
         client.dispatch(core, event);
       }
     }
-  }
-
-  fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
-    self.settings.save("./config.toml");
-    self.client.as_ref().unwrap().input.keybinds.save("./keybinds.toml");
   }
 }

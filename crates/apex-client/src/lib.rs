@@ -2,16 +2,13 @@
 #![feature(adt_const_params)]
 #![allow(incomplete_features)]
 
-use apex::ApexApp;
-use client::event::ClientEvent;
-use core::event::CoreEvent;
+use apex_framework::{app::ApexFrameworkApplication, event::CoreEvent};
+use client::{client::Client, event::ClientEvent};
 
 use tap::Tap;
 use winit::event_loop::{ControlFlow, EventLoop};
 
-pub mod apex;
 pub mod client;
-pub mod core;
 pub mod wasm;
 
 pub fn create_event_loop() -> EventLoop<CoreEvent<ClientEvent>> {
@@ -24,8 +21,7 @@ pub fn create_event_loop() -> EventLoop<CoreEvent<ClientEvent>> {
 }
 
 pub fn run(event_loop: EventLoop<CoreEvent<ClientEvent>>) -> color_eyre::Result<()> {
-  let proxy = event_loop.create_proxy();
-  let mut app = ApexApp::new(proxy);
+  let mut app = ApexFrameworkApplication::<Client>::new(event_loop.create_proxy());
 
   event_loop.run_app(&mut app)?;
 

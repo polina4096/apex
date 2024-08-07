@@ -1,23 +1,21 @@
 use std::path::Path;
 
+use apex_framework::{core::Core, time::time::Time};
 use egui::ImageSource;
 use jiff::fmt::strtime;
 use tap::Tap;
 
-use crate::{
-  client::{
-    client::Client,
-    gameplay::{
-      beatmap::{calc_hit_window_150, calc_hit_window_300, Beatmap},
-      beatmap_cache::BeatmapInfo,
-    },
-    score::{
-      judgement_processor::{check_hit, Judgement},
-      score::Score,
-      score_cache::{ScoreCache, ScoreId},
-    },
+use crate::client::{
+  client::Client,
+  gameplay::{
+    beatmap::{calc_hit_window_150, calc_hit_window_300, Beatmap},
+    beatmap_cache::BeatmapInfo,
   },
-  core::{core::Core, time::time::Time},
+  score::{
+    judgement_processor::{check_hit, Judgement},
+    score::Score,
+    score_cache::{ScoreCache, ScoreId},
+  },
 };
 
 use super::{background_component::BackgroundComponent, beatmap_selection::beatmap_stats::BeatmapStats};

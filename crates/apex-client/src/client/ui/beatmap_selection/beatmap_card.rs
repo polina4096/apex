@@ -1,11 +1,9 @@
 use std::path::Path;
 
+use apex_framework::event::EventBus;
 use egui::Widget;
 
-use crate::{
-  client::{event::ClientEvent, gameplay::beatmap_cache::BeatmapInfo, ui::card_component::CardComponent},
-  core::event::EventBus,
-};
+use crate::client::{event::ClientEvent, gameplay::beatmap_cache::BeatmapInfo, ui::card_component::CardComponent};
 
 pub struct BeatmapCard {
   card: CardComponent,

@@ -7,7 +7,7 @@ use indexmap::IndexMap;
 use instant::Instant;
 use log::warn;
 
-use crate::core::time::time::Time;
+use apex_framework::time::time::Time;
 
 #[derive(Debug, Default, Clone)]
 pub struct BeatmapInfo {

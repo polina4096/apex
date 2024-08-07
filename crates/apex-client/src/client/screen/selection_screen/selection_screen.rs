@@ -1,20 +1,18 @@
 use std::path::PathBuf;
 
-use crate::{
-  client::{
-    client::Client,
-    event::ClientEvent,
-    gameplay::{beatmap_cache::BeatmapCache, beatmap_selector::BeatmapSelector},
-    score::score_cache::ScoreCache,
-    settings::Settings,
-    ui::beatmap_selection::BeatmapSelectionView,
-  },
-  core::{
-    core::Core,
-    event::EventBus,
-    graphics::{drawable::Drawable, egui::Egui, graphics::Graphics},
-    time::clock::AbstractClock,
-  },
+use crate::client::{
+  client::Client,
+  event::ClientEvent,
+  gameplay::{beatmap_cache::BeatmapCache, beatmap_selector::BeatmapSelector},
+  score::score_cache::ScoreCache,
+  settings::Settings,
+  ui::beatmap_selection::BeatmapSelectionView,
+};
+use apex_framework::{
+  core::Core,
+  event::EventBus,
+  graphics::{drawable::Drawable, graphics::Graphics},
+  time::clock::AbstractClock,
 };
 
 pub struct SelectionScreen {
@@ -28,10 +26,9 @@ impl SelectionScreen {
     beatmap_cache: &BeatmapCache,
     clock: &mut impl AbstractClock,
     graphics: &Graphics,
-    egui: &mut Egui,
     settings: &Settings,
   ) -> Self {
-    let beatmap_selection = BeatmapSelectionView::new(event_bus, beatmap_cache, clock, graphics, egui, settings);
+    let beatmap_selection = BeatmapSelectionView::new(event_bus, beatmap_cache, clock, graphics, settings);
     let beatmap_selector = BeatmapSelector::new(beatmap_cache);
 
     return Self { beatmap_selection, beatmap_selector };

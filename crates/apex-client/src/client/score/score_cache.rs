@@ -6,7 +6,7 @@ use jiff::Timestamp;
 use rusqlite::Connection;
 use tap::Tap;
 
-use crate::core::time::time::Time;
+use apex_framework::time::time::Time;
 
 use super::{grades::Grade, score::Score};
 

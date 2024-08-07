@@ -2,10 +2,9 @@ use std::fmt::Write as _;
 
 use egui::Widget as _;
 
-use crate::{
-  client::action::ClientAction,
-  core::input::{keybinds::KeyCombination, Input},
-};
+use apex_framework::input::{keybinds::KeyCombination, Input};
+
+use crate::client::action::ClientAction;
 
 use super::GameSettingsView;
 

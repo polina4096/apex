@@ -1,6 +1,7 @@
+use apex_framework::time::time::Time;
 use jiff::Timestamp;
 
-use crate::{client::gameplay::taiko_player::TaikoInput, core::time::time::Time};
+use crate::client::gameplay::taiko_player::TaikoInput;
 
 use super::grades::Grade;
 

@@ -1,13 +1,11 @@
+use apex_framework::{core::Core, time::clock::AbstractClock};
 use instant::Instant;
 
-use crate::{
-  client::{
-    client::Client,
-    gameplay::taiko_player::TaikoInput,
-    score::{judgement_processor::Judgement, score_processor::ScoreProcessor},
-    settings::Settings,
-  },
-  core::{core::Core, time::clock::AbstractClock},
+use crate::client::{
+  client::Client,
+  gameplay::taiko_player::TaikoInput,
+  score::{judgement_processor::Judgement, score_processor::ScoreProcessor},
+  settings::Settings,
 };
 
 pub struct IngameOverlayView {
