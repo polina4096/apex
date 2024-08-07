@@ -10,6 +10,9 @@ pub struct FrameSync {
   #[cfg(target_os = "macos")]
   display_link: Option<display_link::DisplayLink>,
 
+  #[allow(dead_code)]
+  macos_stutter_fix: bool,
+
   current_window: Option<Arc<Window>>,
 }
 
@@ -21,6 +24,8 @@ impl FrameSync {
       #[cfg(target_os = "macos")]
       display_link: None,
 
+      macos_stutter_fix: true,
+
       current_window: None,
     };
   }
@@ -29,13 +34,16 @@ impl FrameSync {
     self.current_window = Some(window);
   }
 
-  #[allow(clippy::result_unit_err)]
-  pub fn enable_external_sync(&mut self, macos_fix: bool) -> Result<(), ()> {
-    _ = macos_fix;
+  pub fn set_macos_stutter_fix(&mut self, enabled: bool) {
+    self.macos_stutter_fix = enabled;
+  }
 
+  #[allow(clippy::result_unit_err)]
+  pub fn enable_external_sync(&mut self) -> Result<(), ()> {
     #[cfg(target_os = "macos")]
     {
       use std::sync::atomic::Ordering;
+      let macos_stutter_fix = self.macos_stutter_fix;
 
       // Setup CVDisplayLink
       let Some(window) = self.current_window.clone() else {
@@ -46,7 +54,7 @@ impl FrameSync {
 
       // This will be called on every vsync.
       let mut display_link = display_link::DisplayLink::new(move |_ts| {
-        if macos_fix {
+        if macos_stutter_fix {
           // Make sure to request redraws only when the window is visible to prevent massive stutters :D
           if app_focus.load(Ordering::Relaxed) && window.is_visible().unwrap_or(false) {
             window.request_redraw();

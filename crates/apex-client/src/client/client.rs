@@ -1,6 +1,7 @@
 use std::{
   fs::File,
   io::BufReader,
+  num::NonZero,
   path::{Path, PathBuf},
   sync::atomic::AtomicBool,
 };
@@ -26,7 +27,11 @@ use apex_framework::{
   core::Core,
   data::persistent::Persistent as _,
   event::{CoreEvent, EventBus},
-  graphics::{drawable::Drawable, graphics::Graphics},
+  graphics::{
+    drawable::Drawable,
+    graphics::Graphics,
+    presentation::{frame_limiter::FrameLimiter, frame_sync::FrameSync},
+  },
   input::{
     action::AppActions as _,
     keybinds::{KeyCombination, Keybinds},
@@ -114,24 +119,7 @@ impl App for Client {
     core.frame_sync.set_current_window(window);
 
     // Setup frame limiter
-    match client.settings.graphics.frame_limiter() {
-      FrameLimiterOptions::Custom(fps) => {
-        core.frame_sync.disable_external_sync();
-
-        core.frame_limiter.set_unlimited(false);
-        core.frame_limiter.set_target_fps(fps as u16);
-      }
-
-      FrameLimiterOptions::DisplayLink => {
-        core.frame_sync.enable_external_sync(client.settings.graphics.macos_stutter_fix()).unwrap();
-      }
-
-      FrameLimiterOptions::Unlimited => {
-        core.frame_sync.disable_external_sync();
-
-        core.frame_limiter.set_unlimited(true);
-      }
-    }
+    reconfigure_frame_sync(&mut core.frame_limiter, &mut core.frame_sync, client.settings.graphics.frame_limiter());
 
     return (client, core);
   }
@@ -439,5 +427,33 @@ impl Drop for Client {
   fn drop(&mut self) {
     self.settings.save("./config.toml");
     self.input.keybinds.save("./keybinds.toml");
+  }
+}
+
+pub fn reconfigure_frame_sync(
+  frame_limiter: &mut FrameLimiter,
+  frame_sync: &mut FrameSync,
+  options: FrameLimiterOptions,
+) {
+  match options {
+    FrameLimiterOptions::Custom(fps) => {
+      frame_sync.disable_external_sync();
+
+      frame_limiter.set_enabled(true);
+      frame_limiter.set_target_fps(Some(NonZero::new(fps as u16).unwrap()));
+    }
+
+    FrameLimiterOptions::DisplayLink => {
+      frame_limiter.set_enabled(false);
+
+      frame_sync.enable_external_sync().unwrap();
+    }
+
+    FrameLimiterOptions::Unlimited => {
+      frame_sync.disable_external_sync();
+
+      frame_limiter.set_enabled(true);
+      frame_limiter.set_target_fps(None);
+    }
   }
 }

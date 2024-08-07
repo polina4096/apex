@@ -1,4 +1,4 @@
-use std::sync::atomic::AtomicBool;
+use std::{num::NonZero, sync::atomic::AtomicBool};
 
 use tap::Tap as _;
 use triomphe::Arc;
@@ -49,7 +49,7 @@ impl<A: App> Core<A> {
       });
     });
 
-    let frame_limiter = FrameLimiter::new(false, 60, app_focus.clone());
+    let frame_limiter = FrameLimiter::new(Some(NonZero::new(60).unwrap()), app_focus.clone());
     let frame_sync = FrameSync::new(app_focus.clone());
 
     return Self {

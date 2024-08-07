@@ -10,6 +10,7 @@ use winit::event_loop::EventLoopProxy;
 
 use crate::client::{
   audio::game_audio::GameAudio,
+  client::reconfigure_frame_sync,
   event::ClientEvent,
   graphics::{FrameLimiterOptions, PresentModeOptions, RenderingBackend},
   screen::gameplay_screen::gameplay_screen::GameplayScreen,
@@ -37,9 +38,8 @@ impl<'a, 'window> SettingsProxy for ClientSettingsProxy<'a, 'window> {
     self.proxy.send_event(CoreEvent::ReconfigureSurface).unwrap();
   }
 
-  fn update_graphics_frame_limiter(&mut self, _value: FrameLimiterOptions) {
-    // TODO: fix
-    // self.proxy.send_event(CoreEvent::UpdateFrameLimiterConfiguration).unwrap();
+  fn update_graphics_frame_limiter(&mut self, value: FrameLimiterOptions) {
+    reconfigure_frame_sync(self.frame_limiter, self.frame_sync, value);
   }
 
   fn update_graphics_max_frame_latency(&mut self, value: usize) {
@@ -47,9 +47,10 @@ impl<'a, 'window> SettingsProxy for ClientSettingsProxy<'a, 'window> {
     self.proxy.send_event(CoreEvent::ReconfigureSurface).unwrap();
   }
 
-  fn update_graphics_macos_stutter_fix(&mut self, _value: bool) {
-    // self.frame_sync.disable_external_sync();
-    // self.proxy.send_event(CoreEvent::UpdateFrameLimiterConfiguration).unwrap();
+  fn update_graphics_macos_stutter_fix(&mut self, value: bool) {
+    self.frame_sync.set_macos_stutter_fix(value);
+    self.frame_sync.disable_external_sync();
+    self.frame_sync.enable_external_sync().unwrap();
   }
 
   fn update_graphics_rendering_backend(&mut self, _value: RenderingBackend) {

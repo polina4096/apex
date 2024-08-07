@@ -1,4 +1,7 @@
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::{
+  num::NonZero,
+  sync::atomic::{AtomicBool, Ordering},
+};
 
 use instant::Instant;
 use triomphe::Arc;
@@ -9,18 +12,16 @@ pub struct FrameLimiter {
   last_frame: Instant,
 
   is_enabled: bool,
-  unlimited: bool,
-  target_fps: u16,
+  target_fps: Option<NonZero<u16>>,
 }
 
 impl FrameLimiter {
-  pub fn new(unlimited: bool, target_fps: u16, app_focus: Arc<AtomicBool>) -> Self {
+  pub fn new(target_fps: Option<NonZero<u16>>, app_focus: Arc<AtomicBool>) -> Self {
     return Self {
       app_focus,
       last_frame: Instant::now(),
 
       is_enabled: true,
-      unlimited,
       target_fps,
     };
   }
@@ -31,31 +32,27 @@ impl FrameLimiter {
       return;
     }
 
-    if self.unlimited {
+    if self.target_fps.is_none() {
       window.request_redraw();
       return;
     }
 
-    let mut fps = self.target_fps;
-    if !self.app_focus.load(Ordering::Relaxed) || !window.is_visible().unwrap_or(false) {
-      fps = 30; // fps when not focused
-    }
+    if let Some(mut fps) = self.target_fps {
+      if !self.app_focus.load(Ordering::Relaxed) || !window.is_visible().unwrap_or(false) {
+        fps = NonZero::new(30).unwrap(); // fps when not focused
+      }
 
-    let now = Instant::now();
-    if now.duration_since(self.last_frame).as_micros() >= (1000 * 1000) / fps as u128 {
-      window.request_redraw();
-      self.last_frame = now;
+      let now = Instant::now();
+      if now.duration_since(self.last_frame).as_micros() >= (1000 * 1000) / fps.get() as u128 {
+        window.request_redraw();
+        self.last_frame = now;
+      }
     }
   }
 
-  /// Use this to set the desired target FPS.
-  pub fn set_target_fps(&mut self, fps: u16) {
+  /// Use this to set the desired target FPS. None means unlimited.
+  pub fn set_target_fps(&mut self, fps: Option<NonZero<u16>>) {
     self.target_fps = fps;
-  }
-
-  /// Controls whether the frame limiter is enabled or not.
-  pub fn set_unlimited(&mut self, unlimited: bool) {
-    self.unlimited = unlimited;
   }
 
   pub fn set_enabled(&mut self, enabled: bool) {
