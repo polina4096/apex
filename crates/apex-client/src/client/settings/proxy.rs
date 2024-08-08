@@ -33,6 +33,10 @@ pub struct ClientSettingsProxy<'a, 'window> {
 }
 
 impl<'a, 'window> SettingsProxy for ClientSettingsProxy<'a, 'window> {
+  fn update_profile_username(&mut self, value: &str) {
+    self.gameplay_screen.taiko_player().set_username(value.to_owned());
+  }
+
   fn update_graphics_present_mode(&mut self, value: PresentModeOptions) {
     self.config.present_mode = value.into();
     self.proxy.send_event(CoreEvent::ReconfigureSurface).unwrap();

@@ -70,12 +70,12 @@ pub struct TaikoPlayer {
 }
 
 impl TaikoPlayer {
-  pub fn new(event_bus: EventBus<ClientEvent>) -> Self {
+  pub fn new(username: String, event_bus: EventBus<ClientEvent>) -> Self {
     return Self {
       event_bus,
       beatmap: Beatmap::default(),
       beatmap_path: PathBuf::new(),
-      player_username: String::from(Score::DEFAULT_USERNAME),
+      player_username: String::from(username),
       hit_window_150: Time::zero(),
       hit_window_300: Time::zero(),
       current_circle: 0,

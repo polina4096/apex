@@ -60,7 +60,7 @@ impl GameplayScreen {
       },
     );
 
-    let taiko_player = TaikoPlayer::new(event_bus.clone());
+    let taiko_player = TaikoPlayer::new(settings.profile.username().to_owned(), event_bus.clone());
     let score_processor = ScoreProcessor::default();
 
     let don_hitsound = audio.load_sound("./assets/red.wav");
