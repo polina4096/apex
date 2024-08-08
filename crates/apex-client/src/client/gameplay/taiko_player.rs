@@ -113,8 +113,9 @@ impl TaikoPlayer {
 
     // Skip unhit (if any) until we find the next hit object that can be hit.
     while let Some(hit_object) = self.beatmap.hit_objects.get(self.current_circle) {
-      let obj_time = hit_object.time + self.hit_window_150;
-      if obj_time > time {
+      let hit_window_end_time = hit_object.time + self.hit_window_150;
+
+      if hit_window_end_time >= time {
         break;
       }
 

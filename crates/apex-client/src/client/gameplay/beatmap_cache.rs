@@ -24,8 +24,8 @@ pub struct BeatmapInfo {
   pub length: Time,
   pub bpm: f64,
 
-  pub hp_drain: f64,
-  pub overall_difficulty: f64,
+  pub hp_drain: f32,
+  pub overall_difficulty: f32,
 }
 
 impl<T: AsRef<str>> From<T> for BeatmapInfo {
@@ -54,8 +54,8 @@ impl<T: AsRef<str>> From<T> for BeatmapInfo {
     beatmap_info.difficulty = r_diff_attrs.stars();
     beatmap_info.bpm = r_beatmap.bpm();
     beatmap_info.object_count = r_beatmap.hit_objects.len();
-    beatmap_info.hp_drain = r_beatmap.hp as f64;
-    beatmap_info.overall_difficulty = r_beatmap.od as f64;
+    beatmap_info.hp_drain = r_beatmap.hp;
+    beatmap_info.overall_difficulty = r_beatmap.od;
 
     // TODO: fix this properly
     beatmap_info.length =
