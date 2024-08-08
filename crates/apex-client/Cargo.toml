@@ -14,6 +14,7 @@ apex-framework = { path = "../apex-framework" }
 
 # OS
 atty = "0.2.14"
+mimalloc = { version = "0.1.43", optional = true }
 
 # Logging
 log = "0.4.22"
@@ -90,7 +91,9 @@ web-sys = { version = "0.3", features = [
 ]}
 
 [features]
-default = ["native"]
+default = ["native", "mimalloc"]
+
+mimalloc = ["dep:mimalloc"]
 
 native = [
   "wgpu/angle",

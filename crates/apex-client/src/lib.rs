@@ -11,6 +11,10 @@ use winit::event_loop::{ControlFlow, EventLoop};
 pub mod client;
 pub mod wasm;
 
+#[cfg(feature = "mimalloc")]
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 pub fn create_event_loop() -> EventLoop<CoreEvent<ClientEvent>> {
   return EventLoop::<CoreEvent<ClientEvent>>::with_user_event()
     .build()

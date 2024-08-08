@@ -11,7 +11,6 @@ use crate::client::{
   event::ClientEvent,
   score::{
     judgement_processor::{check_hit, HitResult, Judgement},
-    score::Score,
     score_processor::ScoreProcessor,
   },
   ui::ingame_overlay::IngameOverlayView,
