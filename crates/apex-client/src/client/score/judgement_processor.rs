@@ -14,6 +14,8 @@ pub enum Judgement {
 
 pub struct HitResult {
   pub judgement: Judgement,
+
+  /// Negative is early, positive is late
   pub hit_delta: Time,
 }
 
@@ -25,7 +27,7 @@ pub fn check_hit(
   hit_window_300: Time,
 ) -> Option<HitResult> {
   let obj_time = hit_object.time;
-  let hit_delta = obj_time - hit_time;
+  let hit_delta = hit_time - obj_time;
 
   // Check if the hit was within the hit window of the current circle.
   if hit_delta.abs() < hit_window_150 {
