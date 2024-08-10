@@ -94,8 +94,6 @@ impl GameplayScreen {
       }
     }
 
-    self.ingame_overlay.hit(input);
-
     if let Some((result, hit_idx)) = self.taiko_player.hit(time, input) {
       self.score_processor.feed(time, Some(input), result.judgement);
       self.ingame_overlay.update_last_hit_result(result.judgement);
@@ -103,6 +101,14 @@ impl GameplayScreen {
       if result.judgement != Judgement::Miss {
         self.taiko_renderer.set_hit(&graphics.queue, hit_idx, time);
       }
+
+      if result.hit_delta.abs() <= self.taiko_player.hit_window_150() {
+        self.ingame_overlay.hit(Some(result.hit_delta), input);
+      } else {
+        self.ingame_overlay.hit(None, input);
+      }
+    } else {
+      self.ingame_overlay.hit(None, input);
     }
   }
 
@@ -146,8 +152,12 @@ impl GameplayScreen {
 
     self.taiko_player.tick(time, audio, &mut self.score_processor, &mut self.ingame_overlay);
 
+    let hit_window_150 = self.taiko_player.hit_window_150();
+    let hit_window_300 = self.taiko_player.hit_window_300();
     self.taiko_renderer.prepare(&core.graphics.queue, time);
-    self.ingame_overlay.prepare(core, audio, &self.score_processor, settings);
+    self
+      .ingame_overlay
+      .prepare(core, audio, &self.score_processor, hit_window_150, hit_window_300, settings);
 
     let leniency = Time::from_ms(settings.gameplay.break_leniency_end() as f64);
     match self.taiko_player.is_break(time, leniency) {

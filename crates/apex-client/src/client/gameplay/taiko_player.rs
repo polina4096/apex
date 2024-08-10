@@ -74,7 +74,7 @@ impl TaikoPlayer {
       event_bus,
       beatmap: Beatmap::default(),
       beatmap_path: PathBuf::new(),
-      player_username: String::from(username),
+      player_username: username,
       hit_window_150: Time::zero(),
       hit_window_300: Time::zero(),
       current_circle: 0,
@@ -179,6 +179,14 @@ impl TaikoPlayer {
 
       return BreakState::None;
     }
+  }
+
+  pub fn hit_window_150(&self) -> Time {
+    return self.hit_window_150;
+  }
+
+  pub fn hit_window_300(&self) -> Time {
+    return self.hit_window_300;
   }
 
   pub fn set_username(&mut self, username: String) {

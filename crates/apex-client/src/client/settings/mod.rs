@@ -70,6 +70,32 @@ settings! {
     break_leniency_end: u64 = 1000,
   }
 
+  interface {
+    /// Total width of the hit delta bar
+    delta_bar_width: f32 = 128.0,
+
+    /// Height of the hit delta bar mark
+    delta_bar_height: f32 = 24.0,
+
+    /// Opacity of the hit delta bar areas
+    delta_bar_opacity: f32 = 0.05,
+
+    /// Width of the hit delta marker
+    delta_marker_width: f32 = 2.0,
+
+    /// Height of the hit delta marker
+    delta_marker_height: f32 = 16.0,
+
+    /// Opacity of the hit delta marker
+    delta_marker_opacity: f32 = 0.25,
+
+    /// Duration for which the hit delta marker is shown in seconds
+    delta_marker_duration: f32 = 1.0,
+
+    /// Duration it takes for the hit delta marker to fade in or out in seconds
+    delta_marker_fade: f32 = 0.2,
+  }
+
   taiko {
     /// Hit object distance multiplier
     zoom: f64 = 0.215,
