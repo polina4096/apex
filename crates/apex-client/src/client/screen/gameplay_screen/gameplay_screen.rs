@@ -13,7 +13,10 @@ use crate::client::{
   graphics::taiko_renderer::taiko_renderer::{TaikoRenderer, TaikoRendererConfig},
   score::{judgement_processor::Judgement, score_processor::ScoreProcessor},
   settings::Settings,
-  ui::{break_overlay::BreakOverlayView, ingame_overlay::IngameOverlayView},
+  ui::{
+    break_overlay::BreakOverlayView,
+    ingame_overlay::{delta_bar::HitDeltaBar, IngameOverlayView},
+  },
 };
 use apex_framework::{
   audio::arc_buffer::ArcSamplesBuffer,
@@ -195,6 +198,10 @@ impl GameplayScreen {
 
   pub fn taiko_renderer(&mut self) -> &mut TaikoRenderer {
     return &mut self.taiko_renderer;
+  }
+
+  pub fn delta_bar(&mut self) -> &mut HitDeltaBar {
+    return self.ingame_overlay.delta_bar();
   }
 }
 

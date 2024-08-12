@@ -16,6 +16,16 @@ pub enum FrameLimiterOptions {
   Unlimited,
 }
 
+impl Default for FrameLimiterOptions {
+  fn default() -> Self {
+    if cfg!(target_os = "macos") {
+      return FrameLimiterOptions::DisplayLink;
+    } else {
+      return FrameLimiterOptions::Unlimited;
+    }
+  }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PresentModeOptions {
   /// Graphics API VSync

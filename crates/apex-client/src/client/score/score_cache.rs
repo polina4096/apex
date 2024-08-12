@@ -79,12 +79,13 @@ impl ScoreCache {
           .get::<_, String>(9)
           .unwrap()
           .split(',')
-          .map(|x| x.split_once("|").unwrap())
-          .map(|(time, input)| {
-            (
-              Time::from_ms(time.parse::<i64>().unwrap() as f64), //
-              input.parse::<u8>().unwrap().try_into().unwrap(),
-            )
+          .filter_map(|x| {
+            x.split_once("|").map(|(time, input)| {
+              (
+                Time::from_ms(time.parse::<i64>().unwrap() as f64), //
+                input.parse::<u8>().unwrap().try_into().unwrap(),
+              )
+            })
           })
           .collect::<Vec<_>>();
 

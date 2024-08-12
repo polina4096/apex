@@ -127,4 +127,36 @@ impl HitDeltaBar {
   pub fn push(&mut self, delta: Time, instant: Instant) {
     self.hit_deltas.push_back((delta, instant));
   }
+
+  pub fn set_bar_width(&mut self, value: f32) {
+    self.bar_width = value;
+  }
+
+  pub fn set_bar_height(&mut self, value: f32) {
+    self.bar_height = value;
+  }
+
+  pub fn set_bar_opacity(&mut self, value: f32) {
+    self.bar_opacity = value;
+  }
+
+  pub fn set_marker_width(&mut self, value: f32) {
+    self.marker_width = value;
+  }
+
+  pub fn set_marker_height(&mut self, value: f32) {
+    self.marker_height = value;
+  }
+
+  pub fn set_marker_opacity(&mut self, value: f32) {
+    self.marker_opacity = value;
+  }
+
+  pub fn set_marker_duration(&mut self, value: Time) {
+    self.marker_duration = value;
+  }
+
+  pub fn set_marker_fade(&mut self, value: Time) {
+    self.marker_fade = value;
+  }
 }

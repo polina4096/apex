@@ -83,6 +83,10 @@ impl IngameOverlayView {
     }
   }
 
+  pub fn delta_bar(&mut self) -> &mut HitDeltaBar {
+    return &mut self.delta_bar;
+  }
+
   pub fn prepare(
     &mut self,
     core: &mut Core<Client>,

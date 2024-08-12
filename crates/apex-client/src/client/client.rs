@@ -344,7 +344,7 @@ impl Client {
   pub fn new(graphics: &Graphics, settings: Settings, event_bus: EventBus<ClientEvent>) -> Self {
     let input = Input::with_keybinds(Keybinds::load("./keybinds.toml"));
 
-    let (m, a, s) = (settings.audio.master_volume(), settings.audio.music_volume(), settings.audio.effect_volume());
+    let (m, a, s) = (settings.audio.master_volume(), settings.audio.music_volume(), settings.audio.effects_volume());
     let (audio_mixer, audio_controller) = audio::mixer(Empty::new(), m, a, s);
     let audio_engine = AudioEngine::new().tap_mut(|x| x.set_source(audio_mixer));
     let mut audio = GameAudio::new(audio_engine, audio_controller)

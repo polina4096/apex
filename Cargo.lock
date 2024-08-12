@@ -184,6 +184,7 @@ dependencies = [
  "intbits",
  "jiff",
  "log",
+ "macro_rules_attribute",
  "mimalloc",
  "nohash-hasher",
  "nucleo",
@@ -195,6 +196,7 @@ dependencies = [
  "rosu-pp",
  "rusqlite",
  "serde",
+ "smart-default",
  "tap",
  "timeago",
  "toml",
@@ -232,8 +234,10 @@ dependencies = [
  "intbits",
  "jiff",
  "log",
+ "macro_rules_attribute",
  "nohash-hasher",
  "nucleo",
+ "num-traits",
  "parking_lot",
  "paste",
  "pollster",
@@ -242,6 +246,7 @@ dependencies = [
  "rosu-pp",
  "rusqlite",
  "serde",
+ "smart-default",
  "tap",
  "timeago",
  "toml",
@@ -1998,6 +2003,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "macro_rules_attribute"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8a82271f7bc033d84bbca59a3ce3e4159938cb08a9c3aebbe54d215131518a13"
+dependencies = [
+ "macro_rules_attribute-proc_macro",
+ "paste",
+]
+
+[[package]]
+name = "macro_rules_attribute-proc_macro"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b8dd856d451cc0da70e2ef2ce95a18e39a93b7558bedf10201ad28503f918568"
+
+[[package]]
 name = "malloc_buf"
 version = "0.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3213,6 +3234,17 @@ name = "smallvec"
 version = "1.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
+
+[[package]]
+name = "smart-default"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0eb01866308440fc64d6c44d9e86c5cc17adfe33c4d6eed55da9145044d0ffc1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.68",
+]
 
 [[package]]
 name = "smithay-client-toolkit"

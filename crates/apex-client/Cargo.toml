@@ -23,6 +23,8 @@ color-eyre = "0.6.3"
 
 # Utility
 paste = "1.0.15"
+macro_rules_attribute = "0.2.0"
+smart-default = "0.7.1"
 cfg-if = "1.0.0"
 tap = "1.0.1"
 

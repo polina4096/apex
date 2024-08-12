@@ -59,7 +59,7 @@ impl GameSettingsView {
     }
 
     egui::Window::new("Settings")
-      .fixed_size(egui::vec2(384.0, 512.0))
+      .fixed_size(egui::vec2(420.0, 512.0))
       .resizable(false)
       .collapsible(false)
       .open(&mut is_open)

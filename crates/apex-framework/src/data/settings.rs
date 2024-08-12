@@ -1,188 +1,187 @@
-#[macro_export]
-macro_rules! settings_ref_ty_helper {
-  (, $type:ty) => {
-    $type
-  };
+use std::ops::RangeInclusive;
 
-  ($borrowed_ty:ty, $type:ty) => {
-    $borrowed_ty
-  };
-}
+use num_traits::Bounded;
+use smart_default::SmartDefault;
 
 #[macro_export]
-macro_rules! settings_ref_borrowed_ty_helper {
-  (, $type:ty) => {
-    $type
-  };
-
-  ($borrowed_ty:ty, $type:ty) => {
-    &$type
-  };
-}
-
-#[macro_export]
-macro_rules! settings_ref_borrow_helper {
-  (, $e:expr) => {
-    $e
-  };
-
-  ($borrowed_ty:ty, $e:expr) => {
-    &$e
-  };
-}
-
-#[macro_export]
-macro_rules! settings_ref_borrowed_setter_helper {
-  (, $place:expr, $value:expr) => {
-    $place = $value;
-  };
-
-  ($borrowed_ty:ty, $place:expr, $value:expr) => {
-    $place.clone_from($value);
-  };
-}
-
-#[macro_export]
-macro_rules! settings_ref_setter_helper {
-  (, $place:expr, $value:expr) => {
-    $place = $value;
-  };
-
-  ($borrowed_ty:ty, $place:expr, $value:expr) => {
-    $place = $value.to_owned();
-  };
-}
-
-#[macro_export]
-macro_rules! settings {
+macro_rules! _call_with_custom_attrs {
   (
-    $(
-      $(#[$($attrs_category:tt)*])*
-      $category:ident {
-        $(
-          $(#[$($attrs_setting:tt)*])*
-          $setting:ident: $type:ty $(as $borrowed_ty:ty)? = $default_value:expr,
-        )+
+    $fun:ident<$type:ty>( $( $result:expr, )* );
+    #[custom(ui( $($opts:ident = $values:expr),* ))]
+    $( #[ $($rest:tt)* ] )*
+  ) => {
+    {
+      paste::paste! {
+        let opts = $crate::data::settings::[<Opts $type:camel>] {
+          $( $opts: $values, )*
+          .. Default::default()
+        };
       }
-    )+
+
+      $crate::_call_with_custom_attrs!(
+        $fun<$type>(
+          $( $result, )*
+          opts,
+        );
+        $( #[ $($rest)* ] )*
+      )
+    }
+  };
+
+  (
+    $fun:ident<$type:ty>( $( $result:expr, )* );
+    #[ $attr:meta ]
+    $( #[ $($rest:tt)* ] )*
+  ) => {
+    $crate::_call_with_custom_attrs!(
+      $fun<$type>( $( $result, )* );
+      $( #[ $($rest)* ] )*
+    )
+  };
+
+  (
+    $fun:ident<$type:ty>( $( $result:expr, )* );
+  ) => {
+    settings_ui::$fun( $( $result, )* );
+  };
+}
+
+#[macro_export]
+macro_rules! SettingsStruct {
+  (
+    $( #[ $($attr:tt)* ] )*
+    $vis:vis struct $name:ident {
+      $( $field_vis:vis $field:ident: $type:ty, )*
+    }
   ) => {
     paste::paste! {
-      #[derive(Debug, Clone, Serialize, Deserialize)]
-      pub struct Settings {
-        $(pub $category: [<$category:camel Settings>],)+
-      }
+      pub trait [<$name Proxy>]: Sized $( + [<$type Proxy>] )* { }
+    }
 
-      $(
-        $(#[$($attrs_category)*])*
-        #[derive(Debug, Clone, Serialize, Deserialize)]
-        pub struct [<$category:camel Settings>] {
-          $(
-            $(#[$($attrs_setting)*])*
-            $setting: $type,
-          )+
-        }
-
-        impl Default for [<$category:camel Settings>] {
-          fn default() -> Self {
-            return Self {
-              $($setting: $default_value,)+
-            };
-          }
-        }
-
-        impl [<$category:camel Settings>] {
-          $(
-            pub fn $setting(&self) -> $crate::settings_ref_ty_helper!($($borrowed_ty)?, $type) {
-              return $crate::settings_ref_borrow_helper!($($borrowed_ty)?, self.$setting);
-            }
-
-            pub fn [<set_ $setting>](&mut self, value: $crate::settings_ref_ty_helper!($($borrowed_ty)?, $type), proxy: &mut impl SettingsProxy) {
-              $crate::settings_ref_setter_helper!($($borrowed_ty)?, self.$setting, value);
-              proxy.[<update_ $category _ $setting>]($crate::settings_ref_borrow_helper!($($borrowed_ty)?, self.$setting));
-            }
-
-            pub fn [<borrowed_ $setting>](&self) -> $crate::settings_ref_borrowed_ty_helper!($($borrowed_ty)?, $type) {
-              return $crate::settings_ref_borrow_helper!($($borrowed_ty)?, self.$setting);
-            }
-
-            pub fn [<set_borrowed_ $setting>](&mut self, value: $crate::settings_ref_borrowed_ty_helper!($($borrowed_ty)?, $type), proxy: &mut impl SettingsProxy) {
-              $crate::settings_ref_borrowed_setter_helper!($($borrowed_ty)?, self.$setting, value);
-              proxy.[<update_ $category _ $setting>]($crate::settings_ref_borrow_helper!($($borrowed_ty)?, self.$setting));
-            }
-          )+
-        }
-      )+
-
-      pub trait SettingsProxy {
-        $($(fn [<update_ $category _ $setting>](&mut self, _value: $crate::settings_ref_ty_helper!($($borrowed_ty)?, $type)) {})+)+
-      }
-
-      impl Default for Settings {
-        fn default() -> Self {
-          return Self {
-            $($category: [<$category:camel Settings>]::default(),)+
-          };
-        }
-      }
-
-      impl $crate::data::persistent::Persistent for Settings {
-        fn load(path: impl AsRef<std::path::Path>) -> Self {
-          {
-            let path = path.as_ref().canonicalize().unwrap_or(path.as_ref().to_owned());
-            log::info!("Loading settings from `{}`", path.display());
-          }
-
-          return std::fs::read_to_string(&path)
-            .map(|data| {
-              return toml::from_str(&data).unwrap_or_else(|e| {
-                log::error!("Failed to parse config file, falling back to default config: {}", e);
-
-                return Settings::default();
-              });
-            })
-            .unwrap_or_else(|e| {
-              let default = Settings::default();
-
-              match e.kind() {
-                std::io::ErrorKind::NotFound => {
-                  log::warn!("Failed to open config file, file not found. Creating a default config file...");
-                  let default_data = toml::to_string_pretty(&default).expect("Failed to serialize default config");
-                  if let Err(e) = std::fs::write(&path, default_data) {
-                    log::error!("Failed to write default config file: {}", e);
-                  }
-                }
-
-                std::io::ErrorKind::PermissionDenied => {
-                  log::warn!("Failed to open config file, insufficient permissions. Falling back to default configuration.");
-                }
-
-                _ => {
-                  log::error!("Failed to access config file: {}. Falling back to default configuration.", e);
-                }
-              }
-
-              return default;
-            });
-        }
-
-        fn save(&self, path: impl AsRef<std::path::Path>) {
-          let data = match toml::to_string_pretty(&self) {
-            Ok(data) => data,
-            Err(e) => {
-              log::error!("Failed to serialize settings: {}", e);
-              return
-            }
-          };
-
-          if let Err(e) = std::fs::write(&path, data) {
-            log::error!("Failed to write settings to file: {}", e);
-            return;
-          }
-
-          let path = path.as_ref().canonicalize().unwrap_or(path.as_ref().to_owned());
-          log::info!("Settings successfully written to `{}`", path.display());
-        }
+    impl $name {
+      pub fn ui(&mut self, body: &mut egui_extras::TableBody, text_height: f32, proxy: &mut impl SettingsProxy) {
+        $(
+          self.$field.ui(body, text_height, proxy);
+        )*
       }
     }
   };
+}
+
+#[macro_export]
+macro_rules! SettingsGroup {
+  (
+    $( #[ $($attr:tt)* ] )*
+    $vis:vis struct $name:ident {
+      $(
+        $( #[ $($field_attr:tt)* ] )*
+        $field_vis:vis $field:ident: $type:ty,
+      )*
+    }
+  ) => {
+    paste::paste! {
+      impl $name {
+        $(
+          pub fn $field(&self) -> $type {
+            return self.$field.clone();
+          }
+          pub fn [<set_ $field>](&mut self, $field: $type, proxy: &mut impl SettingsProxy) {
+            self.$field = $field;
+            proxy.[<update_ $name:snake _ $field>](&self.$field);
+          }
+
+          pub fn [<$field _ref>](&self) -> &$type {
+            return &self.$field;
+          }
+          pub fn [<set_ $field _ref>](&mut self, $field: &$type, proxy: &mut impl SettingsProxy) {
+            self.$field.clone_from($field);
+            proxy.[<update_ $name:snake _ $field>]($field);
+          }
+        )*
+
+        pub fn ui(&mut self, body: &mut egui_extras::TableBody, text_height: f32, proxy: &mut impl SettingsProxy) {
+          body.row(text_height + 8.0, |mut row| {
+            row.col(|ui| {
+              let text = egui::RichText::new(stringify!($name)).strong().heading();
+              egui::Label::new(text).ui(ui);
+            });
+
+            row.col(|_| {});
+          });
+
+          $(
+            body.row(text_height + 8.0, |mut row| {
+              row.col(|ui| {
+                ui.label(stringify!($field));
+              });
+
+              row.col(|ui| {
+                ui.horizontal_centered(|ui| {
+                  if egui::Button::new("⟲").frame(false).ui(ui).clicked() {
+                    self.[<set_ $field>](Self::default().$field(), proxy);
+                  }
+
+                  ui.add_space(4.0);
+
+                  if let Some(new_value) = $crate::_call_with_custom_attrs!(
+                    [<ui_ $type:snake>]<$type>(
+                      ui,
+                      &self.$field(),
+                    );
+                    $( #[ $($field_attr)* ] )*
+                  ) {
+                    self.[<set_ $field>](new_value, proxy);
+                  }
+                });
+              });
+            });
+          )*
+        }
+      }
+
+      pub trait [<$name Proxy>] {
+        $(
+          #[allow(clippy::ptr_arg)]
+          fn [<update_ $name:snake _ $field>](&mut self, value: &$type) {}
+        )*
+      }
+    }
+  };
+}
+
+macro_rules! make_numeric_opts {
+  (
+    $($ty:ty)+
+  ) => {
+    paste::paste! {
+      $(
+        pub type [<Opts $ty:camel>] = NumericOpts<$ty>;
+      )+
+    }
+  };
+}
+
+make_numeric_opts! {
+  i8 i16 i32 i64 i128
+  u8 u16 u32 u64 u128
+  isize usize
+  f32 f64
+}
+
+#[derive(SmartDefault)]
+pub struct NumericOpts<T: Bounded + Default> {
+  #[default(T::min_value() ..= T::max_value())]
+  pub range: RangeInclusive<T>,
+
+  #[default = true]
+  pub clamp: bool,
+
+  #[default(0.0)]
+  pub step: f64,
+
+  #[default(None)]
+  pub precision: Option<usize>,
+
+  #[default = true]
+  pub slider: bool,
 }
