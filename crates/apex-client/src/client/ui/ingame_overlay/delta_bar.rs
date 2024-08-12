@@ -101,8 +101,9 @@ impl HitDeltaBar {
       }
 
       let max_alpha = 255.0 * self.marker_opacity;
-      let fade = (self.marker_duration.to_seconds() / self.marker_fade.to_seconds()) as f32;
-      let value = ((1.0 - (elapsed.as_secs_f32() - 0.5).abs() * 2.0) * fade).min(1.0) * max_alpha;
+      let duration = self.marker_duration.to_seconds() as f32;
+      let fade = duration / self.marker_fade.to_seconds() as f32;
+      let value = ((duration - (elapsed.as_secs_f32() - duration / 2.0).abs() * 2.0) * fade).min(1.0) * max_alpha;
       let a = value.round() as u8;
 
       let color = if delta.abs() <= hit_window_300 {
