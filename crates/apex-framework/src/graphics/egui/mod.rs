@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use image_loader::BackgroundImageLoader;
 use wgpu::rwh::HasDisplayHandle;
-use winit::window::Window;
+use winit::window::{Theme, Window};
 
 use super::graphics::Graphics;
 
@@ -31,7 +31,8 @@ impl Egui {
       ctx.clone(),
       egui::ViewportId::default(),
       display_handle,
-      Some(graphics.scale as f32),
+      Some(graphics.scale_factor),
+      Some(Theme::Dark),
       Some(graphics.device.limits().max_texture_dimension_2d as usize),
     );
 
