@@ -2,6 +2,7 @@ use std::{fmt::Write as _, path::Path};
 
 use apex_framework::graphics::{
   color::Color,
+  drawable::Drawable as _,
   video_exporter::{EncodingPreset, VideoExporter, VideoExporterConfig},
 };
 use egui::Widget as _;
@@ -200,23 +201,28 @@ impl RecordingPanelView {
                 &queue,
                 format,
                 TaikoRendererConfig {
-                  width: cfg.display_mode.width,
-                  height: cfg.display_mode.height,
+                  width: cfg.display_mode.width as f32,
+                  height: cfg.display_mode.height as f32,
                   scale_factor: 2.0,
-                  scale: 0.85,
-                  zoom: 0.235,
+                  gameplay_scale: 0.85,
+                  conveyor_zoom: 0.235,
                   hit_position_x: 128.0,
                   hit_position_y: 256.0,
                   don: Color::new(0.92, 0.00, 0.27, 1.00),
                   kat: Color::new(0.00, 0.47, 0.67, 1.00),
-                  hit_height: 12.5,
+                  hit_animation_height: 12.5,
                 },
               );
 
               renderer.load_beatmap(&device, beatmap);
               renderer.set_hit_all(&queue);
 
-              renderer.resize(&queue, cfg.display_mode.width, cfg.display_mode.height);
+              renderer.resize(
+                &device,
+                &queue,
+                cfg.display_mode.width as f32 / 2.0,
+                cfg.display_mode.height as f32 / 2.0,
+              );
 
               let exporter = VideoExporter::new(&device, format, &cfg);
 

@@ -8,7 +8,11 @@ use crate::client::{
 pub struct Retry;
 
 impl Action<Client> for Retry {
-  fn execute(client: &mut Client, _core: &mut Core<Client>, _repeat: bool) -> bool {
+  fn execute(client: &mut Client, _core: &mut Core<Client>, repeat: bool) -> bool {
+    if repeat {
+      return false;
+    }
+
     match client.game_state {
       GameState::Playing => {
         client.event_bus.send(ClientEvent::RetryBeatmap);

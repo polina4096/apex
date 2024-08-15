@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use apex_framework::event::EventBus;
 use instant::Instant;
 use log::debug;
 use nucleo::{
@@ -8,7 +7,7 @@ use nucleo::{
   Nucleo,
 };
 
-use crate::client::{event::ClientEvent, gameplay::beatmap_cache::BeatmapCache};
+use crate::client::gameplay::beatmap_cache::BeatmapCache;
 
 pub struct BeatmapSelector {
   matcher: Nucleo<(usize, String)>,
@@ -131,13 +130,5 @@ impl BeatmapSelector {
     if let Some(info) = snapshot.get_matched_item(idx as u32 - 1) {
       self.selected_idx = info.data.0;
     }
-  }
-
-  #[allow(clippy::result_unit_err)]
-  pub fn pick(&self, event_bus: &EventBus<ClientEvent>, beatmap_cache: &BeatmapCache) -> Result<(), ()> {
-    #[rustfmt::skip] let Some((path, _)) = beatmap_cache.get_index(self.selected_idx) else { return Err(()) };
-    event_bus.send(ClientEvent::PickBeatmap { path: path.clone() });
-
-    return Ok(());
   }
 }

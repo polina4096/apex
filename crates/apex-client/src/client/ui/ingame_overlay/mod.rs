@@ -104,11 +104,6 @@ impl IngameOverlayView {
 
         self.delta_bar.prepare(ui, width / 2.0, height - 16.0, hit_window_150, hit_window_300);
 
-        let pos = egui::pos2(settings.taiko.hit_position_x(), settings.taiko.hit_position_y());
-        let fill = egui::Color32::TRANSPARENT;
-        let stroke = egui::Stroke::new(4.0, egui::Color32::GRAY);
-        ui.painter().circle(pos, 64.0 * 0.85, fill, stroke);
-
         let draw_hit_key = |i: f32, elapsed: f32| {
           let fade = 0.2;
           let max_brightness = 200;
@@ -117,8 +112,8 @@ impl IngameOverlayView {
 
           let size = egui::vec2(32.0, 32.0);
           let pos = egui::pos2(
-            settings.taiko.hit_position_x() + i * (4.0 + size.x) - 2.0 * (4.0 + size.x),
-            settings.taiko.hit_position_y() + 70.0,
+            settings.taiko.hit_position_x_px() + i * (4.0 + size.x) - 2.0 * (4.0 + size.x),
+            core.graphics.config.height as f32 * settings.taiko.hit_position_y_perc() + 70.0,
           );
 
           ui.painter().rect(
@@ -157,7 +152,10 @@ impl IngameOverlayView {
           let value = 1.05 + value;
 
           painter.circle(
-            egui::pos2(settings.taiko.hit_position_x(), settings.taiko.hit_position_y()),
+            egui::pos2(
+              settings.taiko.hit_position_x_px(),
+              core.graphics.config.height as f32 * settings.taiko.hit_position_y_perc(),
+            ),
             64.0 * 0.55 * value,
             color,
             egui::Stroke::NONE,

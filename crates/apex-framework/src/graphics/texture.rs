@@ -2,15 +2,15 @@ use std::path::Path;
 
 use image::{DynamicImage, GenericImageView};
 
-use super::{bindable::Bindable, drawable::Drawable, graphics::Graphics};
+use super::{bindable::Bindable, graphics::Graphics};
 
-#[rustfmt::skip]
 pub struct Texture {
-  pub data         : Vec<u8>,
-  pub texture      : wgpu::Texture,
-  pub bind_group   : wgpu::BindGroup,
-  pub texture_view : wgpu::TextureView,
-  pub sampler      : wgpu::Sampler,
+  pub data: Vec<u8>,
+  pub texture: wgpu::Texture,
+  pub bind_group: wgpu::BindGroup,
+  pub bind_group_layout: wgpu::BindGroupLayout,
+  pub texture_view: wgpu::TextureView,
+  pub sampler: wgpu::Sampler,
 }
 
 #[allow(clippy::result_unit_err)]
@@ -18,15 +18,15 @@ impl Texture {
   // TODO: proper error handling
   pub fn from_memory(bytes: &[u8], device: &wgpu::Device, queue: &wgpu::Queue) -> Result<Self, ()> {
     #[rustfmt::skip] let Ok(image) = image::load_from_memory(bytes) else { Err(())? };
-    return Ok(Self::from_image(image, device, queue));
+    return Ok(Self::from_image(&image, device, queue));
   }
 
   pub fn from_path(path: impl AsRef<Path>, device: &wgpu::Device, queue: &wgpu::Queue) -> Result<Self, ()> {
     let Ok(image) = image::open(path) else { Err(())? };
-    return Ok(Self::from_image(image, device, queue));
+    return Ok(Self::from_image(&image, device, queue));
   }
 
-  pub fn from_image(image: DynamicImage, device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
+  pub fn from_image(image: &DynamicImage, device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
     let dimensions = image.dimensions();
     let rgba_data = image.to_rgba8();
 
@@ -85,7 +85,7 @@ impl Texture {
       ..Default::default()
     });
 
-    let texture_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+    let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
       entries: &[
         wgpu::BindGroupLayoutEntry {
           binding: 0,
@@ -109,7 +109,7 @@ impl Texture {
 
     // Bind group
     let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-      layout: &texture_layout,
+      layout: &bind_group_layout,
       entries: &[
         wgpu::BindGroupEntry {
           binding: 0,
@@ -127,6 +127,7 @@ impl Texture {
       data: data.to_vec(),
       texture,
       bind_group,
+      bind_group_layout,
       texture_view,
       sampler,
     };
@@ -161,13 +162,6 @@ impl Texture {
       },
       size,
     );
-  }
-}
-
-impl Drawable for Texture {
-  fn recreate(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, _: wgpu::TextureFormat) {
-    // TODO: optimize/refactor DRY
-    *self = Self::from_bytes(&self.data, (self.texture.width(), self.texture.height()), device, queue)
   }
 }
 

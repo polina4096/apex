@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
 
-use super::{bindable::Bindable, layout::Layout};
+use super::bindable::Bindable;
 
 #[rustfmt::skip]
 pub struct Uniform<T: Clone + Pod + Zeroable> {
@@ -15,7 +15,7 @@ pub struct Uniform<T: Clone + Pod + Zeroable> {
 }
 
 impl<T: Clone + Pod + Zeroable> Uniform<T> {
-  pub fn new(device: &wgpu::Device) -> Self {
+  pub fn new(device: &wgpu::Device, visibility: wgpu::ShaderStages) -> Self {
     let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
       label: None,
       contents: bytemuck::bytes_of(&T::zeroed()),
@@ -26,7 +26,7 @@ impl<T: Clone + Pod + Zeroable> Uniform<T> {
       label: None,
       entries: &[wgpu::BindGroupLayoutEntry {
         binding: 0,
-        visibility: wgpu::ShaderStages::VERTEX,
+        visibility,
         ty: wgpu::BindingType::Buffer {
           ty: wgpu::BufferBindingType::Uniform,
           has_dynamic_offset: false,
@@ -59,6 +59,10 @@ impl<T: Clone + Pod + Zeroable> Uniform<T> {
   pub fn update(&self, queue: &wgpu::Queue, value: &T) {
     queue.write_buffer(&self.buffer, 0, bytemuck::bytes_of(value));
   }
+
+  pub fn layout(&self) -> &wgpu::BindGroupLayout {
+    return &self.bind_group_layout;
+  }
 }
 
 impl<T: Clone + Pod + Zeroable> Bindable for Uniform<T> {
@@ -68,11 +72,5 @@ impl<T: Clone + Pod + Zeroable> Bindable for Uniform<T> {
 
   fn group(&self) -> &wgpu::BindGroup {
     return &self.bind_group;
-  }
-}
-
-impl<T: Clone + Pod + Zeroable> Layout for Uniform<T> {
-  fn layout(&self) -> &wgpu::BindGroupLayout {
-    return &self.bind_group_layout;
   }
 }

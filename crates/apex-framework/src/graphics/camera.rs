@@ -87,10 +87,10 @@ pub struct ProjectionOrthographic {
 }
 
 impl ProjectionOrthographic {
-  pub fn new(width: u32, height: u32, znear: f32, zfar: f32) -> Self {
+  pub fn new(width: impl Into<f32>, height: impl Into<f32>, znear: f32, zfar: f32) -> Self {
     #[rustfmt::skip] return Self {
-      width  : width as f32,
-      height : height as f32,
+      width  : width.into(),
+      height : height.into(),
       znear  : znear,
       zfar   : zfar,
     };

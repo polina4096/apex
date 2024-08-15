@@ -8,7 +8,7 @@ impl Action<Client> for Skip {
   fn execute(client: &mut Client, _core: &mut Core<Client>, _repeat: bool) -> bool {
     match client.game_state {
       GameState::Playing => {
-        client.gameplay_screen.taiko_player().skip_break(&mut client.audio, Time::from_seconds(1.0));
+        client.gameplay_screen.skip_break(&mut client.audio, Time::from_seconds(1.0));
 
         return true;
       }

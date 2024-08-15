@@ -1,7 +1,6 @@
 use log::info;
 use tap::Tap;
 use wgpu::PowerPreference;
-use winit::dpi::PhysicalSize;
 use winit::window::Window;
 
 #[rustfmt::skip]
@@ -14,8 +13,14 @@ pub struct Graphics {
   pub format   : wgpu::TextureFormat,
   pub config   : wgpu::SurfaceConfiguration,
 
-  pub size  : PhysicalSize<u32>,
-  pub scale : f64,
+  /// Logical width
+  pub width: f32,
+
+  /// Logical height
+  pub height: f32,
+
+  /// Size of a single logical pixel in physical pixels
+  pub scale_factor: f32,
 }
 
 impl Graphics {
@@ -37,12 +42,11 @@ impl Graphics {
     let target = unsafe { wgpu::SurfaceTargetUnsafe::from_window(window) }.expect("Failed to create suface target");
     let surface = unsafe { instance.create_surface_unsafe(target) }.expect("Failed to create a surface");
 
-    #[rustfmt::skip]
     let adapter = instance
       .request_adapter(&wgpu::RequestAdapterOptions {
-        power_preference       : PowerPreference::HighPerformance,
-        compatible_surface     : Some(&surface),
-        force_fallback_adapter : false,
+        power_preference: PowerPreference::HighPerformance,
+        compatible_surface: Some(&surface),
+        force_fallback_adapter: false,
       })
       .await
       .expect("Failed to retrive an adapter");
@@ -103,22 +107,23 @@ impl Graphics {
 
     info!("Present mode: {:?}", present_mode);
 
-    #[rustfmt::skip]
     let surface_config = wgpu::SurfaceConfiguration {
-      usage        : wgpu::TextureUsages::RENDER_ATTACHMENT,
-      format       : surface_format,
-      width        : size.width,
-      height       : size.height,
-      present_mode : present_mode,
-      alpha_mode   : surface_caps.alpha_modes[0],
-      view_formats : vec![],
+      usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+      format: surface_format,
+      width: size.width,
+      height: size.height,
+      present_mode: present_mode,
+      alpha_mode: surface_caps.alpha_modes[0],
+      view_formats: vec![],
 
       desired_maximum_frame_latency: max_frame_latency as u32,
     };
 
     surface.configure(&device, &surface_config);
 
-    let scale = window.scale_factor();
+    let scale_factor = window.scale_factor() as f32;
+    let width = size.width as f32 / scale_factor;
+    let height = size.height as f32 / scale_factor;
 
     return Graphics {
       adapter,
@@ -129,8 +134,9 @@ impl Graphics {
       format: surface_format,
       config: surface_config,
 
-      size,
-      scale,
+      width,
+      height,
+      scale_factor,
     };
   }
 }

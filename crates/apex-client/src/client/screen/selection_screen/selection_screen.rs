@@ -48,10 +48,6 @@ impl SelectionScreen {
     self.beatmap_selection.scroll_to_selected();
   }
 
-  pub fn scale(&mut self, scale_factor: f64) {
-    self.beatmap_selection.scale(scale_factor);
-  }
-
   pub fn update_scores(&mut self, score_cache: &mut ScoreCache, path: &PathBuf) {
     self.beatmap_selection.update_scores(score_cache, path);
   }
@@ -68,5 +64,13 @@ impl SelectionScreen {
 impl Drawable for SelectionScreen {
   fn recreate(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, format: wgpu::TextureFormat) {
     self.beatmap_selection.recreate(device, queue, format);
+  }
+
+  fn resize(&mut self, _device: &wgpu::Device, _queue: &wgpu::Queue, _width: f32, _height: f32) {}
+  fn resize_width(&mut self, _device: &wgpu::Device, _queue: &wgpu::Queue, _value: f32) {}
+  fn resize_height(&mut self, _device: &wgpu::Device, _queue: &wgpu::Queue, _value: f32) {}
+
+  fn rescale(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, value: f32) {
+    self.beatmap_selection.rescale(device, queue, value);
   }
 }

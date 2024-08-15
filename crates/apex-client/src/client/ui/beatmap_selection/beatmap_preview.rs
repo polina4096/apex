@@ -16,13 +16,13 @@ pub const PREVIEW_HEIGHT: u32 = 160;
 pub struct BeatmapPreviewCallback {
   time: Time,
   new_width: Option<NonZero<u32>>,
-  new_scale: Option<f64>,
+  new_scale: Option<f32>,
 }
 
 impl egui_wgpu::CallbackTrait for BeatmapPreviewCallback {
   fn prepare(
     &self,
-    _device: &wgpu::Device,
+    device: &wgpu::Device,
     queue: &wgpu::Queue,
     _screen_descriptor: &egui_wgpu::ScreenDescriptor,
     _egui_encoder: &mut wgpu::CommandEncoder,
@@ -33,13 +33,13 @@ impl egui_wgpu::CallbackTrait for BeatmapPreviewCallback {
     };
 
     if let Some(width) = self.new_width {
-      resources.resize(queue, width.get(), PREVIEW_HEIGHT);
+      resources.resize(device, queue, width.get() as f32, PREVIEW_HEIGHT as f32);
     }
 
     if let Some(scale_factor) = self.new_scale {
-      resources.scale(queue, scale_factor);
-      resources.set_hit_position_x(queue, PREVIEW_HEIGHT as f32 / 2.0 / scale_factor as f32);
-      resources.set_hit_position_y(queue, PREVIEW_HEIGHT as f32 / 2.0 / scale_factor as f32);
+      resources.rescale(device, queue, scale_factor);
+      resources.set_hit_position_x(queue, PREVIEW_HEIGHT as f32 / 2.0);
+      resources.set_hit_position_y(queue, PREVIEW_HEIGHT as f32 / 2.0);
     }
 
     resources.prepare(queue, self.time);
@@ -63,14 +63,14 @@ impl egui_wgpu::CallbackTrait for BeatmapPreviewCallback {
 
 pub struct BeatmapPreview {
   prev_width: u32,
-  scale_factor: f64,
-  zoom: f64,
+  scale_factor: f32,
+  conveyor_zoom: f64,
   don_color: Color,
   kat_color: Color,
 
   current_beatmap: Option<Beatmap>,
   new_renderer: Option<TaikoRenderer>,
-  new_scale_factor: Option<f64>,
+  new_scale_factor: Option<f32>,
 
   last_state: bool,
   last_bits: u32,
@@ -84,23 +84,23 @@ impl BeatmapPreview {
       &graphics.queue,
       graphics.config.format,
       TaikoRendererConfig {
-        width: graphics.size.width,
-        height: PREVIEW_HEIGHT,
-        scale_factor: graphics.scale,
-        scale: 0.425,
-        zoom: settings.taiko.zoom(),
-        hit_position_x: hit_pos / graphics.scale as f32,
-        hit_position_y: hit_pos / graphics.scale as f32,
+        width: graphics.width,
+        height: PREVIEW_HEIGHT as f32,
+        scale_factor: graphics.scale_factor,
+        gameplay_scale: 0.85,
+        conveyor_zoom: settings.taiko.conveyor_zoom(),
+        hit_position_x: hit_pos,
+        hit_position_y: hit_pos,
         don: settings.taiko.don_color(),
         kat: settings.taiko.kat_color(),
-        hit_height: 12.5,
+        hit_animation_height: 12.5,
       },
     );
 
     let beatmap_preview = Self {
       prev_width: 0,
-      scale_factor: graphics.scale,
-      zoom: settings.taiko.zoom(),
+      scale_factor: graphics.scale_factor,
+      conveyor_zoom: settings.taiko.conveyor_zoom(),
       don_color: settings.taiko.don_color(),
       kat_color: settings.taiko.kat_color(),
       current_beatmap: None,
@@ -222,11 +222,6 @@ impl BeatmapPreview {
     resources.load_beatmap(&graphics.device, beatmap.clone());
     resources.set_hit_all(&graphics.queue);
   }
-
-  pub fn scale(&mut self, scale_factor: f64) {
-    self.scale_factor = scale_factor;
-    self.new_scale_factor = Some(scale_factor);
-  }
 }
 
 impl Drawable for BeatmapPreview {
@@ -238,16 +233,16 @@ impl Drawable for BeatmapPreview {
       queue,
       format,
       TaikoRendererConfig {
-        width: self.prev_width,
-        height: PREVIEW_HEIGHT,
+        width: self.prev_width as f32,
+        height: PREVIEW_HEIGHT as f32,
         scale_factor: self.scale_factor,
-        scale: 0.425,
-        zoom: self.zoom,
-        hit_position_x: hit_pos / self.scale_factor as f32,
-        hit_position_y: hit_pos / self.scale_factor as f32,
+        gameplay_scale: 0.85,
+        conveyor_zoom: self.conveyor_zoom,
+        hit_position_x: hit_pos,
+        hit_position_y: hit_pos,
         don: self.don_color,
         kat: self.kat_color,
-        hit_height: 12.5,
+        hit_animation_height: 12.5,
       },
     );
 
@@ -256,5 +251,13 @@ impl Drawable for BeatmapPreview {
     renderer.set_hit_all(queue);
 
     self.new_renderer = Some(renderer);
+  }
+
+  fn resize(&mut self, _device: &wgpu::Device, _queue: &wgpu::Queue, _width: f32, _height: f32) {}
+  fn resize_width(&mut self, _device: &wgpu::Device, _queue: &wgpu::Queue, _value: f32) {}
+  fn resize_height(&mut self, _device: &wgpu::Device, _queue: &wgpu::Queue, _value: f32) {}
+  fn rescale(&mut self, _device: &wgpu::Device, _queue: &wgpu::Queue, value: f32) {
+    self.scale_factor = value;
+    self.new_scale_factor = Some(self.scale_factor);
   }
 }

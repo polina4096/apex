@@ -1,5 +1,6 @@
 use std::{fs::File, io::BufReader, path::Path};
 
+use glam::{vec2, Vec2};
 use rodio::{source::UniformSourceIterator, Decoder, DeviceTrait};
 
 use crate::client::{
@@ -13,16 +14,16 @@ use crate::client::{
   graphics::taiko_renderer::taiko_renderer::{TaikoRenderer, TaikoRendererConfig},
   score::{judgement_processor::Judgement, score_processor::ScoreProcessor},
   settings::Settings,
-  ui::{
-    break_overlay::BreakOverlayView,
-    ingame_overlay::{delta_bar::HitDeltaBar, IngameOverlayView},
-  },
+  ui::{break_overlay::BreakOverlayView, ingame_overlay::IngameOverlayView},
 };
 use apex_framework::{
   audio::arc_buffer::ArcSamplesBuffer,
   core::Core,
   event::EventBus,
-  graphics::{drawable::Drawable, graphics::Graphics},
+  graphics::{
+    color::Color, drawable::Drawable, graphics::Graphics, origin::Origin,
+    sprite_renderer::sprite_renderer::SpriteRenderer,
+  },
   time::{clock::AbstractClock, time::Time},
 };
 
@@ -30,6 +31,7 @@ pub struct GameplayScreen {
   audio_controller: GameAudioController,
 
   taiko_renderer: TaikoRenderer,
+  sprite_renderer: SpriteRenderer,
   ingame_overlay: IngameOverlayView,
   break_overlay: BreakOverlayView,
 
@@ -38,30 +40,56 @@ pub struct GameplayScreen {
 
   don_hitsound: ArcSamplesBuffer<f32>,
   kat_hitsound: ArcSamplesBuffer<f32>,
+
+  hit_pos_sprite: usize,
+
+  hit_position_x_px: f32,
+  hit_position_y_px: f32,
+  hit_position_y_perc: f32,
 }
 
 impl GameplayScreen {
   pub fn new(event_bus: EventBus<ClientEvent>, graphics: &Graphics, audio: &GameAudio, settings: &Settings) -> Self {
     let ingame_overlay = IngameOverlayView::new();
     let break_overlay = BreakOverlayView::new();
+
+    let x = settings.taiko.hit_position_x_px();
+    let y = settings.taiko.hit_position_y_perc() * graphics.height;
+
     let taiko_renderer = TaikoRenderer::new(
       &graphics.device,
       &graphics.queue,
       graphics.config.format,
       TaikoRendererConfig {
-        width: graphics.size.width,
-        height: graphics.size.height,
-        scale_factor: graphics.scale,
-        scale: settings.taiko.scale(),
-        zoom: settings.taiko.zoom(),
-        hit_position_x: settings.taiko.hit_position_x(),
-        hit_position_y: settings.taiko.hit_position_y(),
+        width: graphics.width,
+        height: graphics.height,
+        scale_factor: graphics.scale_factor,
+        gameplay_scale: settings.taiko.gameplay_scale(),
+        conveyor_zoom: settings.taiko.conveyor_zoom(),
+        hit_position_x: x,
+        hit_position_y: y,
         don: settings.taiko.don_color(),
         kat: settings.taiko.kat_color(),
         // Apparently setting it to f64::INFINITY leads to a crash, see https://github.com/gfx-rs/wgpu/issues/6082
-        hit_height: if settings.taiko.hit_animation() { 12.5 } else { 9999999.0 },
+        hit_animation_height: if settings.taiko.hit_animation() { 12.5 } else { 9999999.0 },
       },
     );
+
+    let mut sprite_renderer = SpriteRenderer::new(
+      &graphics.device,
+      &graphics.queue,
+      graphics.config.format,
+      graphics.width,
+      graphics.height,
+      graphics.scale_factor,
+    );
+
+    let taiko_circle_size = 128.0 * settings.taiko.gameplay_scale() as f32;
+    let size = Vec2::splat(taiko_circle_size);
+    let origin = Origin::CenterCenter;
+    let image = image::open("./assets/hit_position.png").unwrap();
+    let texture = sprite_renderer.add_texture(&graphics.device, &graphics.queue, image);
+    let hit_pos_sprite = sprite_renderer.alloc_sprite(&graphics.device, vec2(x, y), size, origin, texture);
 
     let taiko_player = TaikoPlayer::new(settings.profile.username().to_owned(), event_bus.clone());
     let score_processor = ScoreProcessor::default();
@@ -73,6 +101,7 @@ impl GameplayScreen {
       audio_controller: audio.controller(),
 
       taiko_renderer,
+      sprite_renderer,
       ingame_overlay,
       break_overlay,
 
@@ -81,9 +110,17 @@ impl GameplayScreen {
 
       don_hitsound,
       kat_hitsound,
+
+      hit_pos_sprite,
+
+      hit_position_x_px: x,
+      hit_position_y_px: y,
+      hit_position_y_perc: settings.taiko.hit_position_y_perc(),
     };
   }
+}
 
+impl GameplayScreen {
   pub fn hit(&mut self, input: TaikoInput, graphics: &Graphics, audio: &mut GameAudio) {
     let time = audio.position();
 
@@ -150,6 +187,12 @@ impl GameplayScreen {
     audio.set_playing(true);
   }
 
+  pub fn skip_break(&mut self, audio: &mut GameAudio, time: Time) {
+    self.taiko_player.skip_break(audio, time);
+  }
+}
+
+impl GameplayScreen {
   pub fn prepare(&mut self, core: &mut Core<Client>, audio: &mut GameAudio, settings: &Settings) {
     let time = audio.position();
 
@@ -189,24 +232,121 @@ impl GameplayScreen {
   }
 
   pub fn render<'rpass>(&'rpass self, rpass: &mut wgpu::RenderPass<'rpass>) {
+    self.sprite_renderer.render(rpass);
     self.taiko_renderer.render(rpass);
   }
+}
 
-  pub fn taiko_player(&mut self) -> &mut TaikoPlayer {
-    return &mut self.taiko_player;
+impl GameplayScreen {
+  pub fn set_gameplay_scale(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, value: f64) {
+    self.sprite_renderer.mutate_sprite(device, self.hit_pos_sprite, |model| {
+      let circle_size = 128.0 * value as f32;
+      model.scale = vec2(circle_size, circle_size);
+    });
+
+    self.taiko_renderer.set_gameplay_scale(queue, value);
   }
 
-  pub fn taiko_renderer(&mut self) -> &mut TaikoRenderer {
-    return &mut self.taiko_renderer;
+  pub fn set_conveyor_zoom(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, value: f64) {
+    self.taiko_renderer.set_conveyor_zoom(device, queue, value);
   }
 
-  pub fn delta_bar(&mut self) -> &mut HitDeltaBar {
-    return self.ingame_overlay.delta_bar();
+  pub fn set_hit_position_x_px(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, value: f32) {
+    self.hit_position_x_px = value;
+
+    self.sprite_renderer.mutate_sprite(device, self.hit_pos_sprite, |model| {
+      model.position = vec2(self.hit_position_x_px, self.hit_position_y_px);
+    });
+
+    self.taiko_renderer.set_hit_position_x(queue, self.hit_position_x_px);
+  }
+
+  pub fn set_hit_position_y_perc(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, value: f32) {
+    self.hit_position_y_perc = value;
+    self.hit_position_y_px = self.taiko_renderer.config.height * self.hit_position_y_perc;
+
+    self.sprite_renderer.mutate_sprite(device, self.hit_pos_sprite, |model| {
+      model.position = vec2(self.hit_position_x_px, self.hit_position_y_px);
+    });
+
+    self.taiko_renderer.set_hit_position_y(queue, self.hit_position_y_px);
+  }
+
+  pub fn set_don_color(&mut self, device: &wgpu::Device, value: Color) {
+    self.taiko_renderer.set_don_color(device, value);
+  }
+
+  pub fn set_kat_color(&mut self, device: &wgpu::Device, value: Color) {
+    self.taiko_renderer.set_kat_color(device, value);
+  }
+
+  pub fn set_hit_animation_height(&mut self, device: &wgpu::Device, format: wgpu::TextureFormat, value: f64) {
+    self.taiko_renderer.set_hit_animation_height(device, format, value);
+  }
+
+  pub fn set_username(&mut self, username: String) {
+    self.taiko_player.set_username(username);
+  }
+
+  pub fn set_delta_bar_width(&mut self, width: f32) {
+    self.ingame_overlay.delta_bar().set_bar_width(width);
+  }
+
+  pub fn set_delta_bar_height(&mut self, height: f32) {
+    self.ingame_overlay.delta_bar().set_bar_height(height);
+  }
+
+  pub fn set_delta_bar_opacity(&mut self, opacity: f32) {
+    self.ingame_overlay.delta_bar().set_bar_opacity(opacity);
+  }
+
+  pub fn set_delta_marker_width(&mut self, width: f32) {
+    self.ingame_overlay.delta_bar().set_marker_width(width);
+  }
+
+  pub fn set_delta_marker_height(&mut self, height: f32) {
+    self.ingame_overlay.delta_bar().set_marker_height(height);
+  }
+
+  pub fn set_delta_marker_opacity(&mut self, opacity: f32) {
+    self.ingame_overlay.delta_bar().set_marker_opacity(opacity);
+  }
+
+  pub fn set_delta_marker_duration(&mut self, duration: Time) {
+    self.ingame_overlay.delta_bar().set_marker_duration(duration);
+  }
+
+  pub fn set_delta_marker_fade(&mut self, fade: Time) {
+    self.ingame_overlay.delta_bar().set_marker_fade(fade);
   }
 }
 
 impl Drawable for GameplayScreen {
   fn recreate(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, format: wgpu::TextureFormat) {
     self.taiko_renderer.recreate(device, queue, format);
+    self.sprite_renderer.recreate(device, queue, format);
+  }
+
+  fn resize(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, width: f32, height: f32) {
+    self.taiko_renderer.resize(device, queue, width, height);
+    self.sprite_renderer.resize(device, queue, width, height);
+    self.set_hit_position_y_perc(device, queue, self.hit_position_y_perc);
+  }
+
+  fn resize_width(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, value: f32) {
+    self.taiko_renderer.resize_width(device, queue, value);
+    self.sprite_renderer.resize_width(device, queue, value);
+    self.set_hit_position_y_perc(device, queue, self.hit_position_y_perc);
+  }
+
+  fn resize_height(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, value: f32) {
+    self.taiko_renderer.resize_height(device, queue, value);
+    self.sprite_renderer.resize_height(device, queue, value);
+    self.set_hit_position_y_perc(device, queue, self.hit_position_y_perc);
+  }
+
+  fn rescale(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, value: f32) {
+    self.taiko_renderer.rescale(device, queue, value);
+    self.sprite_renderer.rescale(device, queue, value);
   }
 }

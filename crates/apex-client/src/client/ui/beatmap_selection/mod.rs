@@ -70,10 +70,6 @@ impl BeatmapSelectionView {
     };
   }
 
-  pub fn scale(&mut self, scale_factor: f64) {
-    self.beatmap_preview.scale(scale_factor);
-  }
-
   pub fn scroll_to_selected(&mut self) {
     self.beatmap_list.scroll_to_selected();
   }
@@ -155,5 +151,12 @@ impl BeatmapSelectionView {
 impl Drawable for BeatmapSelectionView {
   fn recreate(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, format: wgpu::TextureFormat) {
     self.beatmap_preview.recreate(device, queue, format);
+  }
+
+  fn resize(&mut self, _device: &wgpu::Device, _queue: &wgpu::Queue, _width: f32, _height: f32) {}
+  fn resize_width(&mut self, _device: &wgpu::Device, _queue: &wgpu::Queue, _value: f32) {}
+  fn resize_height(&mut self, _device: &wgpu::Device, _queue: &wgpu::Queue, _value: f32) {}
+  fn rescale(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, value: f32) {
+    self.beatmap_preview.rescale(device, queue, value);
   }
 }

@@ -145,6 +145,17 @@ pub struct InterfaceSettings {
   #[default = 0.2]
   #[custom(ui(range = 0.0 ..= 10.0))]
   delta_marker_fade: f32,
+
+  #[default = false]
+  letterboxing: bool,
+
+  #[default = 1.0]
+  #[custom(ui(range = 0.0 ..= 1.0))]
+  gameplay_width: f32,
+
+  #[default = 1.0]
+  #[custom(ui(range = 0.0 ..= 1.0))]
+  gameplay_height: f32,
 }
 
 #[derive(SettingsGroup!, SmartDefault, Deserialize, Serialize, Debug, Clone)]
@@ -153,22 +164,22 @@ pub struct TaikoSettings {
   /// Hit object distance multiplier
   #[default = 0.215]
   #[custom(ui(range = 0.0 ..= 2.0))]
-  zoom: f64,
+  conveyor_zoom: f64,
 
   /// Gameplay scale
   #[default = 0.85]
   #[custom(ui(range = 0.0 ..= 10.0))]
-  scale: f64,
+  gameplay_scale: f64,
 
   /// Hit position X
   #[default = 256.0]
   #[custom(ui(clamp = false, slider = false))]
-  hit_position_x: f32,
+  hit_position_x_px: f32,
 
   /// Hit position Y
-  #[default = 192.0]
-  #[custom(ui(clamp = false, slider = false))]
-  hit_position_y: f32,
+  #[default = 0.35]
+  #[custom(ui(range = 0.0 ..= 1.0))]
+  hit_position_y_perc: f32,
 
   /// Color of the don hit object
   #[default(Color::new(0.92, 0.00, 0.27, 1.00))]

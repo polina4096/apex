@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use triomphe::Arc;
+use winit::dpi::PhysicalSize;
 use winit::event::{KeyEvent, Modifiers};
 use winit::{
   application::ApplicationHandler,
@@ -25,15 +26,12 @@ pub trait App: Drawable + Sized {
     app_focus: Arc<AtomicBool>,
     proxy: EventLoopProxy<CoreEvent<Self::Event>>,
   ) -> (Self, Core<Self>);
+  fn destroy(&self) {}
 
   fn recreate_graphics(&mut self, core: &mut Core<Self>) -> Graphics;
 
-  fn destroy(&self) {}
-
   fn prepare(&mut self, core: &mut Core<Self>, encoder: &mut wgpu::CommandEncoder) {}
-  fn render<'rpass>(&'rpass self, core: &'rpass mut Core<Self>, rpass: &mut wgpu::RenderPass<'rpass>) {}
-  fn resize(&mut self, core: &mut Core<Self>, size: winit::dpi::PhysicalSize<u32>) {}
-  fn scale(&mut self, core: &mut Core<Self>, scale_factor: f64) {}
+  fn render(&self, core: &mut Core<Self>, encoder: &mut wgpu::CommandEncoder, view: wgpu::TextureView) {}
   fn input(&mut self, core: &mut Core<Self>, event: KeyEvent) {}
   fn modifiers(&mut self, modifiers: Modifiers) {}
   fn dispatch(&mut self, core: &mut Core<Self>, event: Self::Event) {}
@@ -123,7 +121,7 @@ impl<A: App> ApplicationHandler<CoreEvent<A::Event>> for ApexFrameworkApplicatio
       }
 
       WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
-        core.scale(client, scale_factor);
+        core.scale(client, scale_factor as f32);
       }
 
       WindowEvent::RedrawRequested => {
@@ -131,7 +129,10 @@ impl<A: App> ApplicationHandler<CoreEvent<A::Event>> for ApexFrameworkApplicatio
           Ok(_) => {}
 
           // Reconfigure the surface if lost
-          Err(wgpu::SurfaceError::Lost) => core.resize(client, core.graphics.size),
+          Err(wgpu::SurfaceError::Lost) => {
+            let wgpu::SurfaceConfiguration { width, height, .. } = core.graphics.config;
+            core.resize(client, PhysicalSize::new(width, height));
+          }
 
           // The system is out of memory, we should probably quit
           Err(wgpu::SurfaceError::OutOfMemory) => event_loop.exit(),

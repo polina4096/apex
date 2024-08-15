@@ -6,6 +6,7 @@ use std::{
   sync::atomic::AtomicBool,
 };
 
+use glam::vec2;
 use pollster::FutureExt as _;
 use rodio::{
   source::{Empty, UniformSourceIterator},
@@ -15,6 +16,7 @@ use rusqlite::Connection;
 use tap::Tap;
 use triomphe::Arc;
 use winit::{
+  dpi::PhysicalSize,
   event::{KeyEvent, Modifiers},
   event_loop::{ActiveEventLoop, EventLoopProxy},
   keyboard::{KeyCode, PhysicalKey},
@@ -29,6 +31,7 @@ use apex_framework::{
   event::{CoreEvent, EventBus},
   graphics::{
     drawable::Drawable,
+    framebuffer::framebuffer::Framebuffer,
     graphics::Graphics,
     presentation::{frame_limiter::FrameLimiter, frame_sync::FrameSync},
   },
@@ -65,9 +68,10 @@ pub enum GameState {
 }
 
 pub struct Client {
+  pub(crate) event_bus: EventBus<ClientEvent>,
   pub(crate) input: Input<ClientAction>,
   pub(crate) audio: GameAudio,
-  pub(crate) event_bus: EventBus<ClientEvent>,
+  pub(crate) backbuffer: Framebuffer,
 
   pub(crate) game_state: GameState,
 
@@ -124,6 +128,11 @@ impl App for Client {
     return (client, core);
   }
 
+  fn destroy(&self) {
+    self.settings.save("./config.toml");
+    self.input.keybinds.save("./keybinds.toml");
+  }
+
   fn recreate_graphics(&mut self, core: &mut Core<Self>) -> Graphics {
     #[allow(clippy::infallible_destructuring_match)]
     let backend = match self.settings.graphics.rendering_backend() {
@@ -137,11 +146,6 @@ impl App for Client {
       self.settings.graphics.max_frame_latency(),
     )
     .block_on();
-  }
-
-  fn destroy(&self) {
-    self.settings.save("./config.toml");
-    self.input.keybinds.save("./keybinds.toml");
   }
 
   fn prepare(&mut self, core: &mut Core<Self>, encoder: &mut wgpu::CommandEncoder) {
@@ -160,12 +164,15 @@ impl App for Client {
         frame_limiter: &mut core.frame_limiter,
         frame_sync: &mut core.frame_sync,
         gameplay_screen: &mut self.gameplay_screen,
+        backbuffer: &mut self.backbuffer,
         audio: &mut self.audio,
 
         device: &core.graphics.device,
         queue: &core.graphics.queue,
         surface: &core.graphics.surface,
         config: &mut core.graphics.config,
+        width: core.graphics.width,
+        height: core.graphics.height,
       },
     );
 
@@ -197,36 +204,77 @@ impl App for Client {
       }
     }
 
+    if self.settings.interface.letterboxing() {
+      self.backbuffer.prepare(&core.graphics.queue);
+    }
+
     core.egui.end_frame(&core.window, &core.graphics, encoder);
   }
 
-  fn render<'rpass>(&'rpass self, core: &'rpass mut Core<Self>, rpass: &mut wgpu::RenderPass<'rpass>) {
-    // Draw wgpu
-    match self.game_state {
-      GameState::Selection => {}
+  fn render(&self, core: &mut Core<Self>, encoder: &mut wgpu::CommandEncoder, view: wgpu::TextureView) {
+    if self.settings.interface.letterboxing() {
+      let desc = wgpu::RenderPassDescriptor {
+        label: Some("backbuffer render pass"),
+        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+          view: self.backbuffer.texture_view(),
+          resolve_target: None,
+          ops: wgpu::Operations {
+            load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+            store: wgpu::StoreOp::Store,
+          },
+        })],
+        timestamp_writes: None,
+        occlusion_query_set: None,
+        depth_stencil_attachment: None,
+      };
 
-      GameState::Playing => {
-        self.gameplay_screen.render(rpass);
-      }
-
-      GameState::Paused => {
-        self.gameplay_screen.render(rpass);
-      }
-
-      GameState::Results => {}
+      self.backbuffer.render_frame(encoder, &desc, |rpass| {
+        self.render_screens(rpass);
+      });
     }
 
-    // Draw egui
-    core.egui.render(&core.graphics, rpass);
-  }
+    {
+      let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        label: Some("main render pass"),
+        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+          view: &view,
+          resolve_target: None,
+          ops: wgpu::Operations {
+            load: wgpu::LoadOp::Load,
+            store: wgpu::StoreOp::Store,
+          },
+        })],
+        timestamp_writes: None,
+        occlusion_query_set: None,
+        depth_stencil_attachment: None,
+      });
 
-  fn resize(&mut self, core: &mut Core<Self>, size: winit::dpi::PhysicalSize<u32>) {
-    self.gameplay_screen.taiko_renderer().resize(&core.graphics.queue, size.width, size.height);
-  }
+      if self.settings.interface.letterboxing() {
+        self.backbuffer.render(&mut rpass);
+      } else {
+        self.render_screens(&mut rpass);
+      }
+    }
 
-  fn scale(&mut self, core: &mut Core<Self>, scale_factor: f64) {
-    self.gameplay_screen.taiko_renderer().scale(&core.graphics.queue, scale_factor);
-    self.selection_screen.scale(scale_factor);
+    {
+      let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        label: Some("main render pass"),
+        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+          view: &view,
+          resolve_target: None,
+          ops: wgpu::Operations {
+            load: wgpu::LoadOp::Load,
+            store: wgpu::StoreOp::Store,
+          },
+        })],
+        timestamp_writes: None,
+        occlusion_query_set: None,
+        depth_stencil_attachment: None,
+      });
+
+      // Draw egui
+      core.egui.render(&core.graphics, &mut rpass);
+    }
   }
 
   fn input(&mut self, core: &mut Core<Self>, event: KeyEvent) {
@@ -337,6 +385,28 @@ impl Drawable for Client {
   fn recreate(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, format: wgpu::TextureFormat) {
     self.gameplay_screen.recreate(device, queue, format);
     self.selection_screen.recreate(device, queue, format);
+    self.backbuffer.recreate(device, queue, format);
+  }
+
+  fn resize(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, width: f32, height: f32) {
+    let lb_width = width * self.settings.interface.gameplay_width();
+    let lb_height = height * self.settings.interface.gameplay_height();
+
+    self.backbuffer.resize(device, queue, width, height);
+    self.gameplay_screen.resize(device, queue, lb_width, lb_height);
+  }
+
+  fn resize_width(&mut self, _device: &wgpu::Device, _queue: &wgpu::Queue, _value: f32) {
+    unimplemented!();
+  }
+
+  fn resize_height(&mut self, _device: &wgpu::Device, _queue: &wgpu::Queue, _value: f32) {
+    unimplemented!();
+  }
+
+  fn rescale(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, value: f32) {
+    self.gameplay_screen.rescale(device, queue, value);
+    self.selection_screen.rescale(device, queue, value);
   }
 }
 
@@ -371,10 +441,26 @@ impl Client {
     let prev_audio_path = PathBuf::new();
     let prev_beatmap_path = PathBuf::new();
 
+    let physical_size = PhysicalSize::new(graphics.config.width, graphics.config.height);
+    let backbuffer = Framebuffer::new(
+      //
+      &graphics.device,
+      &graphics.queue,
+      graphics.format,
+      physical_size,
+      graphics.scale_factor,
+    )
+    .tap_mut(|fb| {
+      fb.set_scale(&graphics.queue, vec2(settings.interface.gameplay_width(), settings.interface.gameplay_height()))
+    });
+
     return Self {
+      event_bus,
       input,
       audio,
-      event_bus,
+
+      backbuffer,
+
       game_state,
       settings,
       prev_audio_path,
@@ -389,6 +475,23 @@ impl Client {
       pause_screen,
       debug_screen,
     };
+  }
+
+  fn render_screens<'rpass>(&'rpass self, rpass: &mut wgpu::RenderPass<'rpass>) {
+    // Draw wgpu
+    match self.game_state {
+      GameState::Selection => {}
+
+      GameState::Playing => {
+        self.gameplay_screen.render(rpass);
+      }
+
+      GameState::Paused => {
+        self.gameplay_screen.render(rpass);
+      }
+
+      GameState::Results => {}
+    }
   }
 
   pub fn play_beatmap_audio(&mut self) {

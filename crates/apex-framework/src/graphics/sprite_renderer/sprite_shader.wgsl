@@ -7,11 +7,14 @@ struct CameraUniform {
 var<uniform> camera: CameraUniform;
 
 struct InstanceInput {
-    @location(3) model_matrix_0 : vec4<f32>,
-    @location(4) model_matrix_1 : vec4<f32>,
-    @location(5) model_matrix_2 : vec4<f32>,
-    @location(6) model_matrix_3 : vec4<f32>,
-    @location(7) color          : vec4<f32>,
+    @location(2) model_matrix_0 : vec4<f32>,
+    @location(3) model_matrix_1 : vec4<f32>,
+    @location(4) model_matrix_2 : vec4<f32>,
+    @location(5) model_matrix_3 : vec4<f32>,
+    @location(6) color          : vec4<f32>,
+    @location(7) uv_offset      : vec2<f32>,
+    @location(8) uv_scale       : vec2<f32>,
+
 };
 
 struct VertexInput {
@@ -39,7 +42,7 @@ fn vs_main(
 
     var out: VertexOutput;
     out.clip_position = camera.view_proj * model_matrix * vec4<f32>(vertex.position, 1.0);
-    out.uv_coords = vertex.uv_coords;
+    out.uv_coords = vertex.uv_coords * instance.uv_scale + instance.uv_offset;
     out.color = instance.color;
     return out;
 }

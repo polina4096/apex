@@ -23,8 +23,8 @@ impl Egui {
     let ctx = egui::Context::default();
     let renderer = egui_wgpu::Renderer::new(&graphics.device, graphics.format, None, 1, false);
     let screen_desc = egui_wgpu::ScreenDescriptor {
-      size_in_pixels: [graphics.size.width, graphics.size.height],
-      pixels_per_point: graphics.scale as f32,
+      size_in_pixels: [graphics.config.width, graphics.config.height],
+      pixels_per_point: graphics.scale_factor,
     };
 
     let winit_state = egui_winit::State::new(
@@ -116,8 +116,8 @@ impl Egui {
     self.screen_desc.size_in_pixels = [new_size.width, new_size.height];
   }
 
-  pub fn scale(&mut self, scale_factor: f64) {
-    self.screen_desc.pixels_per_point = scale_factor as f32;
+  pub fn scale(&mut self, scale_factor: f32) {
+    self.screen_desc.pixels_per_point = scale_factor;
   }
 
   pub fn recreate_context(&mut self, display_handle: &impl HasDisplayHandle, graphics: &Graphics) {

@@ -1,3 +1,4 @@
-pub trait Layout {
-  fn layout(&self) -> &wgpu::BindGroupLayout;
+pub trait LayoutComponent {
+  fn width(&self) -> f32;
+  fn height(&self) -> f32;
 }
