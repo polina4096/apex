@@ -5,3 +5,4 @@ pub mod recording_screen;
 pub mod result_screen;
 pub mod selection_screen;
 pub mod settings_screen;
+pub mod volume_screen;

@@ -62,6 +62,5 @@ actions! {
     KatRight as "Kat Right" = key_comb!(KeyS),
     /// Don (red)
     DonRight as "Don Right" = key_comb!(KeyD),
-
   }
 }

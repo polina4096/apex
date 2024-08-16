@@ -33,9 +33,9 @@ pub trait App: Drawable + Sized {
   fn prepare(&mut self, core: &mut Core<Self>, encoder: &mut wgpu::CommandEncoder) {}
   fn render(&self, core: &mut Core<Self>, encoder: &mut wgpu::CommandEncoder, view: wgpu::TextureView) {}
   fn input(&mut self, core: &mut Core<Self>, event: KeyEvent) {}
-  fn modifiers(&mut self, modifiers: Modifiers) {}
+  fn modifiers(&mut self, core: &mut Core<Self>, modifiers: Modifiers) {}
   fn dispatch(&mut self, core: &mut Core<Self>, event: Self::Event) {}
-  fn file_dropped(&mut self, _core: &mut Core<Self>, path: PathBuf, file: Vec<u8>) {}
+  fn file_dropped(&mut self, core: &mut Core<Self>, path: PathBuf, file: Vec<u8>) {}
 }
 
 pub struct ApexFrameworkApplication<A: App> {
@@ -95,6 +95,11 @@ impl<A: App> ApplicationHandler<CoreEvent<A::Event>> for ApexFrameworkApplicatio
       #[rustfmt::skip] if result.consumed { return };
     }
 
+    // Feed the event to the egui context
+    if !matches!(event, WindowEvent::MouseWheel { .. }) {
+      _ = core.egui.handle_window_event(&core.window, &event);
+    }
+
     match event {
       WindowEvent::CloseRequested => {
         event_loop.exit();
@@ -113,7 +118,7 @@ impl<A: App> ApplicationHandler<CoreEvent<A::Event>> for ApexFrameworkApplicatio
       }
 
       WindowEvent::ModifiersChanged(modifiers) => {
-        client.modifiers(modifiers);
+        client.modifiers(core, modifiers);
       }
 
       WindowEvent::Resized(size) => {

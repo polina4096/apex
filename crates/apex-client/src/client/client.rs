@@ -54,7 +54,7 @@ use super::{
     debug_screen::debug_screen::DebugScreen, gameplay_screen::gameplay_screen::GameplayScreen,
     pause_screen::pause_screen::PauseScreen, recording_screen::recording_screen::RecordingScreen,
     result_screen::result_screen::ResultScreen, selection_screen::selection_screen::SelectionScreen,
-    settings_screen::settings_screen::SettingsScreen,
+    settings_screen::settings_screen::SettingsScreen, volume_screen::VolumeScreen,
   },
   settings::{proxy::ClientSettingsProxy, Settings},
 };
@@ -87,6 +87,7 @@ pub struct Client {
   pub(crate) gameplay_screen: GameplayScreen,
   pub(crate) result_screen: ResultScreen,
   pub(crate) settings_screen: SettingsScreen,
+  pub(crate) volume_screen: VolumeScreen,
   pub(crate) recording_screen: RecordingScreen,
   pub(crate) pause_screen: PauseScreen,
   pub(crate) debug_screen: DebugScreen,
@@ -154,27 +155,25 @@ impl App for Client {
     let beatmap_idx = self.selection_screen.beatmap_selector().selected();
     self.recording_screen.prepare(core, beatmap_idx, &self.beatmap_cache);
 
-    self.settings_screen.prepare(
-      core.egui.ctx(),
-      &mut self.input,
-      &mut self.settings,
-      &mut ClientSettingsProxy {
-        proxy: &core.proxy,
+    let mut proxy = ClientSettingsProxy {
+      proxy: &core.proxy,
 
-        frame_limiter: &mut core.frame_limiter,
-        frame_sync: &mut core.frame_sync,
-        gameplay_screen: &mut self.gameplay_screen,
-        backbuffer: &mut self.backbuffer,
-        audio: &mut self.audio,
+      frame_limiter: &mut core.frame_limiter,
+      frame_sync: &mut core.frame_sync,
+      gameplay_screen: &mut self.gameplay_screen,
+      backbuffer: &mut self.backbuffer,
+      audio: &mut self.audio,
 
-        device: &core.graphics.device,
-        queue: &core.graphics.queue,
-        surface: &core.graphics.surface,
-        config: &mut core.graphics.config,
-        width: core.graphics.width,
-        height: core.graphics.height,
-      },
-    );
+      device: &core.graphics.device,
+      queue: &core.graphics.queue,
+      surface: &core.graphics.surface,
+      config: &mut core.graphics.config,
+      width: core.graphics.width,
+      height: core.graphics.height,
+    };
+
+    self.settings_screen.prepare(core.egui.ctx(), &mut self.input, &mut self.settings, &mut proxy);
+    self.volume_screen.prepare(core.egui.ctx(), &self.input, &mut proxy, &mut self.settings);
 
     self.debug_screen.prepare(core);
 
@@ -325,7 +324,7 @@ impl App for Client {
     }
   }
 
-  fn modifiers(&mut self, modifiers: Modifiers) {
+  fn modifiers(&mut self, _core: &mut Core<Self>, modifiers: Modifiers) {
     self.input.state.modifiers = modifiers.state();
   }
 
@@ -434,6 +433,7 @@ impl Client {
     #[rustfmt::skip] let result_screen = ResultScreen::new(event_bus.clone(), &score_cache);
     #[rustfmt::skip] let gameplay_screen = GameplayScreen::new(event_bus.clone(), graphics, &audio, &settings);
     #[rustfmt::skip] let settings_screen = SettingsScreen::new();
+    #[rustfmt::skip] let volume_screen = VolumeScreen::new();
     #[rustfmt::skip] let recording_screen = RecordingScreen::new();
     #[rustfmt::skip] let pause_screen = PauseScreen::new(event_bus.clone());
     #[rustfmt::skip] let debug_screen = DebugScreen::new();
@@ -467,10 +467,12 @@ impl Client {
       prev_beatmap_path,
       beatmap_cache,
       score_cache,
+
       selection_screen,
       gameplay_screen,
       result_screen,
       settings_screen,
+      volume_screen,
       recording_screen,
       pause_screen,
       debug_screen,
