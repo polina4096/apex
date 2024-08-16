@@ -31,10 +31,10 @@ tap = "1.0.1"
 # Graphics
 wgpu = "22.1.0"
 winit = { version = "0.30.5", features = ["serde"] }
-egui-wgpu = { git = "https://github.com/emilk/egui.git", rev = "1f6ae49" }
-egui-winit = { git = "https://github.com/emilk/egui.git", rev = "1f6ae49", default-features = false }
-egui_extras = { git = "https://github.com/emilk/egui.git", rev = "1f6ae49", features = ["file"] }
-egui = { git = "https://github.com/emilk/egui.git", rev = "1f6ae49", features = ["rayon"]}
+egui-wgpu = { git = "https://github.com/emilk/egui.git", rev = "9a1e358" }
+egui-winit = { git = "https://github.com/emilk/egui.git", rev = "9a1e358", default-features = false }
+egui_extras = { git = "https://github.com/emilk/egui.git", rev = "9a1e358", features = ["file"] }
+egui = { git = "https://github.com/emilk/egui.git", rev = "9a1e358", features = ["rayon"]}
 
 # Audio
 rodio = "0.19.0"
