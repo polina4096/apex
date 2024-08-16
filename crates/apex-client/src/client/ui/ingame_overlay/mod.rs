@@ -15,9 +15,6 @@ use crate::client::{
 pub mod delta_bar;
 
 pub struct IngameOverlayView {
-  last_hit_result_time: Instant,
-  last_hit_result_kind: Judgement,
-
   last_hit_kat_one: Instant,
   last_hit_kat_two: Instant,
   last_hit_don_one: Instant,
@@ -29,9 +26,6 @@ pub struct IngameOverlayView {
 impl IngameOverlayView {
   pub fn new() -> Self {
     return Self {
-      last_hit_result_time: Instant::now(),
-      last_hit_result_kind: Judgement::Miss,
-
       last_hit_kat_one: Instant::now(),
       last_hit_kat_two: Instant::now(),
       last_hit_don_one: Instant::now(),
@@ -48,14 +42,6 @@ impl IngameOverlayView {
         marker_fade: Time::from_seconds(0.2),
       }),
     };
-  }
-
-  pub fn update_last_hit_result(&mut self, result: Judgement) {
-    if result != Judgement::Hit300 {
-      self.last_hit_result_time = Instant::now();
-    }
-
-    self.last_hit_result_kind = result;
   }
 
   pub fn hit(&mut self, delta: Option<Time>, input: TaikoInput) {
@@ -129,38 +115,38 @@ impl IngameOverlayView {
         draw_hit_key(2.0, self.last_hit_don_two.elapsed().as_secs_f32());
         draw_hit_key(3.0, self.last_hit_kat_two.elapsed().as_secs_f32());
 
-        'a: {
-          let painter = ui.painter();
+        // 'a: {
+        //   let painter = ui.painter();
 
-          let elapsed = self.last_hit_result_time.elapsed().as_secs_f32();
+        //   let elapsed = self.last_hit_result_time.elapsed().as_secs_f32();
 
-          let fade = 0.4;
-          let max_brightness = 150;
-          let base_brightness = 0;
-          let value = elapsed.min(fade) / fade * max_brightness as f32;
-          let value = max_brightness + base_brightness - value.round() as u8;
+        //   let fade = 0.4;
+        //   let max_brightness = 150;
+        //   let base_brightness = 0;
+        //   let value = elapsed.min(fade) / fade * max_brightness as f32;
+        //   let value = max_brightness + base_brightness - value.round() as u8;
 
-          #[rustfmt::skip]
-          let color = match self.last_hit_result_kind {
-            Judgement::Hit150 => egui::Color32::from_rgba_unmultiplied( 60, 185, 255, value),
-            Judgement::Miss   => egui::Color32::from_rgba_unmultiplied(255,  20,  60, value),
+        //   #[rustfmt::skip]
+        //   let color = match self.last_hit_result_kind {
+        //     Judgement::Hit150 => egui::Color32::from_rgba_unmultiplied( 60, 185, 255, value),
+        //     Judgement::Miss   => egui::Color32::from_rgba_unmultiplied(255,  20,  60, value),
 
-            _ => { break 'a }
-          };
+        //     _ => { break 'a }
+        //   };
 
-          let value = elapsed.min(0.125) * 1.25;
-          let value = 1.05 + value;
+        //   let value = elapsed.min(0.125) * 1.25;
+        //   let value = 1.05 + value;
 
-          painter.circle(
-            egui::pos2(
-              settings.taiko.hit_position_x_px(),
-              core.graphics.config.height as f32 * settings.taiko.hit_position_y_perc(),
-            ),
-            64.0 * 0.55 * value,
-            color,
-            egui::Stroke::NONE,
-          );
-        }
+        //   painter.circle(
+        //     egui::pos2(
+        //       settings.taiko.hit_position_x_px(),
+        //       core.graphics.config.height as f32 * settings.taiko.hit_position_y_perc(),
+        //     ),
+        //     64.0 * 0.55 * value,
+        //     color,
+        //     egui::Stroke::NONE,
+        //   );
+        // }
 
         use egui_extras::{Size, StripBuilder};
 

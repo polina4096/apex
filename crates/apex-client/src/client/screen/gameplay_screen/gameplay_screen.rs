@@ -1,6 +1,9 @@
 use std::{fs::File, io::BufReader, path::Path};
 
 use glam::{vec2, Vec2};
+use image::GenericImageView;
+use instant::Instant;
+use jiff::Timestamp;
 use rodio::{source::UniformSourceIterator, Decoder, DeviceTrait};
 
 use crate::client::{
@@ -21,13 +24,17 @@ use apex_framework::{
   core::Core,
   event::EventBus,
   graphics::{
-    color::Color, drawable::Drawable, graphics::Graphics, origin::Origin,
-    sprite_renderer::sprite_renderer::SpriteRenderer,
+    color::Color,
+    drawable::Drawable,
+    graphics::Graphics,
+    origin::Origin,
+    sprite_renderer::sprite_renderer::{AllocId, SpriteRenderer},
   },
   time::{clock::AbstractClock, time::Time},
 };
 
 pub struct GameplayScreen {
+  event_bus: EventBus<ClientEvent>,
   audio_controller: GameAudioController,
 
   taiko_renderer: TaikoRenderer,
@@ -41,8 +48,18 @@ pub struct GameplayScreen {
   don_hitsound: ArcSamplesBuffer<f32>,
   kat_hitsound: ArcSamplesBuffer<f32>,
 
+  // Hit pos stuff
   hit_pos_sprite: usize,
+  hit_result_sprite: usize,
 
+  judgement_150_atlas_texture: AllocId,
+  judgement_miss_atlas_texture: AllocId,
+  last_hit_judgement: Judgement,
+  last_hit_judgement_time: Instant,
+  judgement_150_size: Vec2,
+  judgement_miss_size: Vec2,
+
+  // Hit pos settings
   hit_position_x_px: f32,
   hit_position_y_px: f32,
   hit_position_y_perc: f32,
@@ -85,19 +102,34 @@ impl GameplayScreen {
     );
 
     let taiko_circle_size = 128.0 * settings.taiko.gameplay_scale() as f32;
+
     let size = Vec2::splat(taiko_circle_size);
     let origin = Origin::CenterCenter;
     let image = image::open("./assets/hit_position.png").unwrap();
-    let texture = sprite_renderer.add_texture(&graphics.device, &graphics.queue, image);
+    let texture = sprite_renderer.add_texture(&graphics.device, &graphics.queue, &image);
     let hit_pos_sprite = sprite_renderer.alloc_sprite(&graphics.device, vec2(x, y), size, origin, texture);
 
-    let taiko_player = TaikoPlayer::new(settings.profile.username().to_owned(), event_bus.clone());
+    let image = image::open("./assets/judgement_150.png").unwrap();
+    let (width, height) = (image.dimensions().0 as f32, image.dimensions().1 as f32);
+    let judgement_150_size = vec2(width, height) * settings.taiko.gameplay_scale() as f32;
+    let judgement_150_atlas_texture = sprite_renderer.add_texture(&graphics.device, &graphics.queue, &image);
+
+    let image = image::open("./assets/judgement_miss.png").unwrap();
+    let (width, height) = (image.dimensions().0 as f32, image.dimensions().1 as f32);
+    let judgement_miss_size = vec2(width, height) * settings.taiko.gameplay_scale() as f32;
+    let judgement_miss_atlas_texture = sprite_renderer.add_texture(&graphics.device, &graphics.queue, &image);
+
+    let size = judgement_miss_size;
+    let hit_result_sprite = sprite_renderer.alloc_sprite(&graphics.device, vec2(x, y), size, origin, texture);
+
+    let taiko_player = TaikoPlayer::new(event_bus.clone());
     let score_processor = ScoreProcessor::default();
 
     let don_hitsound = audio.load_sound("./assets/red.wav");
     let kat_hitsound = audio.load_sound("./assets/blue.wav");
 
     return Self {
+      event_bus,
       audio_controller: audio.controller(),
 
       taiko_renderer,
@@ -112,6 +144,13 @@ impl GameplayScreen {
       kat_hitsound,
 
       hit_pos_sprite,
+      hit_result_sprite,
+      last_hit_judgement: Judgement::Miss,
+      last_hit_judgement_time: Instant::now(),
+      judgement_150_atlas_texture,
+      judgement_miss_atlas_texture,
+      judgement_150_size,
+      judgement_miss_size,
 
       hit_position_x_px: x,
       hit_position_y_px: y,
@@ -136,7 +175,7 @@ impl GameplayScreen {
 
     if let Some((result, hit_idx)) = self.taiko_player.hit(time, input) {
       self.score_processor.feed(time, Some(input), result.judgement);
-      self.ingame_overlay.update_last_hit_result(result.judgement);
+      self.update_hit_result(graphics, result.judgement);
 
       if result.judgement != Judgement::Miss {
         self.taiko_renderer.set_hit(&graphics.queue, hit_idx, time);
@@ -149,6 +188,37 @@ impl GameplayScreen {
       }
     } else {
       self.ingame_overlay.hit(None, input);
+    }
+  }
+
+  fn update_hit_result(&mut self, graphics: &Graphics, judgement: Judgement) {
+    self.last_hit_judgement_time = Instant::now();
+    self.last_hit_judgement = judgement;
+
+    match judgement {
+      Judgement::Hit300 => {
+        self.sprite_renderer.mutate_sprite(&graphics.device, self.hit_result_sprite, |model| {
+          model.scale = Vec2::ZERO;
+        });
+      }
+
+      Judgement::Hit150 => {
+        let (offset, size) = self.sprite_renderer.uv_pairs(self.judgement_150_atlas_texture);
+        self.sprite_renderer.mutate_sprite(&graphics.device, self.hit_result_sprite, |model| {
+          model.scale = vec2(self.judgement_150_size.x, self.judgement_150_size.y);
+          model.uv_offset = offset;
+          model.uv_scale = size;
+        });
+      }
+
+      Judgement::Miss => {
+        let (offset, size) = self.sprite_renderer.uv_pairs(self.judgement_miss_atlas_texture);
+        self.sprite_renderer.mutate_sprite(&graphics.device, self.hit_result_sprite, |model| {
+          model.scale = vec2(self.judgement_miss_size.x, self.judgement_miss_size.y);
+          model.uv_offset = offset;
+          model.uv_scale = size;
+        });
+      }
     }
   }
 
@@ -172,6 +242,10 @@ impl GameplayScreen {
     self.taiko_player.play(beatmap, beatmap_path.to_owned());
     std::mem::take(&mut self.score_processor);
 
+    self.sprite_renderer.mutate_sprite(&graphics.device, self.hit_result_sprite, |model| {
+      model.scale = Vec2::ZERO;
+    });
+
     audio.set_position(Time::zero() - audio.lead_in);
     audio.set_playing(true);
   }
@@ -181,6 +255,10 @@ impl GameplayScreen {
     self.taiko_player.reset();
 
     std::mem::take(&mut self.score_processor);
+
+    self.sprite_renderer.mutate_sprite(&graphics.device, self.hit_result_sprite, |model| {
+      model.scale = Vec2::ZERO;
+    });
 
     audio.set_playing(false);
     audio.set_position(Time::zero() - audio.lead_in);
@@ -196,14 +274,51 @@ impl GameplayScreen {
   pub fn prepare(&mut self, core: &mut Core<Client>, audio: &mut GameAudio, settings: &Settings) {
     let time = audio.position();
 
-    self.taiko_player.tick(time, audio, &mut self.score_processor, &mut self.ingame_overlay);
+    if self.taiko_player.has_ended(time, audio) {
+      // Finish the play if beatmap is over.
+      let path = self.taiko_player.beatmap_path().clone();
+      let score = self.score_processor.export(Timestamp::now(), settings.profile.username().clone());
+      self.event_bus.send(ClientEvent::ShowResultScreen { path, score });
+    }
+
+    // Animate hit result
+    {
+      let elapsed = self.last_hit_judgement_time.elapsed().as_secs_f32();
+      let anim_fade_duration = 0.35;
+
+      if elapsed < anim_fade_duration + 0.1 {
+        self.sprite_renderer.mutate_sprite(&core.graphics.device, self.hit_result_sprite, |model| {
+          model.color.a = 1.0 - (elapsed / anim_fade_duration).min(1.0);
+
+          let size = match self.last_hit_judgement {
+            Judgement::Hit150 => self.judgement_150_size,
+            Judgement::Miss => self.judgement_miss_size,
+            _ => Vec2::ZERO,
+          };
+
+          let anim_scale_multiplier = 0.4;
+          model.scale = size * (1.0 + (elapsed * anim_scale_multiplier * 2.0).min(anim_scale_multiplier));
+        });
+      }
+
+      while self.taiko_player.process_miss(time) {
+        self.score_processor.feed(time, None, Judgement::Miss);
+        self.update_hit_result(&core.graphics, Judgement::Miss);
+      }
+    }
 
     let hit_window_150 = self.taiko_player.hit_window_150();
     let hit_window_300 = self.taiko_player.hit_window_300();
     self.taiko_renderer.prepare(&core.graphics.queue, time);
-    self
-      .ingame_overlay
-      .prepare(core, audio, &self.score_processor, hit_window_150, hit_window_300, settings);
+    self.ingame_overlay.prepare(
+      //
+      core,
+      audio,
+      &self.score_processor,
+      hit_window_150,
+      hit_window_300,
+      settings,
+    );
 
     let leniency = Time::from_ms(settings.gameplay.break_leniency_end() as f64);
     match self.taiko_player.is_break(time, leniency) {
@@ -269,6 +384,10 @@ impl GameplayScreen {
       model.position = vec2(self.hit_position_x_px, self.hit_position_y_px);
     });
 
+    self.sprite_renderer.mutate_sprite(device, self.hit_result_sprite, |model| {
+      model.position = vec2(self.hit_position_x_px, self.hit_position_y_px);
+    });
+
     self.taiko_renderer.set_hit_position_y(queue, self.hit_position_y_px);
   }
 
@@ -282,10 +401,6 @@ impl GameplayScreen {
 
   pub fn set_hit_animation_height(&mut self, device: &wgpu::Device, format: wgpu::TextureFormat, value: f64) {
     self.taiko_renderer.set_hit_animation_height(device, format, value);
-  }
-
-  pub fn set_username(&mut self, username: String) {
-    self.taiko_player.set_username(username);
   }
 
   pub fn set_delta_bar_width(&mut self, width: f32) {

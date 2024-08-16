@@ -1,6 +1,6 @@
 use bytemuck::Zeroable;
 use glam::{vec2, vec3, Quat, Vec2};
-use guillotiere::{AllocId, AtlasAllocator, Size};
+use guillotiere::{AtlasAllocator, Size};
 use image::{DynamicImage, GenericImage, GenericImageView as _};
 use tap::Tap;
 use wgpu::util::DeviceExt;
@@ -20,6 +20,8 @@ use crate::graphics::{
 };
 
 use super::sprite_model::SpriteModel;
+
+pub type AllocId = guillotiere::AllocId;
 
 pub struct SpriteRenderer {
   scene: Scene<ProjectionOrthographic, Camera2D>,
@@ -155,16 +157,27 @@ impl SpriteRenderer {
 }
 
 impl SpriteRenderer {
-  pub fn add_texture(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, image: DynamicImage) -> AllocId {
+  pub fn add_texture(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, image: &DynamicImage) -> AllocId {
     let (width, height) = image.dimensions();
     let rect = self.atlas_allocator.allocate(Size::new(width as i32, height as i32)).unwrap();
 
     let x = rect.rectangle.min.x as u32;
     let y = rect.rectangle.min.y as u32;
-    self.atlas_image.copy_from(&image, x, y).unwrap();
+    self.atlas_image.copy_from(image, x, y).unwrap();
     self.atlas_texture = Texture::from_image(&self.atlas_image, device, queue);
 
     return rect.id;
+  }
+
+  pub fn uv_pairs(&self, texture: AllocId) -> (Vec2, Vec2) {
+    let rect = self.atlas_allocator[texture];
+    let (atlas_width, atlas_height) = self.atlas_image.dimensions();
+    let x = rect.min.x as f32 / atlas_width as f32;
+    let y = rect.min.y as f32 / atlas_height as f32;
+    let w = rect.width() as f32 / atlas_width as f32;
+    let h = rect.height() as f32 / atlas_height as f32;
+
+    return (vec2(x, y), vec2(w, h));
   }
 
   pub fn alloc_sprite(

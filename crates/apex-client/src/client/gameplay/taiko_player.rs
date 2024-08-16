@@ -58,7 +58,6 @@ pub struct TaikoPlayer {
 
   beatmap: Beatmap,
   beatmap_path: PathBuf,
-  player_username: String,
 
   // Memoized for performance reasons.
   hit_window_150: Time,
@@ -69,12 +68,11 @@ pub struct TaikoPlayer {
 }
 
 impl TaikoPlayer {
-  pub fn new(username: String, event_bus: EventBus<ClientEvent>) -> Self {
+  pub fn new(event_bus: EventBus<ClientEvent>) -> Self {
     return Self {
       event_bus,
       beatmap: Beatmap::default(),
       beatmap_path: PathBuf::new(),
-      player_username: username,
       hit_window_150: Time::zero(),
       hit_window_300: Time::zero(),
       current_circle: 0,
@@ -96,34 +94,35 @@ impl TaikoPlayer {
     self.current_break_point = 0;
   }
 
-  pub fn tick(
-    &mut self,
-    time: Time,
-    audio: &mut GameAudio,
-    score_processor: &mut ScoreProcessor,
-    ingame_overlay: &mut IngameOverlayView,
-  ) {
-    // Finish the play if beatmap is over.
-    if time >= audio.length() + audio.lead_out {
-      let path = self.beatmap_path.clone();
-      let score = score_processor.export(Timestamp::now(), self.player_username.clone());
-      self.event_bus.send(ClientEvent::ShowResultScreen { path, score });
-    }
+  pub fn beatmap(&self) -> &Beatmap {
+    return &self.beatmap;
+  }
 
+  pub fn beatmap_path(&self) -> &PathBuf {
+    return &self.beatmap_path;
+  }
+
+  pub fn has_ended(&self, time: Time, audio: &GameAudio) -> bool {
+    return time >= audio.length() + audio.lead_out;
+  }
+
+  /// You should call this method in a loop until it returns `false`. Returns `true` if a miss has occured.
+  pub fn process_miss(&mut self, time: Time) -> bool {
     // Skip unhit (if any) until we find the next hit object that can be hit.
-    while let Some(hit_object) = self.beatmap.hit_objects.get(self.current_circle) {
+    if let Some(hit_object) = self.beatmap.hit_objects.get(self.current_circle) {
       let hit_window_end_time = hit_object.time + self.hit_window_150;
 
       if hit_window_end_time >= time {
-        break;
+        return false;
       }
 
       // Unhit hit object which can not be hit anymore counts as a miss.
-      ingame_overlay.update_last_hit_result(Judgement::Miss);
-      score_processor.feed(time, None, Judgement::Miss);
-
       self.current_circle += 1;
+
+      return true;
     }
+
+    return false;
   }
 
   pub fn hit(&mut self, time: Time, input: TaikoInput) -> Option<(HitResult, usize)> {
@@ -187,9 +186,5 @@ impl TaikoPlayer {
 
   pub fn hit_window_300(&self) -> Time {
     return self.hit_window_300;
-  }
-
-  pub fn set_username(&mut self, username: String) {
-    self.player_username = username;
   }
 }

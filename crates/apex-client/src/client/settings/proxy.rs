@@ -42,11 +42,7 @@ pub struct ClientSettingsProxy<'a, 'window> {
 
 impl SettingsProxy for ClientSettingsProxy<'_, '_> {}
 
-impl ProfileSettingsProxy for ClientSettingsProxy<'_, '_> {
-  fn update_profile_settings_username(&mut self, value: &String) {
-    self.gameplay_screen.set_username(value.clone());
-  }
-}
+impl ProfileSettingsProxy for ClientSettingsProxy<'_, '_> {}
 
 impl AudioSettingsProxy for ClientSettingsProxy<'_, '_> {
   fn update_audio_settings_master_volume(&mut self, value: &f32) {
