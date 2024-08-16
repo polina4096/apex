@@ -33,8 +33,10 @@ pub fn check_hit(
   if hit_delta.abs() < hit_window_150 {
     // Make sure the hit was on the correct side of the drum.
     if { false }
-      || (hit_object.color == TaikoColor::Don && (hit_input != TaikoInput::DonOne && hit_input != TaikoInput::DonTwo))
-      || (hit_object.color == TaikoColor::Kat && (hit_input != TaikoInput::KatOne && hit_input != TaikoInput::KatTwo))
+      || (hit_object.color == TaikoColor::Don
+        && (hit_input != TaikoInput::DonRight && hit_input != TaikoInput::DonLeft))
+      || (hit_object.color == TaikoColor::Kat
+        && (hit_input != TaikoInput::KatLeft && hit_input != TaikoInput::KatRight))
     {
       return Some(HitResult { judgement: Judgement::Miss, hit_delta });
     }

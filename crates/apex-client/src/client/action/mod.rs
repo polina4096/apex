@@ -8,7 +8,7 @@ use retry::Retry;
 use select::Select;
 use settings::Settings;
 use skip::Skip;
-use taiko::{DonOne, DonTwo, KatOne, KatTwo};
+use taiko::{DonLeft, DonRight, KatLeft, KatRight};
 use winit::keyboard::{KeyCode, ModifiersState, PhysicalKey};
 
 use apex_framework::{actions, input::keybinds::KeyCombination, key_comb};
@@ -55,12 +55,13 @@ actions! {
     Skip = key_comb!(Space),
 
     /// Kat (blue)
-    KatOne as "Kat 1" = key_comb!(KeyS),
+    KatLeft as "Kat Left" = key_comb!(KeyL),
     /// Don (red)
-    DonOne as "Don 1" = key_comb!(KeyD),
+    DonLeft as "Don Left" = key_comb!(KeyK),
     /// Kat (blue)
-    KatTwo as "Kat 2" = key_comb!(KeyL),
+    KatRight as "Kat Right" = key_comb!(KeyS),
     /// Don (red)
-    DonTwo as "Don 2" = key_comb!(KeyK),
+    DonRight as "Don Right" = key_comb!(KeyD),
+
   }
 }

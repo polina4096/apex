@@ -11,10 +11,10 @@ use super::beatmap::{calc_hit_window_150, calc_hit_window_300, Beatmap, BreakPoi
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TaikoInput {
-  DonOne = 0,
-  DonTwo = 1,
-  KatOne = 2,
-  KatTwo = 3,
+  DonRight = 0,
+  DonLeft = 1,
+  KatLeft = 2,
+  KatRight = 3,
 }
 
 impl TryFrom<u8> for TaikoInput {
@@ -22,10 +22,10 @@ impl TryFrom<u8> for TaikoInput {
 
   fn try_from(value: u8) -> Result<Self, Self::Error> {
     match value {
-      0 => Ok(TaikoInput::DonOne),
-      1 => Ok(TaikoInput::DonTwo),
-      2 => Ok(TaikoInput::KatOne),
-      3 => Ok(TaikoInput::KatTwo),
+      0 => Ok(TaikoInput::DonRight),
+      1 => Ok(TaikoInput::DonLeft),
+      2 => Ok(TaikoInput::KatLeft),
+      3 => Ok(TaikoInput::KatRight),
       _ => Err(()),
     }
   }

@@ -5,29 +5,17 @@ use apex_framework::{
 use delta_bar::{HitDeltaBar, HitDeltaBarOptions};
 use instant::Instant;
 
-use crate::client::{
-  client::Client, gameplay::taiko_player::TaikoInput, score::score_processor::ScoreProcessor, settings::Settings,
-};
+use crate::client::{client::Client, score::score_processor::ScoreProcessor};
 
 pub mod delta_bar;
 
 pub struct IngameOverlayView {
-  last_hit_kat_one: Instant,
-  last_hit_kat_two: Instant,
-  last_hit_don_one: Instant,
-  last_hit_don_two: Instant,
-
   delta_bar: HitDeltaBar,
 }
 
 impl IngameOverlayView {
   pub fn new() -> Self {
     return Self {
-      last_hit_kat_one: Instant::now(),
-      last_hit_kat_two: Instant::now(),
-      last_hit_don_one: Instant::now(),
-      last_hit_don_two: Instant::now(),
-
       delta_bar: HitDeltaBar::new(HitDeltaBarOptions {
         bar_width: 128.0,
         bar_height: 24.0,
@@ -41,29 +29,9 @@ impl IngameOverlayView {
     };
   }
 
-  pub fn hit(&mut self, delta: Option<Time>, input: TaikoInput) {
+  pub fn hit(&mut self, delta: Time) {
     let now = Instant::now();
-    if let Some(delta) = delta {
-      self.delta_bar.push(delta, now);
-    }
-
-    match input {
-      TaikoInput::KatOne => {
-        self.last_hit_kat_one = now;
-      }
-
-      TaikoInput::KatTwo => {
-        self.last_hit_kat_two = now;
-      }
-
-      TaikoInput::DonOne => {
-        self.last_hit_don_one = now;
-      }
-
-      TaikoInput::DonTwo => {
-        self.last_hit_don_two = now;
-      }
-    }
+    self.delta_bar.push(delta, now);
   }
 
   pub fn delta_bar(&mut self) -> &mut HitDeltaBar {
@@ -77,7 +45,6 @@ impl IngameOverlayView {
     score_processor: &ScoreProcessor,
     hit_window_150: Time,
     hit_window_300: Time,
-    settings: &Settings,
   ) {
     egui::CentralPanel::default().frame(egui::Frame::none().inner_margin(egui::Margin::ZERO)).show(
       core.egui.ctx(),
@@ -87,30 +54,25 @@ impl IngameOverlayView {
 
         self.delta_bar.prepare(ui, width / 2.0, height - 16.0, hit_window_150, hit_window_300);
 
-        let draw_hit_key = |i: f32, elapsed: f32| {
-          let fade = 0.2;
-          let max_brightness = 200;
-          let base_brightness = 40;
-          let value = elapsed.min(fade) / fade * max_brightness as f32;
+        // let draw_hit_key = |i: f32, elapsed: f32| {
+        //   let fade = 0.2;
+        //   let max_brightness = 200;
+        //   let base_brightness = 40;
+        //   let value = elapsed.min(fade) / fade * max_brightness as f32;
 
-          let size = egui::vec2(32.0, 32.0);
-          let pos = egui::pos2(
-            settings.taiko.hit_position_x_px() + i * (4.0 + size.x) - 2.0 * (4.0 + size.x),
-            core.graphics.config.height as f32 * settings.taiko.hit_position_y_perc() + 70.0,
-          );
+        //   let size = egui::vec2(32.0, 32.0);
+        //   let pos = egui::pos2(
+        //     settings.taiko.hit_position_x_px() + i * (4.0 + size.x) - 2.0 * (4.0 + size.x),
+        //     core.graphics.config.height as f32 * settings.taiko.hit_position_y_perc() + 70.0,
+        //   );
 
-          ui.painter().rect(
-            egui::Rect::from_min_size(pos, size),
-            egui::Rounding::ZERO,
-            egui::Color32::from_gray(max_brightness + base_brightness - value.round() as u8),
-            egui::Stroke::new(2.0, egui::Color32::WHITE),
-          );
-        };
-
-        draw_hit_key(0.0, self.last_hit_kat_one.elapsed().as_secs_f32());
-        draw_hit_key(1.0, self.last_hit_don_one.elapsed().as_secs_f32());
-        draw_hit_key(2.0, self.last_hit_don_two.elapsed().as_secs_f32());
-        draw_hit_key(3.0, self.last_hit_kat_two.elapsed().as_secs_f32());
+        //   ui.painter().rect(
+        //     egui::Rect::from_min_size(pos, size),
+        //     egui::Rounding::ZERO,
+        //     egui::Color32::from_gray(max_brightness + base_brightness - value.round() as u8),
+        //     egui::Stroke::new(2.0, egui::Color32::WHITE),
+        //   );
+        // };
 
         use egui_extras::{Size, StripBuilder};
 

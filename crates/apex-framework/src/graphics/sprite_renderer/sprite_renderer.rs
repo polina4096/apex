@@ -186,14 +186,26 @@ impl SpriteRenderer {
     pos: Vec2,
     size: Vec2,
     origin: Origin,
+    flip_x: bool,
+    flip_y: bool,
     texture: AllocId,
   ) -> usize {
     let rect = self.atlas_allocator[texture];
     let (atlas_width, atlas_height) = self.atlas_image.dimensions();
-    let x = rect.min.x as f32 / atlas_width as f32;
-    let y = rect.min.y as f32 / atlas_height as f32;
-    let w = rect.width() as f32 / atlas_width as f32;
-    let h = rect.height() as f32 / atlas_height as f32;
+    let mut x = rect.min.x as f32 / atlas_width as f32;
+    let mut y = rect.min.y as f32 / atlas_height as f32;
+    let mut w = rect.width() as f32 / atlas_width as f32;
+    let mut h = rect.height() as f32 / atlas_height as f32;
+
+    if flip_x {
+      x += w;
+      w = -w;
+    }
+
+    if flip_y {
+      y += h;
+      h = -h;
+    }
 
     let idx = self.instances.len();
     self.instances.push(SpriteModel {

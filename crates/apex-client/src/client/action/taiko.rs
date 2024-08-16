@@ -30,12 +30,12 @@ macro_rules! impl_taiko_button {
   };
 }
 
-pub struct DonOne;
-pub struct DonTwo;
-pub struct KatOne;
-pub struct KatTwo;
+pub struct DonRight;
+pub struct DonLeft;
+pub struct KatLeft;
+pub struct KatRight;
 
-impl_taiko_button!(DonOne);
-impl_taiko_button!(DonTwo);
-impl_taiko_button!(KatOne);
-impl_taiko_button!(KatTwo);
+impl_taiko_button!(DonRight);
+impl_taiko_button!(DonLeft);
+impl_taiko_button!(KatLeft);
+impl_taiko_button!(KatRight);
