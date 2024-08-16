@@ -1,19 +1,10 @@
 use std::path::PathBuf;
 
-use apex_framework::{
-  event::EventBus,
-  time::{clock::AbstractClock as _, time::Time},
-};
-use jiff::Timestamp;
+use apex_framework::time::{clock::AbstractClock as _, time::Time};
 
 use crate::client::{
   audio::game_audio::GameAudio,
-  event::ClientEvent,
-  score::{
-    judgement_processor::{check_hit, HitResult, Judgement},
-    score_processor::ScoreProcessor,
-  },
-  ui::ingame_overlay::IngameOverlayView,
+  score::judgement_processor::{check_hit, HitResult},
 };
 
 use super::beatmap::{calc_hit_window_150, calc_hit_window_300, Beatmap, BreakPoint};
@@ -54,8 +45,6 @@ pub enum BreakState {
 
 /// Logcial actions that a player can perform while playing taiko.
 pub struct TaikoPlayer {
-  event_bus: EventBus<ClientEvent>,
-
   beatmap: Beatmap,
   beatmap_path: PathBuf,
 
@@ -68,9 +57,8 @@ pub struct TaikoPlayer {
 }
 
 impl TaikoPlayer {
-  pub fn new(event_bus: EventBus<ClientEvent>) -> Self {
+  pub fn new() -> Self {
     return Self {
-      event_bus,
       beatmap: Beatmap::default(),
       beatmap_path: PathBuf::new(),
       hit_window_150: Time::zero(),

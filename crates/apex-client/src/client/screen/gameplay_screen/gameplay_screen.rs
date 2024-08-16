@@ -122,7 +122,7 @@ impl GameplayScreen {
     let size = judgement_miss_size;
     let hit_result_sprite = sprite_renderer.alloc_sprite(&graphics.device, vec2(x, y), size, origin, texture);
 
-    let taiko_player = TaikoPlayer::new(event_bus.clone());
+    let taiko_player = TaikoPlayer::new();
     let score_processor = ScoreProcessor::default();
 
     let don_hitsound = audio.load_sound("./assets/red.wav");
