@@ -5,7 +5,6 @@ use image::{DynamicImage, GenericImageView};
 use super::{bindable::Bindable, graphics::Graphics};
 
 pub struct Texture {
-  pub data: Vec<u8>,
   pub texture: wgpu::Texture,
   pub bind_group: wgpu::BindGroup,
   pub bind_group_layout: wgpu::BindGroupLayout,
@@ -28,9 +27,12 @@ impl Texture {
 
   pub fn from_image(image: &DynamicImage, device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
     let dimensions = image.dimensions();
-    let rgba_data = image.to_rgba8();
 
-    return Self::from_bytes(&rgba_data, dimensions, device, queue);
+    if let Some(rgba_data) = image.as_rgba8() {
+      return Self::from_bytes(rgba_data, dimensions, device, queue);
+    } else {
+      return Self::from_bytes(&image.to_rgba8(), dimensions, device, queue);
+    }
   }
 
   pub fn from_bytes(data: &[u8], dimensions: (u32, u32), device: &wgpu::Device, queue: &wgpu::Queue) -> Self {
@@ -124,7 +126,6 @@ impl Texture {
     });
 
     return Self {
-      data: data.to_vec(),
       texture,
       bind_group,
       bind_group_layout,

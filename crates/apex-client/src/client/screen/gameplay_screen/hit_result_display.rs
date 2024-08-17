@@ -33,20 +33,32 @@ impl HitResultDisplay {
     let (x, y) = (hit_pos_x, hit_pos_y);
     let origin = Origin::CenterCenter;
 
-    let image = image::open("./assets/judgement_150.png").unwrap();
-    let (width, height) = (image.dimensions().0 as f32, image.dimensions().1 as f32);
+    let judgement_150_image = image::open("./assets/judgement_150.png").unwrap();
+    let (width, height) = (judgement_150_image.dimensions().0 as f32, judgement_150_image.dimensions().1 as f32);
     let judgement_150_size = vec2(width, height);
-    let judgement_150_atlas_texture = sprite_renderer.add_texture(&graphics.device, &graphics.queue, &image);
 
-    let image = image::open("./assets/judgement_miss.png").unwrap();
-    let (width, height) = (image.dimensions().0 as f32, image.dimensions().1 as f32);
+    let judgement_miss_image = image::open("./assets/judgement_miss.png").unwrap();
+    let (width, height) = (judgement_miss_image.dimensions().0 as f32, judgement_miss_image.dimensions().1 as f32);
     let judgement_miss_size = vec2(width, height);
-    let judgement_miss_atlas_texture = sprite_renderer.add_texture(&graphics.device, &graphics.queue, &image);
+
+    let [judgement_150_atlas_texture, judgement_miss_atlas_texture] = sprite_renderer.add_textures([
+      //
+      &judgement_150_image,
+      &judgement_miss_image,
+    ]);
 
     let size = judgement_miss_size * gameplay_scale;
     let texture = judgement_miss_atlas_texture;
-    let hit_result_sprite =
-      sprite_renderer.alloc_sprite(&graphics.device, vec2(x, y), size, origin, false, false, texture);
+    let hit_result_sprite = sprite_renderer.alloc_sprite(
+      //
+      &graphics.device,
+      vec2(x, y),
+      size,
+      origin,
+      false,
+      false,
+      texture,
+    );
 
     return Self {
       hit_result_sprite,

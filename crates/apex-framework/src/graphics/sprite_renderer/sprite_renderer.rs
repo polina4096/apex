@@ -157,16 +157,38 @@ impl SpriteRenderer {
 }
 
 impl SpriteRenderer {
-  pub fn add_texture(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, image: &DynamicImage) -> AllocId {
+  /// Don't forget to call `update_atlas_texture` afterwards, or you'll get a stale texture.
+  pub fn add_texture(&mut self, image: &DynamicImage) -> AllocId {
     let (width, height) = image.dimensions();
     let rect = self.atlas_allocator.allocate(Size::new(width as i32, height as i32)).unwrap();
 
     let x = rect.rectangle.min.x as u32;
     let y = rect.rectangle.min.y as u32;
     self.atlas_image.copy_from(image, x, y).unwrap();
-    self.atlas_texture = Texture::from_image(&self.atlas_image, device, queue);
 
     return rect.id;
+  }
+
+  /// Don't forget to call `update_atlas_texture` afterwards, or you'll get a stale texture.
+  pub fn add_textures<const N: usize>(&mut self, images: [&DynamicImage; N]) -> [AllocId; N] {
+    let mut ids = [AllocId::deserialize(0); N];
+
+    for (idx, image) in images.iter().copied().enumerate() {
+      let (width, height) = image.dimensions();
+      let rect = self.atlas_allocator.allocate(Size::new(width as i32, height as i32)).unwrap();
+
+      let x = rect.rectangle.min.x as u32;
+      let y = rect.rectangle.min.y as u32;
+      self.atlas_image.copy_from(image, x, y).unwrap();
+      ids[idx] = rect.id;
+    }
+
+    return ids;
+  }
+
+  /// Uploads the current atlas image to the GPU.
+  pub fn update_atlas_texture(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
+    self.atlas_texture = Texture::from_image(&self.atlas_image, device, queue);
   }
 
   pub fn uv_pairs(&self, texture: AllocId) -> (Vec2, Vec2) {

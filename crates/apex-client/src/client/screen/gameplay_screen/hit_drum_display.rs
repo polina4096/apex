@@ -39,7 +39,7 @@ impl HitDrumDisplay {
 
     let image = image::open("./assets/drum_background.png").unwrap();
     let drum_background_size = vec2(image.dimensions().0 as f32, image.dimensions().1 as f32);
-    let texture = sprite_renderer.add_texture(&graphics.device, &graphics.queue, &image);
+    let texture = sprite_renderer.add_texture(&image);
     let drum_background_sprite = sprite_renderer.alloc_sprite(
       &graphics.device,
       vec2(x, y),
@@ -50,13 +50,17 @@ impl HitDrumDisplay {
       texture,
     );
 
-    let image = image::open("./assets/drum_inner.png").unwrap();
-    let drum_inner_size = vec2(image.dimensions().0 as f32, image.dimensions().1 as f32);
-    let drum_inner_texture = sprite_renderer.add_texture(&graphics.device, &graphics.queue, &image);
+    let drum_inner_image = image::open("./assets/drum_inner.png").unwrap();
+    let drum_inner_size = vec2(drum_inner_image.dimensions().0 as f32, drum_inner_image.dimensions().1 as f32);
 
-    let image = image::open("./assets/drum_outer.png").unwrap();
-    let drum_outer_size = vec2(image.dimensions().0 as f32, image.dimensions().1 as f32);
-    let drum_outer_texture = sprite_renderer.add_texture(&graphics.device, &graphics.queue, &image);
+    let drum_outer_image = image::open("./assets/drum_outer.png").unwrap();
+    let drum_outer_size = vec2(drum_outer_image.dimensions().0 as f32, drum_outer_image.dimensions().1 as f32);
+
+    let [drum_inner_texture, drum_outer_texture] = sprite_renderer.add_textures([
+      //
+      &drum_inner_image,
+      &drum_outer_image,
+    ]);
 
     let drum_inner_left_sprite = sprite_renderer.alloc_sprite(
       &graphics.device,

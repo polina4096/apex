@@ -108,9 +108,11 @@ impl GameplayScreen {
     let size = Vec2::splat(taiko_circle_size);
     let origin = Origin::CenterCenter;
     let image = image::open("./assets/hit_position.png").unwrap();
-    let texture = sprite_renderer.add_texture(&graphics.device, &graphics.queue, &image);
+    let texture = sprite_renderer.add_texture(&image);
     let hit_pos_sprite =
       sprite_renderer.alloc_sprite(&graphics.device, vec2(x, y), size, origin, false, false, texture);
+
+    sprite_renderer.update_atlas_texture(&graphics.device, &graphics.queue);
 
     return Self {
       event_bus,
