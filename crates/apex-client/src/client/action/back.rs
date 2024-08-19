@@ -10,6 +10,11 @@ impl Action<Client> for Back {
       return false;
     }
 
+    if client.settings_screen.is_open() {
+      client.settings_screen.toggle();
+      return true;
+    }
+
     match client.game_state {
       GameState::Selection => {
         if client.selection_screen.beatmap_selector().has_query() {

@@ -105,15 +105,15 @@ impl App for Client {
     let settings = Settings::load("./config.toml");
 
     #[allow(clippy::infallible_destructuring_match)]
-    let backend = match settings.graphics.rendering_backend() {
+    let backend = match settings.graphics.general.rendering_backend() {
       RenderingBackend::Wgpu(wgpu_backend) => wgpu_backend,
     };
 
     let graphics = Graphics::new(
       &window,
       backend.into(),
-      settings.graphics.present_mode().into(),
-      settings.graphics.max_frame_latency(),
+      settings.graphics.general.present_mode().into(),
+      settings.graphics.general.max_frame_latency(),
     )
     .block_on();
 
@@ -124,7 +124,11 @@ impl App for Client {
     core.frame_sync.set_current_window(window);
 
     // Setup frame limiter
-    reconfigure_frame_sync(&mut core.frame_limiter, &mut core.frame_sync, client.settings.graphics.frame_limiter());
+    reconfigure_frame_sync(
+      &mut core.frame_limiter,
+      &mut core.frame_sync,
+      client.settings.graphics.general.frame_limiter(),
+    );
 
     return (client, core);
   }
@@ -136,44 +140,35 @@ impl App for Client {
 
   fn recreate_graphics(&mut self, core: &mut Core<Self>) -> Graphics {
     #[allow(clippy::infallible_destructuring_match)]
-    let backend = match self.settings.graphics.rendering_backend() {
+    let backend = match self.settings.graphics.general.rendering_backend() {
       RenderingBackend::Wgpu(wgpu_backend) => wgpu_backend,
     };
 
     return Graphics::new(
       &core.window,
       backend.into(),
-      self.settings.graphics.present_mode().into(),
-      self.settings.graphics.max_frame_latency(),
+      self.settings.graphics.general.present_mode().into(),
+      self.settings.graphics.general.max_frame_latency(),
     )
     .block_on();
   }
 
   fn prepare(&mut self, core: &mut Core<Self>, encoder: &mut wgpu::CommandEncoder) {
     core.egui.begin_frame(&core.window);
+    core.egui.ctx().style_mut(|style| {
+      let hover_color = egui::Color32::from_rgba_unmultiplied(100, 100, 100, 50);
+      let focus_color = egui::Color32::from_rgba_unmultiplied(100, 100, 100, 150);
+      style.visuals.selection.stroke = egui::Stroke::new(1.5, focus_color);
+      style.visuals.widgets.hovered.bg_stroke = egui::Stroke::new(1.5, hover_color);
+      style.visuals.widgets.active.bg_stroke = egui::Stroke::new(1.5, hover_color);
+      style.visuals.widgets.inactive.weak_bg_fill = egui::Color32::from_gray(24);
+      style.visuals.widgets.hovered.weak_bg_fill = egui::Color32::from_gray(32);
+      style.visuals.extreme_bg_color = egui::Color32::from_gray(24);
+      style.visuals.selection.bg_fill = egui::Color32::from_rgba_unmultiplied(100, 100, 150, 128);
+    });
 
     let beatmap_idx = self.selection_screen.beatmap_selector().selected();
     self.recording_screen.prepare(core, beatmap_idx, &self.beatmap_cache);
-
-    let mut proxy = ClientSettingsProxy {
-      proxy: &core.proxy,
-
-      frame_limiter: &mut core.frame_limiter,
-      frame_sync: &mut core.frame_sync,
-      gameplay_screen: &mut self.gameplay_screen,
-      backbuffer: &mut self.backbuffer,
-      audio: &mut self.audio,
-
-      device: &core.graphics.device,
-      queue: &core.graphics.queue,
-      surface: &core.graphics.surface,
-      config: &mut core.graphics.config,
-      width: core.graphics.width,
-      height: core.graphics.height,
-    };
-
-    self.settings_screen.prepare(core.egui.ctx(), &mut self.input, &mut self.settings, &mut proxy);
-    self.volume_screen.prepare(core.egui.ctx(), &self.input, &mut proxy, &mut self.settings);
 
     self.debug_screen.prepare(core);
 
@@ -203,15 +198,35 @@ impl App for Client {
       }
     }
 
-    if self.settings.interface.letterboxing() {
+    if self.settings.interface.gameplay.letterboxing() {
       self.backbuffer.prepare(&core.graphics.queue);
     }
+
+    let mut proxy = ClientSettingsProxy {
+      proxy: &core.proxy,
+
+      frame_limiter: &mut core.frame_limiter,
+      frame_sync: &mut core.frame_sync,
+      gameplay_screen: &mut self.gameplay_screen,
+      backbuffer: &mut self.backbuffer,
+      audio: &mut self.audio,
+
+      device: &core.graphics.device,
+      queue: &core.graphics.queue,
+      surface: &core.graphics.surface,
+      config: &mut core.graphics.config,
+      width: core.graphics.width,
+      height: core.graphics.height,
+    };
+
+    self.settings_screen.prepare(core.egui.ctx(), &mut self.input, &mut self.settings, &mut proxy);
+    self.volume_screen.prepare(core.egui.ctx(), &self.input, &mut proxy, &mut self.settings);
 
     core.egui.end_frame(&core.window, &core.graphics, encoder);
   }
 
   fn render(&self, core: &mut Core<Self>, encoder: &mut wgpu::CommandEncoder, view: wgpu::TextureView) {
-    if self.settings.interface.letterboxing() {
+    if self.settings.interface.gameplay.letterboxing() {
       let desc = wgpu::RenderPassDescriptor {
         label: Some("backbuffer render pass"),
         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -248,7 +263,7 @@ impl App for Client {
         depth_stencil_attachment: None,
       });
 
-      if self.settings.interface.letterboxing() {
+      if self.settings.interface.gameplay.letterboxing() {
         self.backbuffer.render(&mut rpass);
       } else {
         self.render_screens(&mut rpass);
@@ -388,8 +403,8 @@ impl Drawable for Client {
   }
 
   fn resize(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, width: f32, height: f32) {
-    let lb_width = width * self.settings.interface.gameplay_width();
-    let lb_height = height * self.settings.interface.gameplay_height();
+    let lb_width = width * self.settings.interface.gameplay.gameplay_width();
+    let lb_height = height * self.settings.interface.gameplay.gameplay_height();
 
     self.backbuffer.resize(device, queue, width, height);
     self.gameplay_screen.resize(device, queue, lb_width, lb_height);
@@ -413,12 +428,17 @@ impl Client {
   pub fn new(graphics: &Graphics, settings: Settings, event_bus: EventBus<ClientEvent>) -> Self {
     let input = Input::with_keybinds(Keybinds::load("./keybinds.toml"));
 
-    let (m, a, s) = (settings.audio.master_volume(), settings.audio.music_volume(), settings.audio.effects_volume());
+    let (m, a, s) = (
+      settings.audio.volume.master_volume(),
+      settings.audio.volume.music_volume(),
+      settings.audio.volume.effects_volume(),
+    );
+
     let (audio_mixer, audio_controller) = audio::mixer(Empty::new(), m, a, s);
     let audio_engine = AudioEngine::new().tap_mut(|x| x.set_source(audio_mixer));
     let mut audio = GameAudio::new(audio_engine, audio_controller)
-      .with_lead_in(Time::from_ms(settings.gameplay.lead_in() as f64))
-      .with_lead_out(Time::from_ms(settings.gameplay.lead_out() as f64));
+      .with_lead_in(Time::from_ms(settings.gameplay.audio.lead_in() as f64))
+      .with_lead_out(Time::from_ms(settings.gameplay.audio.lead_out() as f64));
 
     let game_state = GameState::Selection;
 
@@ -451,7 +471,10 @@ impl Client {
       graphics.scale_factor,
     )
     .tap_mut(|fb| {
-      fb.set_scale(&graphics.queue, vec2(settings.interface.gameplay_width(), settings.interface.gameplay_height()))
+      fb.set_scale(
+        &graphics.queue,
+        vec2(settings.interface.gameplay.gameplay_width(), settings.interface.gameplay.gameplay_height()),
+      );
     });
 
     return Self {

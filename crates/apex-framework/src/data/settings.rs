@@ -7,12 +7,29 @@ use smart_default::SmartDefault;
 macro_rules! _call_with_custom_attrs {
   (
     $fun:ident<$type:ty>( $( $result:expr, )* );
-    #[custom(ui( $($opts:ident = $values:expr),* ))]
+    #[custom(ui( name = $custom_name:expr ))]
+    $( #[ $($rest:tt)* ] )*
+  ) => {
+    {
+      $crate::_call_with_custom_attrs!(
+        $fun<$type>(
+          $( $result, )*
+          $custom_name,
+        );
+        $( #[ $($rest)* ] )*
+      )
+    }
+  };
+
+  (
+    $fun:ident<$type:ty>( $( $result:expr, )* );
+    #[custom(ui( name = $custom_name:expr, $($opts:ident = $values:expr),* ))]
     $( #[ $($rest:tt)* ] )*
   ) => {
     {
       paste::paste! {
-        let opts = $crate::data::settings::[<Opts $type:camel>] {
+        #[allow(clippy::needless_update)]
+        let opts = $crate::data::settings::[<$type:camel Opts>] {
           $( $opts: $values, )*
           .. Default::default()
         };
@@ -21,6 +38,7 @@ macro_rules! _call_with_custom_attrs {
       $crate::_call_with_custom_attrs!(
         $fun<$type>(
           $( $result, )*
+          $custom_name,
           opts,
         );
         $( #[ $($rest)* ] )*
@@ -47,21 +65,26 @@ macro_rules! _call_with_custom_attrs {
 }
 
 #[macro_export]
-macro_rules! SettingsStruct {
-  (
-    $( #[ $($attr:tt)* ] )*
-    $vis:vis struct $name:ident {
-      $( $field_vis:vis $field:ident: $type:ty, )*
-    }
-  ) => {
-    paste::paste! {
-      pub trait [<$name Proxy>]: Sized $( + [<$type Proxy>] )* { }
-    }
+macro_rules! _def_with_custom_attrs {
+  ( $name:ident, $size:expr, $separator:expr, $( $field:ident, #[custom(ui(name = $custom_name:expr))] $( #[ $($rest:tt)* ] )* )* ) => {
+    $crate::_def_with_custom_attrs!( $name, $size, $separator, impl $( $field, $custom_name, )* );
+  };
 
+  ( $name:ident, $size:expr, $separator:expr, impl $( $field:ident, $custom_name:expr, )* ) => {
     impl $name {
-      pub fn ui(&mut self, body: &mut egui_extras::TableBody, text_height: f32, proxy: &mut impl SettingsProxy) {
+      pub fn ui(&mut self, ui: &mut egui::Ui, proxy: &mut impl SettingsProxy) {
         $(
-          self.$field.ui(body, text_height, proxy);
+          ui.horizontal(|ui| {
+            ui.label(egui::RichText::new($custom_name).size($size).strong());
+            if $separator {
+              ui.add_space(-10.0);
+              ui.add(egui::Separator::default().horizontal().shrink(24.0).spacing(0.0));
+            }
+          });
+
+          ui.add_space(6.0);
+
+          self.$field.ui(ui, proxy);
         )*
       }
     }
@@ -69,7 +92,61 @@ macro_rules! SettingsStruct {
 }
 
 #[macro_export]
+macro_rules! SettingsStruct {
+  (
+    $( #[ $($attr:tt)* ] )*
+    $vis:vis struct $name:ident {
+      $(
+        $( #[ $($field_attr:tt)* ] )*
+        $field_vis:vis $field:ident: $type:ty,
+      )*
+    }
+  ) => {
+    paste::paste! {
+      pub trait [<$name Proxy>]: Sized $( + [<$type Proxy>] )* { }
+    }
+
+    $crate::_def_with_custom_attrs!(
+      $name,
+      24.0,
+      true,
+      $(
+        $field,
+        $( #[ $($field_attr)* ] )*
+      )*
+    );
+  };
+}
+
+#[macro_export]
 macro_rules! SettingsGroup {
+  (
+    $( #[ $($attr:tt)* ] )*
+    $vis:vis struct $name:ident {
+      $(
+        $( #[ $($field_attr:tt)* ] )*
+        $field_vis:vis $field:ident: $type:ty,
+      )*
+    }
+  ) => {
+    paste::paste! {
+      pub trait [<$name Proxy>]: Sized $( + [<$type Proxy>] )* { }
+    }
+
+    $crate::_def_with_custom_attrs!(
+      $name,
+      18.0,
+      false,
+      $(
+        $field,
+        $( #[ $($field_attr)* ] )*
+      )*
+    );
+  };
+}
+
+#[macro_export]
+macro_rules! SettingsSubgroup {
   (
     $( #[ $($attr:tt)* ] )*
     $vis:vis struct $name:ident {
@@ -87,7 +164,7 @@ macro_rules! SettingsGroup {
           }
           pub fn [<set_ $field>](&mut self, $field: $type, proxy: &mut impl SettingsProxy) {
             self.$field = $field;
-            proxy.[<update_ $name:snake _ $field>](&self.$field);
+            proxy.[<update_ $field>](&self.$field);
           }
 
           pub fn [<$field _ref>](&self) -> &$type {
@@ -95,54 +172,47 @@ macro_rules! SettingsGroup {
           }
           pub fn [<set_ $field _ref>](&mut self, $field: &$type, proxy: &mut impl SettingsProxy) {
             self.$field.clone_from($field);
-            proxy.[<update_ $name:snake _ $field>]($field);
+            proxy.[<update_ $field>]($field);
           }
         )*
 
-        pub fn ui(&mut self, body: &mut egui_extras::TableBody, text_height: f32, proxy: &mut impl SettingsProxy) {
-          body.row(text_height + 8.0, |mut row| {
-            row.col(|ui| {
-              let text = egui::RichText::new(stringify!($name)).strong().heading();
-              egui::Label::new(text).ui(ui);
-            });
-
-            row.col(|_| {});
-          });
+        pub fn ui(&mut self, ui: &mut egui::Ui, proxy: &mut impl SettingsProxy) {
+          ui.add_space(4.0);
 
           $(
-            body.row(text_height + 8.0, |mut row| {
-              row.col(|ui| {
-                ui.label(stringify!($field));
-              });
+            ui.horizontal(|ui| {
+              // let button = egui::Button::new("⟲").min_size(egui::Vec2::splat(12.0)).frame(false).ui(ui);
 
-              row.col(|ui| {
-                ui.horizontal_centered(|ui| {
-                  if egui::Button::new("⟲").frame(false).ui(ui).clicked() {
-                    self.[<set_ $field>](Self::default().$field(), proxy);
-                  }
+              // if button.clicked() {
+              //   self.[<set_ $field>](Self::default().$field(), proxy);
+              // }
 
-                  ui.add_space(4.0);
+              // ui.add_space(4.0);
 
-                  if let Some(new_value) = $crate::_call_with_custom_attrs!(
-                    [<ui_ $type:snake>]<$type>(
-                      ui,
-                      &self.$field(),
-                    );
-                    $( #[ $($field_attr)* ] )*
-                  ) {
-                    self.[<set_ $field>](new_value, proxy);
-                  }
-                });
+              ui.vertical(|ui| {
+                if let Some(new_value) = $crate::_call_with_custom_attrs!(
+                  [<ui_ $type:snake>]<$type>(
+                    ui,
+                    &self.$field(),
+                  );
+                  $( #[ $($field_attr)* ] )*
+                ) {
+                  self.[<set_ $field>](new_value, proxy);
+                }
               });
             });
+
+            ui.add_space(2.0);
           )*
+
+          ui.add_space(24.0);
         }
       }
 
       pub trait [<$name Proxy>] {
         $(
           #[allow(clippy::ptr_arg)]
-          fn [<update_ $name:snake _ $field>](&mut self, value: &$type) {}
+          fn [<update_ $field>](&mut self, value: &$type) {}
         )*
       }
     }
@@ -155,7 +225,7 @@ macro_rules! make_numeric_opts {
   ) => {
     paste::paste! {
       $(
-        pub type [<Opts $ty:camel>] = NumericOpts<$ty>;
+        pub type [<$ty:camel Opts>] = NumericOpts<$ty>;
       )+
     }
   };
@@ -166,6 +236,12 @@ make_numeric_opts! {
   u8 u16 u32 u64 u128
   isize usize
   f32 f64
+}
+
+#[derive(SmartDefault)]
+pub struct StringOpts {
+  #[default = false]
+  pub inline: bool,
 }
 
 #[derive(SmartDefault)]
@@ -181,6 +257,12 @@ pub struct NumericOpts<T: Bounded + Default> {
 
   #[default(None)]
   pub precision: Option<usize>,
+
+  #[default = false]
+  pub percentage: bool,
+
+  #[default = false]
+  pub inline: bool,
 
   #[default = true]
   pub slider: bool,

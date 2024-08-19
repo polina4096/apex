@@ -7,7 +7,7 @@ pub struct Settings;
 impl Action<Client> for Settings {
   fn execute(client: &mut Client, _core: &mut Core<Client>, repeat: bool) -> bool {
     if repeat {
-      return false;
+      return true;
     }
 
     client.settings_screen.toggle();

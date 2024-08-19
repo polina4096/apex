@@ -62,8 +62,8 @@ impl GameplayScreen {
     let ingame_overlay = IngameOverlayView::new();
     let break_overlay = BreakOverlayView::new();
 
-    let x = settings.taiko.hit_position_x_px();
-    let y = settings.taiko.hit_position_y_perc() * graphics.height;
+    let x = settings.taiko.general.hit_position_x_px();
+    let y = settings.taiko.general.hit_position_y_perc() * graphics.height;
 
     let taiko_renderer = TaikoRenderer::new(
       &graphics.device,
@@ -73,14 +73,14 @@ impl GameplayScreen {
         width: graphics.width,
         height: graphics.height,
         scale_factor: graphics.scale_factor,
-        gameplay_scale: settings.taiko.gameplay_scale(),
-        conveyor_zoom: settings.taiko.conveyor_zoom(),
+        gameplay_scale: settings.taiko.general.gameplay_scale(),
+        conveyor_zoom: settings.taiko.general.conveyor_zoom(),
         hit_position_x: x,
         hit_position_y: y,
-        don: settings.taiko.don_color(),
-        kat: settings.taiko.kat_color(),
+        don: settings.taiko.general.don_color(),
+        kat: settings.taiko.general.kat_color(),
         // Apparently setting it to f64::INFINITY leads to a crash, see https://github.com/gfx-rs/wgpu/issues/6082
-        hit_animation_height: if settings.taiko.hit_animation() { 12.5 } else { 9999999.0 },
+        hit_animation_height: if settings.taiko.general.hit_animation() { 12.5 } else { 9999999.0 },
       },
     );
 
@@ -93,7 +93,7 @@ impl GameplayScreen {
       graphics.scale_factor,
     );
 
-    let gameplay_scale = settings.taiko.gameplay_scale() as f32;
+    let gameplay_scale = settings.taiko.general.gameplay_scale() as f32;
     let x_drum = x - 160.0 * gameplay_scale;
     let hit_result_display = HitResultDisplay::new(graphics, &mut sprite_renderer, x, y, gameplay_scale);
     let hit_drum_display = HitDrumDisplay::new(graphics, &mut sprite_renderer, x_drum, y, gameplay_scale);
@@ -136,7 +136,7 @@ impl GameplayScreen {
 
       hit_position_x_px: x,
       hit_position_y_px: y,
-      hit_position_y_perc: settings.taiko.hit_position_y_perc(),
+      hit_position_y_perc: settings.taiko.general.hit_position_y_perc(),
       gameplay_scale,
     };
   }
@@ -221,7 +221,7 @@ impl GameplayScreen {
     if self.taiko_player.has_ended(time, audio) {
       // Finish the play if beatmap is over.
       let path = self.taiko_player.beatmap_path().clone();
-      let score = self.score_processor.export(Timestamp::now(), settings.profile.username().clone());
+      let score = self.score_processor.export(Timestamp::now(), settings.profile.user.username().clone());
       self.event_bus.send(ClientEvent::ShowResultScreen { path, score });
     }
 
@@ -242,15 +242,15 @@ impl GameplayScreen {
     let score_processor = &self.score_processor;
     self.ingame_overlay.prepare(core, audio, score_processor, hit_window_150, hit_window_300);
 
-    let leniency = Time::from_ms(settings.gameplay.break_leniency_end() as f64);
+    let leniency = Time::from_ms(settings.gameplay.audio.break_leniency_end() as f64);
     match self.taiko_player.is_break(time, leniency) {
       BreakState::Break(break_point) => {
         self.break_overlay.prepare(
           core,
           time,
           &break_point,
-          Time::from_ms(settings.gameplay.break_leniency_start() as f64),
-          Time::from_ms(settings.gameplay.break_leniency_end() as f64),
+          Time::from_ms(settings.gameplay.audio.break_leniency_start() as f64),
+          Time::from_ms(settings.gameplay.audio.break_leniency_end() as f64),
         );
       }
 
@@ -260,7 +260,7 @@ impl GameplayScreen {
           time,
           &break_point,
           Time::zero(),
-          Time::from_ms(settings.gameplay.break_leniency_end() as f64),
+          Time::from_ms(settings.gameplay.audio.break_leniency_end() as f64),
         );
       }
 

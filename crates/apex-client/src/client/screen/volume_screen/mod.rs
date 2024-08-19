@@ -32,7 +32,7 @@ impl VolumeScreen {
       .anchor(egui::Align2::RIGHT_BOTTOM, egui::vec2(-16.0, -16.0))
       .show(ctx, |ui| {
         ui.vertical(|ui| {
-          let mut master_volume = settings.audio.master_volume();
+          let mut master_volume = settings.audio.volume.master_volume();
 
           {
             ui.add_space(3.0);
@@ -77,7 +77,7 @@ impl VolumeScreen {
                   .trailing_fill(true);
 
                 if slider.ui(ui).changed() {
-                  settings.audio.set_master_volume(master_volume, proxy);
+                  settings.audio.volume.set_master_volume(master_volume, proxy);
                 }
 
                 ui.add_space(4.0);
@@ -96,8 +96,8 @@ impl VolumeScreen {
 
     if delta != 0.0 {
       let speed = 0.001;
-      let new_volume = settings.audio.master_volume() + delta * speed;
-      settings.audio.set_master_volume(new_volume.clamp(0.0, 1.0), proxy);
+      let new_volume = settings.audio.volume.master_volume() + delta * speed;
+      settings.audio.volume.set_master_volume(new_volume.clamp(0.0, 1.0), proxy);
       ctx.input_mut(|x| x.smooth_scroll_delta = egui::Vec2::ZERO);
     }
   }

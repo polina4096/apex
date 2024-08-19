@@ -124,7 +124,7 @@ impl PauseScreen {
           draw_button(ui, "Quit", 1.0, selected, SelectedButton::Quit, &mut self.clicked, || {
             *game_state = GameState::Selection;
 
-            let lead_in = Time::from_ms(settings.gameplay.lead_in() as f64);
+            let lead_in = Time::from_ms(settings.gameplay.audio.lead_in() as f64);
             let delay_adjusted_position = audio.position() - lead_in;
             let delay_adjusted_position = delay_adjusted_position.max(Time::zero());
 

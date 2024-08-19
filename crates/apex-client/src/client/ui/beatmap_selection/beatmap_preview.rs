@@ -88,11 +88,11 @@ impl BeatmapPreview {
         height: PREVIEW_HEIGHT as f32,
         scale_factor: graphics.scale_factor,
         gameplay_scale: 0.85,
-        conveyor_zoom: settings.taiko.conveyor_zoom(),
+        conveyor_zoom: settings.taiko.general.conveyor_zoom(),
         hit_position_x: hit_pos,
         hit_position_y: hit_pos,
-        don: settings.taiko.don_color(),
-        kat: settings.taiko.kat_color(),
+        don: settings.taiko.general.don_color(),
+        kat: settings.taiko.general.kat_color(),
         hit_animation_height: 12.5,
       },
     );
@@ -100,9 +100,9 @@ impl BeatmapPreview {
     let beatmap_preview = Self {
       prev_width: 0,
       scale_factor: graphics.scale_factor,
-      conveyor_zoom: settings.taiko.conveyor_zoom(),
-      don_color: settings.taiko.don_color(),
-      kat_color: settings.taiko.kat_color(),
+      conveyor_zoom: settings.taiko.general.conveyor_zoom(),
+      don_color: settings.taiko.general.don_color(),
+      kat_color: settings.taiko.general.kat_color(),
       current_beatmap: None,
       new_renderer: Some(taiko_renderer),
       new_scale_factor: None,
@@ -122,6 +122,7 @@ impl BeatmapPreview {
     let hit_pos = PREVIEW_HEIGHT as f32 / 2.0;
 
     egui::Frame::canvas(ui.style()) //
+      .fill(egui::Color32::BLACK)
       .rounding(6.0)
       .show(ui, |ui| {
         let time = clock.position();

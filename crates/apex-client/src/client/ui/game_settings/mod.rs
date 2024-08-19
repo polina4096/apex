@@ -5,6 +5,7 @@ use apex_framework::input::{
   keybinds::{Bind, KeyCombination},
   Input,
 };
+use tap::Tap;
 
 use crate::client::{
   action::ClientAction,
@@ -12,7 +13,6 @@ use crate::client::{
 };
 
 pub mod tab_controls;
-pub mod tab_general;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GameSettingsTab {
@@ -48,55 +48,99 @@ impl GameSettingsView {
     settings: &mut Settings,
     proxy: &mut impl SettingsProxy,
   ) {
-    let mut is_open = self.is_open;
-
     // TODO: the cache won't be rebuilt if the keybinds are changed while the,
     // settings are open yet it doesn't matter right now as that is not possible.
-    #[rustfmt::skip] if !is_open { self.bind_cache.clear(); return; };
-    if self.bind_cache.is_empty() && !input.keybinds.is_empty() {
+    if !self.is_open {
+      self.bind_cache.clear();
+    } else if self.bind_cache.is_empty() && !input.keybinds.is_empty() {
       debug!("Rebuilding bind cache");
       self.bind_cache = input.keybinds.as_vec();
     }
 
-    egui::Window::new("Settings")
-      .fixed_size(egui::vec2(420.0, 512.0))
+    let width = 512.0;
+    let offset = ctx.animate_value_with_time(
+      egui::Id::new("settings_expand_anim"),
+      if !self.is_open { width } else { 0.0 },
+      0.125,
+    );
+
+    if width <= 0.0 {
+      return;
+    }
+
+    egui::Window::new("settings")
+      .movable(false)
       .resizable(false)
-      .collapsible(false)
-      .open(&mut is_open)
+      .title_bar(false)
+      .fixed_size([width, ctx.screen_rect().height()])
+      .fixed_pos([0.0, 0.0])
+      .frame(
+        egui::Frame::none()
+          .fill(egui::Color32::from_rgba_unmultiplied(4, 4, 4, 253))
+          .outer_margin(egui::Margin { left: -offset, ..Default::default() }),
+      )
       .show(ctx, |ui| {
-        ui.horizontal(|ui| {
-          let active = ui.style().visuals.widgets.active.bg_fill;
-          let default = egui::Color32::TRANSPARENT;
+        egui_extras::StripBuilder::new(ui)
+          .size(egui_extras::Size::exact(48.0))
+          .size(egui_extras::Size::remainder())
+          .horizontal(|mut strip| {
+            strip.cell(|ui| {
+              let padding = 8.0;
 
-          {
-            let stroke = if self.tab == GameSettingsTab::General { active } else { default };
-            let text = egui::RichText::new("General").strong().size(16.0);
-            let button = egui::Button::new(text).fill(stroke);
+              egui::Frame::none() //
+                .fill(egui::Color32::from_gray(20))
+                .inner_margin(egui::Margin::same(padding))
+                .show(ui, |ui| {
+                  let button_count = 4;
+                  let button_size = 32.0;
 
-            if button.ui(ui).clicked() {
-              self.tab = GameSettingsTab::General;
-            }
-          }
+                  let buttons_panel = button_size * button_count as f32;
+                  let offset = ui.available_height() / 2.0 - buttons_panel / 2.0 - button_size - padding;
 
-          {
-            let stroke = if self.tab == GameSettingsTab::Controls { active } else { default };
-            let text = egui::RichText::new("Controls").strong().size(16.0);
-            let button = egui::Button::new(text).fill(stroke);
+                  ui.vertical_centered(|ui| {
+                    egui::Button::new("⛭").frame(false).min_size(egui::vec2(button_size, button_size)).ui(ui);
 
-            if button.ui(ui).clicked() {
-              self.tab = GameSettingsTab::Controls;
-            }
-          }
-        });
+                    ui.add_space(offset);
 
-        ui.separator();
+                    egui::Button::new("A").frame(false).min_size(egui::vec2(button_size, button_size)).ui(ui);
+                    egui::Button::new("B").frame(false).min_size(egui::vec2(button_size, button_size)).ui(ui);
+                    egui::Button::new("C").frame(false).min_size(egui::vec2(button_size, button_size)).ui(ui);
+                    egui::Button::new("D").frame(false).min_size(egui::vec2(button_size, button_size)).ui(ui);
 
-        match self.tab {
-          GameSettingsTab::General => self.general_tab(ui, settings, proxy),
-          GameSettingsTab::Controls => self.controls_tab(ui, input),
-        }
+                    ui.add_space(offset);
+
+                    egui::Button::new("⏴").min_size(egui::vec2(button_size, button_size)).ui(ui);
+                  });
+                });
+            });
+
+            strip.cell(|ui| {
+              egui::ScrollArea::vertical()
+                .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)
+                .show(ui, |ui| {
+                  egui::Frame::none() //
+                    .inner_margin(egui::Margin::same(20.0).tap_mut(|x| x.right = 4.0))
+                    .show(ui, |ui| {
+                      ui.label(egui::RichText::new("Settings").strong().size(32.0));
+
+                      ui.add_space(16.0);
+
+                      settings.ui(ui, proxy);
+                      // self.controls_tab(ui, input);
+                    });
+                });
+            });
+          });
+
+        ui.painter().line_segment(
+          [
+            egui::pos2(width - 1.0 - offset, 0.0),
+            egui::pos2(width - 1.0 - offset, ui.ctx().screen_rect().height()),
+          ],
+          egui::Stroke::new(1.5, egui::Color32::from_rgba_unmultiplied(128, 128, 128, 24)),
+        );
+
+        ui.allocate_space(ui.available_size());
       });
-
-    self.is_open = is_open;
   }
 }
