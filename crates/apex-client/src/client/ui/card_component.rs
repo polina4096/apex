@@ -19,9 +19,9 @@ impl CardComponent {
         egui::Frame::window(ui.style())
           .inner_margin(egui::Margin::ZERO)
           .stroke(if self.selected {
-            egui::Stroke::new(2.0, egui::Color32::from_gray(200))
+            egui::Stroke::new(2.0, egui::Color32::from_rgba_unmultiplied(255, 255, 255, 48))
           } else {
-            egui::Stroke::new(2.0, egui::Color32::from_gray(80))
+            egui::Stroke::new(2.0, egui::Color32::from_rgba_unmultiplied(160, 160, 160, 48))
           })
           .outer_margin(egui::Margin { bottom: 6.0, ..Default::default() })
           .show(ui, |ui| {

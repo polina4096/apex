@@ -100,17 +100,16 @@ impl<T: AsRef<str>> From<T> for BeatmapInfo {
         }
 
         Some("[Metadata]") => {
-          let mut parts = line.split(':');
-          let Some(key) = parts.next() else {
+          let Some((key, value)) = line.split_once(':') else {
             continue;
           };
 
           #[rustfmt::skip]
           match key {
-            "Title"   => if let Some(x) = parts.next() { x.trim().clone_into(&mut beatmap_info.title);   }
-            "Artist"  => if let Some(x) = parts.next() { x.trim().clone_into(&mut beatmap_info.artist);  }
-            "Creator" => if let Some(x) = parts.next() { x.trim().clone_into(&mut beatmap_info.creator); }
-            "Version" => if let Some(x) = parts.next() { x.trim().clone_into(&mut beatmap_info.variant); }
+            "Title"   => value.trim().clone_into(&mut beatmap_info.title),
+            "Artist"  => value.trim().clone_into(&mut beatmap_info.artist),
+            "Creator" => value.trim().clone_into(&mut beatmap_info.creator),
+            "Version" => value.trim().clone_into(&mut beatmap_info.variant),
 
             _ => {}
           };
