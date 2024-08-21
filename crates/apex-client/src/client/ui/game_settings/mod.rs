@@ -9,7 +9,7 @@ use tap::Tap;
 
 use crate::client::{
   action::ClientAction,
-  settings::{Settings, SettingsProxy},
+  settings::{Settings, SettingsKind, SettingsProxy},
 };
 
 pub mod tab_controls;
@@ -84,6 +84,8 @@ impl GameSettingsView {
           .size(egui_extras::Size::exact(48.0))
           .size(egui_extras::Size::remainder())
           .horizontal(|mut strip| {
+            let mut scroll = None;
+
             strip.cell(|ui| {
               let padding = 8.0;
 
@@ -91,25 +93,38 @@ impl GameSettingsView {
                 .fill(egui::Color32::from_gray(20))
                 .inner_margin(egui::Margin::same(padding))
                 .show(ui, |ui| {
-                  let button_count = 4;
+                  let button_count = settings.group_count();
                   let button_size = 32.0;
 
                   let buttons_panel = button_size * button_count as f32;
                   let offset = ui.available_height() / 2.0 - buttons_panel / 2.0 - button_size - padding;
 
                   ui.vertical_centered(|ui| {
-                    egui::Button::new("⛭").frame(false).min_size(egui::vec2(button_size, button_size)).ui(ui);
+                    if egui::Button::new("⛭")
+                      .frame(false)
+                      .min_size(egui::vec2(button_size, button_size))
+                      .ui(ui)
+                      .on_hover_cursor(egui::CursorIcon::PointingHand)
+                      .clicked()
+                    {
+                      self.is_open = false;
+                    }
 
                     ui.add_space(offset);
 
-                    egui::Button::new("A").frame(false).min_size(egui::vec2(button_size, button_size)).ui(ui);
-                    egui::Button::new("B").frame(false).min_size(egui::vec2(button_size, button_size)).ui(ui);
-                    egui::Button::new("C").frame(false).min_size(egui::vec2(button_size, button_size)).ui(ui);
-                    egui::Button::new("D").frame(false).min_size(egui::vec2(button_size, button_size)).ui(ui);
+                    settings.ui_sidebar(ui, &mut scroll);
 
-                    ui.add_space(offset);
+                    ui.add_space(offset - padding + 3.0);
 
-                    egui::Button::new("⏴").min_size(egui::vec2(button_size, button_size)).ui(ui);
+                    if egui::Button::new("⏴")
+                      .frame(false)
+                      .min_size(egui::vec2(button_size, button_size))
+                      .ui(ui)
+                      .on_hover_cursor(egui::CursorIcon::PointingHand)
+                      .clicked()
+                    {
+                      self.is_open = false;
+                    }
                   });
                 });
             });
@@ -125,7 +140,7 @@ impl GameSettingsView {
 
                       ui.add_space(16.0);
 
-                      settings.ui(ui, proxy);
+                      settings.ui(ui, proxy, scroll);
                       // self.controls_tab(ui, input);
                     });
                 });

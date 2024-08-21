@@ -66,6 +66,7 @@ macro_rules! make_numeric_ui {
           if opts.inline {
             ui.horizontal(do_ui);
           } else {
+            ui.add_space(6.0);
             do_ui(ui);
           }
 
@@ -146,14 +147,15 @@ pub fn ui_color(ui: &mut egui::Ui, value: &Color, name: &'static str) -> Option<
       new_value = Some(color.into());
     }
 
+    #[rustfmt::skip]
     if { false }
-      | egui::DragValue::new(&mut r).speed(0.0025).fixed_decimals(2).range(0.0 ..= 1.0).ui(ui).changed()
-      | egui::DragValue::new(&mut g).speed(0.0025).fixed_decimals(2).range(0.0 ..= 1.0).ui(ui).changed()
-      | egui::DragValue::new(&mut b).speed(0.0025).fixed_decimals(2).range(0.0 ..= 1.0).ui(ui).changed()
-      | egui::DragValue::new(&mut a).speed(0.0025).fixed_decimals(2).range(0.0 ..= 1.0).ui(ui).changed()
+      | egui::DragValue::new(&mut r).prefix("R ").speed(0.0025).fixed_decimals(2).range(0.0 ..= 1.0).ui(ui).changed()
+      | egui::DragValue::new(&mut g).prefix("G ").speed(0.0025).fixed_decimals(2).range(0.0 ..= 1.0).ui(ui).changed()
+      | egui::DragValue::new(&mut b).prefix("B ").speed(0.0025).fixed_decimals(2).range(0.0 ..= 1.0).ui(ui).changed()
+      | egui::DragValue::new(&mut a).prefix("A ").speed(0.0025).fixed_decimals(2).range(0.0 ..= 1.0).ui(ui).changed()
     {
       new_value = Some(Color::new(r, g, b, a));
-    }
+    };
   });
 
   return new_value;

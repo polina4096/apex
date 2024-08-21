@@ -65,9 +65,74 @@ macro_rules! _call_with_custom_attrs {
 }
 
 #[macro_export]
-macro_rules! _def_with_custom_attrs {
+macro_rules! _def_group_with_custom_attrs {
+  ( $name:ident, $size:expr, $separator:expr, $( $field:ident, #[custom(ui(name = $custom_name:expr, icon = $icon:expr))] $( #[ $($rest:tt)* ] )* )* ) => {
+    $crate::_def_group_with_custom_attrs!( $name, $size, $separator, impl $( $field, $custom_name, $icon, )* );
+  };
+
+  ( $name:ident, $size:expr, $separator:expr, impl $( $field:ident, $custom_name:expr, $icon:expr, )* ) => {
+    paste::paste! {
+      impl $name {
+        pub fn ui(&mut self, ui: &mut egui::Ui, proxy: &mut impl SettingsProxy, scroll: Option<[<$name Kind>]>) {
+          $(
+            ui.horizontal(|ui| {
+              let title = ui.label(egui::RichText::new(concat!($icon, " ", $custom_name)).size($size).strong());
+
+              if scroll == Some([<$name Kind>]::[<$field:camel>]) {
+                title.scroll_to_me(Some(egui::Align::Center));
+              }
+
+              if $separator {
+                ui.add_space(-10.0);
+                ui.add(egui::Separator::default().horizontal().shrink(24.0).spacing(0.0));
+              }
+            });
+
+            ui.add_space(6.0);
+
+            self.$field.ui(ui, proxy);
+          )*
+        }
+
+        pub fn ui_sidebar(&mut self, ui: &mut egui::Ui, scroll: &mut Option<[<$name Kind>]>) {
+          $(
+            let button = ui.add(
+              egui::Button::new(egui::RichText::new($icon).size(16.0))
+                .frame(false)
+                .min_size(egui::vec2(32.0, 32.0))
+            );
+
+            if button.hovered() {
+              ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+            }
+
+            if button.clicked() {
+              *scroll = Some([<$name Kind>]::[<$field:camel>]);
+            }
+          )*
+        }
+
+        pub fn group_count(&self) -> usize {
+          let i = 0;
+
+          $(
+            // TODO: hack until `macro_metavar_expr` is stabilized
+            // https://github.com/rust-lang/rust/issues/83527
+            let [<_ $field>]: ();
+            let i = i + 1;
+          )*
+
+          return i;
+        }
+      }
+    }
+  };
+}
+
+#[macro_export]
+macro_rules! _def_subgroup_with_custom_attrs {
   ( $name:ident, $size:expr, $separator:expr, $( $field:ident, #[custom(ui(name = $custom_name:expr))] $( #[ $($rest:tt)* ] )* )* ) => {
-    $crate::_def_with_custom_attrs!( $name, $size, $separator, impl $( $field, $custom_name, )* );
+    $crate::_def_subgroup_with_custom_attrs!( $name, $size, $separator, impl $( $field, $custom_name, )* );
   };
 
   ( $name:ident, $size:expr, $separator:expr, impl $( $field:ident, $custom_name:expr, )* ) => {
@@ -75,7 +140,8 @@ macro_rules! _def_with_custom_attrs {
       pub fn ui(&mut self, ui: &mut egui::Ui, proxy: &mut impl SettingsProxy) {
         $(
           ui.horizontal(|ui| {
-            ui.label(egui::RichText::new($custom_name).size($size).strong());
+            let title = ui.label(egui::RichText::new($custom_name).size($size).strong());
+
             if $separator {
               ui.add_space(-10.0);
               ui.add(egui::Separator::default().horizontal().shrink(24.0).spacing(0.0));
@@ -104,9 +170,14 @@ macro_rules! SettingsStruct {
   ) => {
     paste::paste! {
       pub trait [<$name Proxy>]: Sized $( + [<$type Proxy>] )* { }
+
+      #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+      pub enum [<$name Kind>] {
+        $( [<$field:camel>] ),*
+      }
     }
 
-    $crate::_def_with_custom_attrs!(
+    $crate::_def_group_with_custom_attrs!(
       $name,
       24.0,
       true,
@@ -133,7 +204,7 @@ macro_rules! SettingsGroup {
       pub trait [<$name Proxy>]: Sized $( + [<$type Proxy>] )* { }
     }
 
-    $crate::_def_with_custom_attrs!(
+    $crate::_def_subgroup_with_custom_attrs!(
       $name,
       18.0,
       false,

@@ -21,22 +21,22 @@ pub mod ui;
 #[derive(SettingsStruct!, SmartDefault, Deserialize, Serialize, Debug, Clone)]
 #[serde(default)]
 pub struct Settings {
-  #[custom(ui(name = "Profile"))]
+  #[custom(ui(name = "Profile", icon = "👩"))]
   pub profile: ProfileSettingsGroup,
 
-  #[custom(ui(name = "Audio"))]
+  #[custom(ui(name = "Audio", icon = "🔊"))]
   pub audio: AudioSettingsGroup,
 
-  #[custom(ui(name = "Graphics"))]
+  #[custom(ui(name = "Graphics", icon = "🖵"))]
   pub graphics: GraphicsSettingsGroup,
 
-  #[custom(ui(name = "Interface"))]
+  #[custom(ui(name = "Interface", icon = "🗖"))]
   pub interface: InterfaceSettingsGroup,
 
-  #[custom(ui(name = "Gameplay"))]
+  #[custom(ui(name = "Gameplay", icon = "🎮"))]
   pub gameplay: GameplaySettingsGroup,
 
-  #[custom(ui(name = "Taiko"))]
+  #[custom(ui(name = "Taiko", icon = "🎺"))]
   pub taiko: TaikoSettingsGroup,
 }
 
