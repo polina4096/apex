@@ -3,6 +3,7 @@ use rodio::{cpal::traits::HostTrait as _, OutputStream, OutputStreamHandle, Stre
 pub mod arc_buffer;
 pub mod audio_engine;
 pub mod audio_mixer;
+pub mod frameless_source;
 pub mod lead_in;
 
 pub use audio_mixer::mixer;

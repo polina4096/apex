@@ -16,7 +16,7 @@ use rusqlite::Connection;
 use tap::Tap;
 use triomphe::Arc;
 use winit::{
-  dpi::PhysicalSize,
+  dpi::{LogicalSize, PhysicalSize},
   event::{KeyEvent, Modifiers},
   event_loop::{ActiveEventLoop, EventLoopProxy},
   keyboard::{KeyCode, PhysicalKey},
@@ -25,7 +25,7 @@ use winit::{
 
 use apex_framework::{
   app::App,
-  audio::{self, audio_engine::AudioEngine},
+  audio::{self, audio_engine::AudioEngine, frameless_source::FramelessSource},
   core::Core,
   data::persistent::Persistent as _,
   event::{CoreEvent, EventBus},
@@ -45,7 +45,7 @@ use apex_framework::{
 
 use super::{
   action::ClientAction,
-  audio::game_audio::{FramelessSource, GameAudio},
+  audio::game_audio::GameAudio,
   event::ClientEvent,
   gameplay::beatmap_cache::{BeatmapCache, BeatmapInfo},
   graphics::{FrameLimiterOptions, RenderingBackend},
@@ -151,6 +151,10 @@ impl App for Client {
       self.settings.graphics.general.max_frame_latency(),
     )
     .block_on();
+  }
+
+  fn window_attrs() -> winit::window::WindowAttributes {
+    return Window::default_attributes().with_title("Apex").with_min_inner_size(LogicalSize::new(800.0, 600.0));
   }
 
   fn prepare(&mut self, core: &mut Core<Self>, encoder: &mut wgpu::CommandEncoder) {
@@ -543,8 +547,9 @@ impl Client {
     let source = Decoder::new(file).unwrap();
 
     let config = audio.device().default_output_config().unwrap();
-    let source = FramelessSource::new(source);
-    let source = UniformSourceIterator::new(source, config.channels(), config.sample_rate().0);
+
+    // FramelessSource is needed for a audio desync workaround, see https://github.com/RustAudio/rodio/issues/316
+    let source = UniformSourceIterator::new(FramelessSource::new(source), config.channels(), config.sample_rate().0);
 
     // TODO: calculate length of the audio
     let length = source.total_duration().unwrap_or(Duration::from_secs(0));

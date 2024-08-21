@@ -5,6 +5,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use triomphe::Arc;
 use winit::dpi::PhysicalSize;
 use winit::event::{KeyEvent, Modifiers};
+use winit::window::WindowAttributes;
 use winit::{
   application::ApplicationHandler,
   dpi::LogicalSize,
@@ -29,6 +30,8 @@ pub trait App: Drawable + Sized {
   fn destroy(&self) {}
 
   fn recreate_graphics(&mut self, core: &mut Core<Self>) -> Graphics;
+
+  fn window_attrs() -> WindowAttributes;
 
   fn prepare(&mut self, core: &mut Core<Self>, encoder: &mut wgpu::CommandEncoder) {}
   fn render(&self, core: &mut Core<Self>, encoder: &mut wgpu::CommandEncoder, view: wgpu::TextureView) {}
@@ -64,7 +67,7 @@ impl<A: App> ApexFrameworkApplication<A> {
 
 impl<A: App> ApplicationHandler<CoreEvent<A::Event>> for ApexFrameworkApplication<A> {
   fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-    let window_attrs = Window::default_attributes() //
+    let window_attrs = A::window_attrs() //
       .with_inner_size(LogicalSize::new(1200, 800));
 
     let window = Arc::new(event_loop.create_window(window_attrs).unwrap());

@@ -1,11 +1,15 @@
 use std::{fs::File, path::Path};
 
 use apex_framework::{
-  audio::{arc_buffer::ArcSamplesBuffer, audio_engine::AudioEngine, audio_mixer::AudioController, lead_in::lead_in},
+  audio::{
+    arc_buffer::ArcSamplesBuffer, audio_engine::AudioEngine, audio_mixer::AudioController,
+    frameless_source::FramelessSource, lead_in::lead_in,
+  },
   time::{clock::AbstractClock, time::Time},
 };
-use rodio::{source::UniformSourceIterator, Decoder, Device, DeviceTrait as _, Sample, Source, SupportedStreamConfig};
+use rodio::{source::UniformSourceIterator, Decoder, Device, DeviceTrait as _, Source, SupportedStreamConfig};
 
+/// Audio wrapper which allows for leading and trailing additional delays, or other gameplay-specific things.
 pub struct GameAudio {
   audio_engine: AudioEngine,
   audio_controller: AudioController,
@@ -82,7 +86,10 @@ impl GameAudio {
     let channels = self.config.channels();
     let sample_rate = self.config.sample_rate();
     let source = Decoder::new(File::open(path).unwrap()).unwrap();
-    let source = UniformSourceIterator::new(source, channels, sample_rate.0);
+
+    // FramelessSource is needed for a audio desync workaround, see https://github.com/RustAudio/rodio/issues/316
+    let source = UniformSourceIterator::new(FramelessSource::new(source), channels, sample_rate.0);
+
     return ArcSamplesBuffer::<f32>::new(channels, sample_rate.0, source.collect::<Vec<_>>());
   }
 }
@@ -136,67 +143,5 @@ impl GameAudioController {
 
   pub fn set_effect_volume(&self, volume: f32) {
     self.0.set_sound_volume(volume);
-  }
-}
-
-pub struct FramelessSource<I>
-where
-  I: Source,
-  I::Item: Sample,
-{
-  inner: I,
-}
-
-impl<I> FramelessSource<I>
-where
-  I: Source,
-  I::Item: Sample,
-{
-  pub fn new(source: I) -> Self {
-    Self { inner: source }
-  }
-}
-
-impl<I> From<I> for FramelessSource<I>
-where
-  I: Source,
-  I::Item: Sample,
-{
-  fn from(value: I) -> Self {
-    Self::new(value)
-  }
-}
-
-impl<I> Iterator for FramelessSource<I>
-where
-  I: Source,
-  I::Item: Sample,
-{
-  type Item = I::Item;
-
-  fn next(&mut self) -> Option<Self::Item> {
-    self.inner.next()
-  }
-}
-
-impl<I> Source for FramelessSource<I>
-where
-  I: Source,
-  I::Item: Sample,
-{
-  fn current_frame_len(&self) -> Option<usize> {
-    None
-  }
-
-  fn channels(&self) -> u16 {
-    self.inner.channels()
-  }
-
-  fn sample_rate(&self) -> u32 {
-    self.inner.sample_rate()
-  }
-
-  fn total_duration(&self) -> Option<std::time::Duration> {
-    self.inner.total_duration()
   }
 }

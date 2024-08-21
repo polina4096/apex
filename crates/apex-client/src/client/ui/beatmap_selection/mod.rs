@@ -86,6 +86,76 @@ impl BeatmapSelectionView {
 
     use egui_extras::{Size, StripBuilder};
 
+    if beatmap_cache.is_empty() {
+      egui::Window::new("no_beatmaps")
+        .title_bar(false)
+        .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
+        .fixed_size(egui::vec2(320.0, 0.0))
+        .show(core.egui.ctx(), |ui| {
+          ui.add_space(10.0);
+
+          ui.vertical_centered(|ui| {
+            ui.label(egui::RichText::new("🗋  No beatmaps found!").heading().strong());
+          });
+
+          ui.add_space(8.0);
+
+          ui.separator();
+
+          egui::Frame::none() //
+            .inner_margin(egui::Margin::symmetric(12.0, 8.0))
+            .show(ui, |ui| {
+              let mut job = egui::text::LayoutJob::default();
+
+              job.append("Import beatmaps by dragging ", 0.0, egui::TextFormat::default());
+
+              job.append(
+                ".ozs",
+                0.0,
+                egui::TextFormat {
+                  font_id: egui::FontId::monospace(12.0),
+                  ..Default::default()
+                },
+              );
+
+              job.append(" files onto the window, or move them into the ", 0.0, egui::TextFormat::default());
+
+              job.append(
+                "beatmaps",
+                0.0,
+                egui::TextFormat {
+                  font_id: egui::FontId::monospace(12.0),
+                  ..Default::default()
+                },
+              );
+
+              job.append(
+                " directory. If a beatmap is missing, enqueue a cache rebuild with ",
+                0.0,
+                egui::TextFormat::default(),
+              );
+
+              // Actually unimplemented
+              job.append(
+                "Super + R",
+                0.0,
+                egui::TextFormat {
+                  font_id: egui::FontId::monospace(12.0),
+                  ..Default::default()
+                },
+              );
+
+              job.append(" anywhere.", 0.0, egui::TextFormat::default());
+
+              ui.vertical_centered(|ui| {
+                ui.label(job);
+              });
+            });
+        });
+
+      return;
+    }
+
     let selected = selector.selected();
     let Some((path, info)) = beatmap_cache.get_index(selected) else {
       // TODO: Show error message no beatmaps found
@@ -113,7 +183,7 @@ impl BeatmapSelectionView {
 
       StripBuilder::new(ui) //
         .size(Size::remainder())
-        .size(Size::relative(0.4))
+        .size(Size::relative(0.4).at_most(512.0))
         .horizontal(|mut builder| {
           builder.cell(|ui| {
             ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {

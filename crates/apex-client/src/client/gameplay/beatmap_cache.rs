@@ -211,4 +211,12 @@ impl BeatmapCache {
   pub fn last_update(&self) -> Instant {
     return self.last_update;
   }
+
+  pub fn len(&self) -> usize {
+    return self.cache.len();
+  }
+
+  pub fn is_empty(&self) -> bool {
+    return self.cache.is_empty();
+  }
 }
