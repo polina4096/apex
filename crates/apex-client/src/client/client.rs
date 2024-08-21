@@ -320,7 +320,7 @@ impl App for Client {
 
       if !captured {
         // Handle typing in selection screen
-        if self.game_state == GameState::Selection {
+        if self.game_state == GameState::Selection && !self.settings_screen.is_open() {
           match event.physical_key {
             PhysicalKey::Code(KeyCode::Backspace) => {
               if self.selection_screen.beatmap_selector().has_query() {
