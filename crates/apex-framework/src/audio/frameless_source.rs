@@ -62,4 +62,8 @@ where
   fn total_duration(&self) -> Option<Duration> {
     return self.inner.total_duration();
   }
+
+  fn try_seek(&mut self, pos: Duration) -> Result<(), rodio::source::SeekError> {
+    return self.inner.try_seek(pos);
+  }
 }
