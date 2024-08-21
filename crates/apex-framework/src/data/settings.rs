@@ -140,7 +140,7 @@ macro_rules! _def_subgroup_with_custom_attrs {
       pub fn ui(&mut self, ui: &mut egui::Ui, proxy: &mut impl SettingsProxy) {
         $(
           ui.horizontal(|ui| {
-            let title = ui.label(egui::RichText::new($custom_name).size($size).strong());
+            ui.label(egui::RichText::new($custom_name).size($size).strong());
 
             if $separator {
               ui.add_space(-10.0);

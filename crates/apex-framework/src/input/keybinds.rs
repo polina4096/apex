@@ -246,10 +246,9 @@ macro_rules! key_comb {
 }
 
 /// Action which is usually dispatched by the input system, or rendered in the UI
-#[rustfmt::skip]
 #[derive(Clone)]
 pub struct Bind<T> {
-  pub id          : T,
-  pub name        : String,
-  pub description : String,
+  pub id: T,
+  pub name: String,
+  pub description: String,
 }

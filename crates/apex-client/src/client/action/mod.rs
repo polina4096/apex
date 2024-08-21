@@ -31,6 +31,10 @@ actions! {
   ClientAction<Client> {
     /// Return to the previous state
     Back = key_comb!(Escape),
+
+    /// Clear selection query
+    ClearQuery = key_comb!(Ctrl + Backspace),
+
     /// Open settings menu
     Settings = key_comb!(Super + Comma),
     /// Open recording menu
@@ -42,16 +46,13 @@ actions! {
     Next = key_comb!(ArrowDown),
     /// Select previous element
     Prev = key_comb!(ArrowUp),
-
     /// Pick selected element
     Select = key_comb!(Enter),
-    /// Replay a beatmap from the beginning
+
+    /// Restart the beatmap
     Retry = key_comb!(Backquote),
 
-    /// Clears the query in the beatmap selection screen
-    ClearQuery = key_comb!(Ctrl + Backspace),
-
-    /// Skip
+    /// Skip current section
     Skip = key_comb!(Space),
 
     /// Kat (blue)

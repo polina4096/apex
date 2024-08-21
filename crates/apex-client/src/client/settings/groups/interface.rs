@@ -22,12 +22,12 @@ pub struct InterfaceSettingsGroup {
 pub struct InterfaceDeltaBarSettingsSubgroup {
   /// Total width of the hit delta bar
   #[default = 128.0]
-  #[custom(ui(name = "Bar Width", clamp = false, slider = false))]
+  #[custom(ui(name = "Bar Width", clamp = false, inline = true, slider = false))]
   delta_bar_width: f32,
 
   /// Height of the hit delta bar mark
   #[default = 24.0]
-  #[custom(ui(name = "Bar Height", clamp = false, slider = false))]
+  #[custom(ui(name = "Bar Height", clamp = false, inline = true, slider = false))]
   delta_bar_height: f32,
 
   /// Opacity of the hit delta bar areas
@@ -37,12 +37,12 @@ pub struct InterfaceDeltaBarSettingsSubgroup {
 
   /// Width of the hit delta marker
   #[default = 2.0]
-  #[custom(ui(name = "Marker Width", clamp = false, slider = false))]
+  #[custom(ui(name = "Marker Width", clamp = false, inline = true, slider = false))]
   delta_marker_width: f32,
 
   /// Height of the hit delta marker
   #[default = 16.0]
-  #[custom(ui(name = "Marker Height", clamp = false, slider = false))]
+  #[custom(ui(name = "Marker Height", clamp = false, inline = true, slider = false))]
   delta_marker_height: f32,
 
   /// Opacity of the hit delta marker

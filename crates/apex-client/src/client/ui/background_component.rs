@@ -21,9 +21,11 @@ impl BackgroundComponent {
       let width = rect.height() * img_aspect;
       let height = rect.width() / img_aspect;
 
-      #[rustfmt::skip]
-      if scr_aspect < img_aspect { rect.set_width(width);   }
-      else                       { rect.set_height(height); };
+      if scr_aspect < img_aspect {
+        rect.set_width(width);
+      } else {
+        rect.set_height(height);
+      };
     }
 
     self.image.paint_at(ui, rect);

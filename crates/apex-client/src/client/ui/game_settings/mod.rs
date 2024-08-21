@@ -9,7 +9,7 @@ use tap::Tap;
 
 use crate::client::{
   action::ClientAction,
-  settings::{Settings, SettingsKind, SettingsProxy},
+  settings::{Settings, SettingsProxy},
 };
 
 pub mod tab_controls;
@@ -85,6 +85,7 @@ impl GameSettingsView {
           .size(egui_extras::Size::remainder())
           .horizontal(|mut strip| {
             let mut scroll = None;
+            let mut scroll_to_controls = false;
 
             strip.cell(|ui| {
               let padding = 8.0;
@@ -96,7 +97,7 @@ impl GameSettingsView {
                   let button_count = settings.group_count();
                   let button_size = 32.0;
 
-                  let buttons_panel = button_size * button_count as f32;
+                  let buttons_panel = button_size * (button_count + 1) as f32;
                   let offset = ui.available_height() / 2.0 - buttons_panel / 2.0 - button_size - padding;
 
                   ui.vertical_centered(|ui| {
@@ -113,6 +114,20 @@ impl GameSettingsView {
                     ui.add_space(offset);
 
                     settings.ui_sidebar(ui, &mut scroll);
+
+                    let button = ui.add(
+                      egui::Button::new(egui::RichText::new("🖮").size(16.0))
+                        .frame(false)
+                        .min_size(egui::vec2(32.0, 32.0)),
+                    );
+
+                    if button.hovered() {
+                      ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+                    }
+
+                    if button.clicked() {
+                      scroll_to_controls = true;
+                    }
 
                     ui.add_space(offset - padding + 3.0);
 
@@ -141,7 +156,22 @@ impl GameSettingsView {
                       ui.add_space(16.0);
 
                       settings.ui(ui, proxy, scroll);
-                      // self.controls_tab(ui, input);
+
+                      ui.horizontal(|ui| {
+                        let title = ui.label(egui::RichText::new("🖮 Controls").size(24.0).strong());
+
+                        if scroll_to_controls {
+                          title.scroll_to_me(Some(egui::Align::Center));
+                        }
+
+                        ui.add_space(-10.0);
+
+                        ui.add(egui::Separator::default().horizontal().shrink(24.0).spacing(0.0));
+                      });
+
+                      ui.add_space(6.0);
+
+                      self.controls_tab(ui, input);
                     });
                 });
             });

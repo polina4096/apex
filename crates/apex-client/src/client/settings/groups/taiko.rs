@@ -29,7 +29,7 @@ pub struct TaikoGeneralSettingsSubgroup {
 
   /// Hit position X
   #[default = 256.0]
-  #[custom(ui(name = "Horizontal Position", clamp = false, slider = false))]
+  #[custom(ui(name = "Horizontal Position", clamp = false, inline = true, slider = false))]
   hit_position_x_px: f32,
 
   /// Hit position Y

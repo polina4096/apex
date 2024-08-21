@@ -11,69 +11,66 @@ use apex_framework::{
 use crate::client::graphics::{FrameLimiterOptions, PresentModeOptions, RenderingBackend, WgpuBackend};
 
 macro_rules! make_numeric_ui {
-  (
-    $($ty:ty)+
-  ) => {
-    paste::paste! {
-      $(
-        #[allow(dead_code)]
-        pub fn [<ui_ $ty:snake>](ui: &mut egui::Ui, value: &$ty, name: &'static str, opts: NumericOpts<$ty>) -> Option<$ty> {
-          let mut new_value = None;
+  ( $($ty:ty)+ ) => {
+    paste::paste! { $(
+      #[allow(dead_code)]
+      pub fn [<ui_ $ty:snake>](ui: &mut egui::Ui, value: &$ty, name: &'static str, opts: NumericOpts<$ty>) -> Option<$ty> {
+        let mut new_value = None;
 
-          let do_ui = |ui: &mut egui::Ui| {
-            ui.label(name);
+        let do_ui = |ui: &mut egui::Ui| {
+          ui.label(name);
 
-            let mut value = *value;
-            let widget = if opts.slider {
-              ui.style_mut().visuals.selection.bg_fill = egui::Color32::from_gray(48);
-              ui.style_mut().visuals.widgets.inactive.bg_fill = egui::Color32::from_gray(24);
-              ui.style_mut().spacing.slider_width = ui.available_width() - 72.0;
+          let mut value = *value;
+          let widget = if opts.slider {
+            ui.style_mut().visuals.selection.bg_fill = egui::Color32::from_gray(48);
+            ui.style_mut().visuals.widgets.inactive.bg_fill = egui::Color32::from_gray(24);
+            ui.style_mut().spacing.slider_width = ui.available_width() - 72.0;
 
-              egui::Slider::new(&mut value, opts.range)
-                .step_by(opts.step)
-                .trailing_fill(true)
-                .clamp_to_range(opts.clamp)
-                .pipe(|slider| {
-                  let slider = if let Some(decimals) = opts.precision {
-                    slider.max_decimals(decimals)
-                  } else {
-                    slider
-                  };
+            egui::Slider::new(&mut value, opts.range)
+              .step_by(opts.step)
+              .trailing_fill(true)
+              .clamp_to_range(opts.clamp)
+              .pipe(|slider| {
+                let slider = if let Some(decimals) = opts.precision {
+                  slider.max_decimals(decimals)
+                } else {
+                  slider
+                };
 
-                  let slider = if opts.percentage {
-                    slider.custom_formatter(|n, _| format!("{:.0}%", n * 100.0))
-                  } else {
-                    slider
-                  };
+                let slider = if opts.percentage {
+                  slider.custom_formatter(|n, _| format!("{:.0}%", n * 100.0))
+                } else {
+                  slider
+                };
 
-                  return slider;
-                })
-                .ui(ui)
-            } else {
-              egui::DragValue::new(&mut value)
-                .speed(if opts.step == 0.0 { 1.0 } else { opts.step })
-                .range(opts.range)
-                .clamp_to_range(opts.clamp)
-                .max_decimals_opt(opts.precision)
-                .ui(ui)
-            };
-
-            if widget.changed() {
-              new_value = Some(value);
-            }
+                return slider;
+              })
+              .ui(ui)
+          } else {
+            egui::DragValue::new(&mut value)
+              .speed(if opts.step == 0.0 { 1.0 } else { opts.step })
+              .range(opts.range)
+              .clamp_to_range(opts.clamp)
+              .max_decimals_opt(opts.precision)
+              .ui(ui)
           };
 
-          if opts.inline {
-            ui.horizontal(do_ui);
-          } else {
-            ui.add_space(6.0);
-            do_ui(ui);
+          if widget.changed() {
+            new_value = Some(value);
           }
+        };
 
-          return new_value;
+        if opts.inline {
+          ui.horizontal(do_ui);
+        } else {
+          do_ui(ui);
         }
-      )+
-    }
+
+        ui.add_space(2.0);
+
+        return new_value;
+      }
+    )+ }
   };
 }
 
@@ -91,6 +88,8 @@ pub fn ui_bool(ui: &mut egui::Ui, value: &bool, name: &'static str) -> Option<bo
   if egui::Checkbox::new(&mut value, name).ui(ui).changed() {
     new_value = Some(value);
   }
+
+  ui.add_space(2.0);
 
   return new_value;
 }
@@ -131,6 +130,8 @@ pub fn ui_string(ui: &mut egui::Ui, value: &String, name: &'static str, opts: St
     }
   });
 
+  ui.add_space(2.0);
+
   return new_value;
 }
 
@@ -157,6 +158,8 @@ pub fn ui_color(ui: &mut egui::Ui, value: &Color, name: &'static str) -> Option<
       new_value = Some(Color::new(r, g, b, a));
     };
   });
+
+  ui.add_space(2.0);
 
   return new_value;
 }
@@ -187,6 +190,8 @@ pub fn ui_rendering_backend(
       }
     });
 
+  ui.add_space(2.0);
+
   return new_value;
 }
 
@@ -215,6 +220,8 @@ pub fn ui_frame_limiter_options(
       }
     });
 
+  ui.add_space(2.0);
+
   return new_value;
 }
 
@@ -239,6 +246,8 @@ pub fn ui_present_mode_options(
         new_value = Some(selected);
       }
     });
+
+  ui.add_space(2.0);
 
   return new_value;
 }
