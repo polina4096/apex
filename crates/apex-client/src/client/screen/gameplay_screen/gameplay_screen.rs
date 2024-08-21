@@ -5,7 +5,7 @@ use jiff::Timestamp;
 use rodio::{source::UniformSourceIterator, Decoder, DeviceTrait};
 
 use crate::client::{
-  audio::game_audio::{GameAudio, GameAudioController},
+  audio::game_audio::{FramelessSource, GameAudio, GameAudioController},
   client::Client,
   event::ClientEvent,
   gameplay::{
@@ -180,6 +180,7 @@ impl GameplayScreen {
     let audio_path = beatmap_path.parent().unwrap().join(&beatmap.audio);
     let file = BufReader::new(File::open(audio_path).unwrap());
     let source = Decoder::new(file).unwrap();
+    let source = FramelessSource::new(source);
     let source = UniformSourceIterator::new(source, config.channels(), config.sample_rate().0);
 
     let end_time = beatmap.hit_objects.last().unwrap().time;

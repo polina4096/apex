@@ -45,7 +45,7 @@ use apex_framework::{
 
 use super::{
   action::ClientAction,
-  audio::game_audio::GameAudio,
+  audio::game_audio::{FramelessSource, GameAudio},
   event::ClientEvent,
   gameplay::beatmap_cache::{BeatmapCache, BeatmapInfo},
   graphics::{FrameLimiterOptions, RenderingBackend},
@@ -543,6 +543,7 @@ impl Client {
     let source = Decoder::new(file).unwrap();
 
     let config = audio.device().default_output_config().unwrap();
+    let source = FramelessSource::new(source);
     let source = UniformSourceIterator::new(source, config.channels(), config.sample_rate().0);
 
     // TODO: calculate length of the audio
