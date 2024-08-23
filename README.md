@@ -1,5 +1,10 @@
 # Apex
+
 Hackable & performant taiko client supporting multiple platforms such as Linux (X11 & Wayland), macOS, Windows and even web using WebAssembly.
+
+<p align="center">
+  <img src="meme.jpg">
+</p>
 
 ## Build Instructions
 1. Install the **nightly** Rust toolchain: https://rustup.rs
