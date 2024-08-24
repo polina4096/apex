@@ -47,7 +47,10 @@ use super::{
   action::ClientAction,
   audio::game_audio::GameAudio,
   event::ClientEvent,
-  gameplay::beatmap_cache::{BeatmapCache, BeatmapInfo},
+  gameplay::{
+    beatmap::Beatmap,
+    beatmap_cache::{BeatmapCache, BeatmapInfo},
+  },
   graphics::{FrameLimiterOptions, RenderingBackend},
   score::score_cache::ScoreCache,
   screen::{
@@ -198,7 +201,7 @@ impl App for Client {
       }
 
       GameState::Results => {
-        self.result_screen.prepare(core, &self.beatmap_cache, &self.score_cache);
+        self.result_screen.prepare(core);
       }
     }
 
@@ -349,9 +352,12 @@ impl App for Client {
 
   fn dispatch(&mut self, core: &mut Core<Self>, event: ClientEvent) {
     match event {
-      ClientEvent::PickBeatmap { path } => {
+      ClientEvent::PickBeatmap { beatmap_hash } => {
+        let beatmap_info = self.beatmap_cache.get(beatmap_hash).unwrap();
+        let beatmap = Beatmap::from_path(&beatmap_info.file_path);
+
+        self.gameplay_screen.play(beatmap, &core.graphics, &mut self.audio);
         self.game_state = GameState::Playing;
-        self.gameplay_screen.play(&path, &core.graphics, &mut self.audio);
       }
 
       ClientEvent::SelectBeatmap => {
@@ -366,15 +372,20 @@ impl App for Client {
         self.settings_screen.toggle();
       }
 
-      ClientEvent::ShowResultScreen { path, score } => {
-        let score_id = self.score_cache.insert(path.clone(), score);
-        self.result_screen.set_score(&self.beatmap_cache, &self.score_cache, &path, score_id);
-        self.selection_screen.update_scores(&mut self.score_cache, &path);
+      ClientEvent::ShowResultScreen { beatmap_hash, score } => {
+        let beatmap_info = self.beatmap_cache.get(beatmap_hash).unwrap();
+        let beatmap = Beatmap::from_path(&beatmap_info.file_path);
+        self.score_cache.insert(beatmap_hash, score.clone());
+        self.result_screen.set_score(beatmap, score);
+        self.selection_screen.update_scores(&mut self.score_cache, beatmap_hash);
         self.game_state = GameState::Results;
       }
 
-      ClientEvent::ViewScore { path, score_id } => {
-        self.result_screen.set_score(&self.beatmap_cache, &self.score_cache, &path, score_id);
+      ClientEvent::ViewScore { beatmap_hash, score_id } => {
+        let beatmap_info = self.beatmap_cache.get(beatmap_hash).unwrap();
+        let beatmap = Beatmap::from_path(&beatmap_info.file_path);
+        let score = self.score_cache.score_details(score_id);
+        self.result_screen.set_score(beatmap, score.clone());
         self.game_state = GameState::Results;
       }
 
@@ -454,7 +465,7 @@ impl Client {
     let score_cache = ScoreCache::new(conn);
 
     #[rustfmt::skip] let selection_screen = SelectionScreen::new(event_bus.clone(), &beatmap_cache, &mut audio, graphics, &settings);
-    #[rustfmt::skip] let result_screen = ResultScreen::new(event_bus.clone(), &score_cache);
+    #[rustfmt::skip] let result_screen = ResultScreen::new();
     #[rustfmt::skip] let gameplay_screen = GameplayScreen::new(event_bus.clone(), graphics, &audio, &settings);
     #[rustfmt::skip] let settings_screen = SettingsScreen::new();
     #[rustfmt::skip] let volume_screen = VolumeScreen::new();
@@ -525,24 +536,26 @@ impl Client {
 
   pub fn play_beatmap_audio(&mut self) {
     let selected = self.selection_screen.beatmap_selector().selected();
-    let Some((path, beatmap)) = self.beatmap_cache.get_index(selected) else {
+    let Some((_, beatmap_info)) = self.beatmap_cache.get_index(selected) else {
       return;
     };
 
-    if beatmap.audio_path != self.prev_audio_path || path.parent().unwrap() != self.prev_beatmap_path {
-      self.prev_beatmap_path = path.parent().unwrap().to_owned();
-      self.prev_audio_path = beatmap.audio_path.clone();
+    if beatmap_info.audio_path != self.prev_audio_path
+      || beatmap_info.file_path.parent().unwrap() != self.prev_beatmap_path
+    {
+      self.prev_beatmap_path = beatmap_info.file_path.parent().unwrap().to_owned();
+      self.prev_audio_path = beatmap_info.audio_path.clone();
     } else {
       return;
     }
 
-    Self::play_beatmap_audio_unchecked(&mut self.audio, path, beatmap);
+    Self::play_beatmap_audio_unchecked(&mut self.audio, &beatmap_info.file_path, beatmap_info);
   }
 
-  pub fn play_beatmap_audio_unchecked(audio: &mut GameAudio, path: &Path, beatmap: &BeatmapInfo) {
+  pub fn play_beatmap_audio_unchecked(audio: &mut GameAudio, path: &Path, beatmap_info: &BeatmapInfo) {
     use std::time::Duration;
 
-    let audio_path = path.parent().unwrap().join(&beatmap.audio_path);
+    let audio_path = path.parent().unwrap().join(&beatmap_info.audio_path);
     let file = BufReader::new(File::open(audio_path).unwrap());
     let source = Decoder::new(file).unwrap();
 
@@ -557,7 +570,7 @@ impl Client {
 
     audio.set_playing(false);
     audio.set_source(source);
-    audio.set_position(Time::from_ms(beatmap.preview_time as f64));
+    audio.set_position(Time::from_ms(beatmap_info.preview_time as f64));
     audio.set_playing(true);
   }
 }

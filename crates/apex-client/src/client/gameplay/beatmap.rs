@@ -1,35 +1,31 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use ahash::AHashMap;
 use intbits::Bits;
 use log::warn;
 
 use apex_framework::time::time::Time;
+use smart_default::SmartDefault;
 
 use super::taiko_hit_object::{TaikoColor, TaikoHitObject};
 
-#[derive(Debug, Clone)]
+// Beatmap timing-related structs
+#[derive(SmartDefault, Debug, Clone)]
 pub struct TimingPoint {
+  #[default(Time::zero())]
   pub time: Time,
+
+  #[default = 60.0]
   pub bpm: f64,
 }
 
-impl Default for TimingPoint {
-  fn default() -> Self {
-    return Self { time: Time::zero(), bpm: 60.0 };
-  }
-}
-
-#[derive(Debug, Clone)]
+#[derive(SmartDefault, Debug, Clone)]
 pub struct VelocityPoint {
+  #[default(Time::zero())]
   pub time: Time,
-  pub velocity: f64,
-}
 
-impl Default for VelocityPoint {
-  fn default() -> Self {
-    return Self { time: Time::zero(), velocity: 1.0 };
-  }
+  #[default = 1.0]
+  pub velocity: f64,
 }
 
 #[derive(Debug, Clone)]
@@ -38,6 +34,38 @@ pub struct BreakPoint {
   pub end: Time,
 }
 
+/// Unique local identifier for a beatmap.
+///
+/// May change when the beatmap is changed, usually does not change with new game versions. Used to differentiate
+/// beatmaps in client code, most commonly in the beatmap cache and in other clientside beatmap logic. Never rely on
+/// this id to uniquely identify a beatmap across multiple game clients! If needed, use online ids with hash checks, or
+/// anything else that is guaranteed to be invalidated on any changes to the file and allows updates.
+///
+/// We can't rely on the beatmap's path because it can be changed by the user or between game versions easily without
+/// affecting the beatmap itself. Also we can't go with random ids because they change every restart if not stored in
+/// the beatmap files (which is a bad idea too).
+///
+/// For that reason, we use a blake3 hash of certain beatmap data. Generally, the possible kinds of relevant beatmap
+/// data should not change between game versions which means we, for the most part, can safely rely on it's hash as a
+/// unique identifier. As a rule of thumb, we should not hash empty or default values, so the hashes are not affected
+/// by new fields being added.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct BeatmapHash(blake3::Hash);
+
+impl ToString for BeatmapHash {
+  fn to_string(&self) -> String {
+    return format!("{}", self.0);
+  }
+}
+
+impl Default for BeatmapHash {
+  fn default() -> Self {
+    let beatmap = Beatmap::default();
+    return beatmap.hash();
+  }
+}
+
+// TODO: getters, hide hash field
 #[derive(Clone)]
 pub struct Beatmap {
   pub hit_objects: Vec<TaikoHitObject>,
@@ -45,25 +73,82 @@ pub struct Beatmap {
   pub velocity_points: Vec<VelocityPoint>,
   pub break_points: Vec<BreakPoint>,
 
+  pub title: String,
+  pub artist: String,
+  pub creator: String,
+  pub variant: String,
+
+  pub hp_drain_rate: f32,
   pub overall_difficulty: f32,
+
   pub velocity_multiplier: f32,
 
-  pub audio: PathBuf,
+  pub file_path: PathBuf,
+  pub audio_path: PathBuf,
+  pub bg_path: PathBuf,
+
+  pub hash: Option<BeatmapHash>,
 }
 
 impl Default for Beatmap {
   fn default() -> Self {
     return Self {
       hit_objects: Vec::new(),
+
       timing_points: Vec::new(),
       velocity_points: Vec::new(),
       break_points: Vec::new(),
 
+      title: String::new(),
+      artist: String::new(),
+      creator: String::new(),
+      variant: String::new(),
+
+      hp_drain_rate: 5.0,
       overall_difficulty: 5.0,
+
       velocity_multiplier: 0.6,
 
-      audio: PathBuf::new(),
+      file_path: PathBuf::new(),
+      audio_path: PathBuf::new(),
+      bg_path: PathBuf::new(),
+
+      hash: None,
     };
+  }
+}
+
+impl Beatmap {
+  pub fn hash(&self) -> BeatmapHash {
+    return self.hash.unwrap_or_else(|| {
+      let mut hasher = blake3::Hasher::new();
+
+      for hit_object in &self.hit_objects {
+        hasher.update(&hit_object.time.to_seconds().to_le_bytes());
+        hasher.update(&[hit_object.color.is_kat() as u8]);
+        hasher.update(&[hit_object.big as u8]);
+      }
+
+      for timing_point in &self.timing_points {
+        hasher.update(&timing_point.time.to_seconds().to_le_bytes());
+        hasher.update(&timing_point.bpm.to_le_bytes());
+      }
+
+      for velocity_point in &self.velocity_points {
+        hasher.update(&velocity_point.time.to_seconds().to_le_bytes());
+        hasher.update(&velocity_point.velocity.to_le_bytes());
+      }
+
+      for break_point in &self.break_points {
+        hasher.update(&break_point.start.to_seconds().to_le_bytes());
+        hasher.update(&break_point.end.to_seconds().to_le_bytes());
+      }
+
+      hasher.update(&self.overall_difficulty.to_le_bytes());
+      hasher.update(&self.velocity_multiplier.to_le_bytes());
+
+      return BeatmapHash(hasher.finalize());
+    });
   }
 }
 
@@ -76,7 +161,12 @@ pub fn calc_hit_window_300(od: f32) -> Time {
 }
 
 impl Beatmap {
-  pub fn parse<T: AsRef<str>>(data: T) -> Self {
+  pub fn from_path(path: impl AsRef<Path>) -> Self {
+    let data = std::fs::read_to_string(path.as_ref()).unwrap();
+    return Self::parse(data, path.as_ref().to_owned());
+  }
+
+  pub fn parse<T: AsRef<str>>(data: T, file_path: PathBuf) -> Self {
     let data = data.as_ref();
     let mut objects = Vec::<TaikoHitObject>::new();
 
@@ -84,6 +174,7 @@ impl Beatmap {
     let mut velocity_points = Vec::<VelocityPoint>::new();
     let mut break_points = Vec::<BreakPoint>::new();
 
+    let mut bg_path = PathBuf::new();
     let mut property_map = AHashMap::<&str, AHashMap<&str, &str>>::new();
     let mut current_category = None::<&str>;
 
@@ -135,6 +226,15 @@ impl Beatmap {
         }
 
         Some("[Events]") => {
+          if line.contains(".jpg") || line.contains(".jpeg") || line.contains(".png") {
+            let Some(file_bg_path) = line.split("\"").nth(1) else {
+              warn!("Failed to bg path at line {}", i);
+              continue;
+            };
+
+            bg_path = file_bg_path.into();
+          }
+
           let mut parts = line.split(',');
           let Some(event_type) = parts.next() else {
             warn!("Failed to parse event type at line {}", i);
@@ -251,9 +351,22 @@ impl Beatmap {
       timing_points,
       velocity_points,
       break_points,
-      overall_difficulty: property_map["[Difficulty]"]["OverallDifficulty"].parse().expect("idk default OD, plz fix"),
+
+      title: property_map["[Metadata]"]["Title"].to_owned(),
+      artist: property_map["[Metadata]"]["Artist"].to_owned(),
+      creator: property_map["[Metadata]"]["Creator"].to_owned(),
+      variant: property_map["[Metadata]"]["Version"].to_owned(),
+
+      hp_drain_rate: property_map["[Difficulty]"]["HPDrainRate"].parse().unwrap_or(5.0),
+      overall_difficulty: property_map["[Difficulty]"]["OverallDifficulty"].parse().unwrap_or(5.0),
+
       velocity_multiplier: property_map["[Difficulty]"]["SliderMultiplier"].parse().unwrap_or(0.6),
-      audio: PathBuf::from(property_map["[General]"]["AudioFilename"]),
+
+      file_path,
+      audio_path: PathBuf::from(property_map["[General]"]["AudioFilename"]),
+      bg_path,
+
+      hash: None,
     };
   }
 }

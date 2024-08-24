@@ -5,7 +5,7 @@ use crate::client::gameplay::taiko_player::TaikoInput;
 
 use super::grades::Grade;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Score {
   pub(crate) date: Timestamp,
   pub(crate) username: String,

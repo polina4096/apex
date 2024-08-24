@@ -1,4 +1,4 @@
-use std::{fmt::Write as _, path::Path};
+use std::fmt::Write as _;
 
 use apex_framework::event::EventBus;
 use egui::Widget;
@@ -7,6 +7,7 @@ use tap::Tap as _;
 
 use crate::client::{
   event::ClientEvent,
+  gameplay::beatmap::BeatmapHash,
   score::{
     score::Score,
     score_cache::{ScoreCache, ScoreId},
@@ -24,7 +25,13 @@ impl BeatmapScores {
     return Self { event_bus, buffer: String::new() };
   }
 
-  pub fn prepare(&mut self, ui: &mut egui::Ui, score_cache: &ScoreCache, score_ids: &[ScoreId], path: &Path) {
+  pub fn prepare(
+    &mut self,
+    ui: &mut egui::Ui,
+    score_ids: &[ScoreId],
+    score_cache: &ScoreCache,
+    beatmap_hash: BeatmapHash,
+  ) {
     let color = egui::Color32::from_black_alpha(160);
     let rect = ui.cursor().tap_mut(|rect| {
       rect.min.y -= 2.0;
@@ -85,10 +92,7 @@ impl BeatmapScores {
         for (i, (score_id, score)) in sorted.iter().copied().enumerate() {
           write!(&mut self.buffer, "{}", i + 1).unwrap();
           if render_score(ui, score, &self.buffer).clicked() {
-            self.event_bus.send(ClientEvent::ViewScore {
-              path: path.to_owned(),
-              score_id: score_id,
-            });
+            self.event_bus.send(ClientEvent::ViewScore { beatmap_hash, score_id: score_id });
           }
           self.buffer.clear();
 

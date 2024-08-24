@@ -1,5 +1,4 @@
 use std::fmt::Write as _;
-use std::path::PathBuf;
 
 use ahash::AHashMap;
 use jiff::Timestamp;
@@ -7,6 +6,8 @@ use rusqlite::Connection;
 use tap::Tap;
 
 use apex_framework::time::time::Time;
+
+use crate::client::gameplay::beatmap::BeatmapHash;
 
 use super::{grades::Grade, score::Score};
 
@@ -21,7 +22,7 @@ impl Default for ScoreId {
 
 pub struct ScoreCache {
   conn: Connection,
-  cache: AHashMap<PathBuf, Vec<ScoreId>>,
+  cache: AHashMap<BeatmapHash, Vec<ScoreId>>,
   scores: Vec<Score>,
 }
 
@@ -54,10 +55,10 @@ impl ScoreCache {
     };
   }
 
-  pub fn beatmap_scores(&mut self, path: &PathBuf) -> Option<&[ScoreId]> {
+  pub fn beatmap_scores(&mut self, beatmap: BeatmapHash) -> Option<&[ScoreId]> {
     // polonius when
-    if self.cache.get(path).is_some() {
-      return self.cache.get(path).map(|x| x.as_slice());
+    if self.cache.get(&beatmap).is_some() {
+      return self.cache.get(&beatmap).map(|x| x.as_slice());
     }
 
     let mut stmt = self
@@ -70,7 +71,7 @@ impl ScoreCache {
       .unwrap();
 
     let scores = stmt
-      .query_map((path.to_str().unwrap(),), |row| {
+      .query_map((beatmap.to_string(),), |row| {
         let result_300 = row.get::<_, i64>(3).unwrap() as usize;
         let result_150 = row.get::<_, i64>(4).unwrap() as usize;
         let result_miss = row.get::<_, i64>(5).unwrap() as usize;
@@ -105,7 +106,7 @@ impl ScoreCache {
       })
       .unwrap();
 
-    let cache = self.cache.entry(path.clone()).or_default();
+    let cache = self.cache.entry(beatmap).or_default();
 
     for score in scores {
       let score = score.unwrap();
@@ -121,14 +122,14 @@ impl ScoreCache {
     return &self.scores[id.0];
   }
 
-  pub fn insert(&mut self, path: PathBuf, score: Score) -> ScoreId {
+  pub fn insert(&mut self, beatmap: BeatmapHash, score: Score) -> ScoreId {
     let id = ScoreId(self.scores.len());
 
     self.conn.execute(
       "insert into scores (path, date, username, score_points, result_300, result_150, result_miss, last_combo, max_combo, accuracy, hits)
        values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
        (
-          path.to_str().unwrap(),
+          beatmap.to_string(),
           score.date().as_millisecond(),
           score.username(),
           score.score_points() as i64,
@@ -148,7 +149,7 @@ impl ScoreCache {
     ).unwrap();
 
     self.scores.push(score);
-    self.cache.entry(path).or_default().push(id);
+    self.cache.entry(beatmap).or_default().push(id);
 
     return id;
   }

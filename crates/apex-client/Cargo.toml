@@ -61,6 +61,7 @@ instant = "0.1.12"
 # Data Structures
 ahash = "0.8.11"
 nohash-hasher = "0.2.0"
+blake3 = "1.5.4"
 dashmap = "6.0.1"
 indexmap = "2.4.0"
 triomphe = "0.1.13"

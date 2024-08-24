@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::collections::HashMap;
 
 use bytemuck::Zeroable;
 use glam::{vec2, vec3, vec4, Quat, Vec2, Vec4};
@@ -124,15 +124,7 @@ impl TaikoRenderer {
     let circle_overlay_texture = Texture::from_path("./assets/taikohitcircleoverlay.png", device, queue).unwrap();
     let finisher_overlay_texture = Texture::from_path("./assets/taikobigcircleoverlay.png", device, queue).unwrap();
 
-    let current_beatmap = Beatmap {
-      hit_objects: vec![],
-      timing_points: vec![],
-      velocity_points: vec![],
-      break_points: vec![],
-      overall_difficulty: 0.0,
-      velocity_multiplier: 0.0,
-      audio: PathBuf::new(),
-    };
+    let current_beatmap = Beatmap::default();
 
     let mut renderer = Self {
       scene,

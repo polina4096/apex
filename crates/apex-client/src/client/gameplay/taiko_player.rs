@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use apex_framework::time::{clock::AbstractClock as _, time::Time};
 
 use crate::client::{
@@ -46,7 +44,6 @@ pub enum BreakState {
 /// Logcial actions that a player can perform while playing taiko.
 pub struct TaikoPlayer {
   beatmap: Beatmap,
-  beatmap_path: PathBuf,
 
   // Memoized for performance reasons.
   hit_window_150: Time,
@@ -60,7 +57,6 @@ impl TaikoPlayer {
   pub fn new() -> Self {
     return Self {
       beatmap: Beatmap::default(),
-      beatmap_path: PathBuf::new(),
       hit_window_150: Time::zero(),
       hit_window_300: Time::zero(),
       current_circle: 0,
@@ -68,11 +64,10 @@ impl TaikoPlayer {
     };
   }
 
-  pub fn play(&mut self, beatmap: Beatmap, beatmap_path: PathBuf) {
+  pub fn play(&mut self, beatmap: Beatmap) {
     self.reset();
 
     self.beatmap = beatmap;
-    self.beatmap_path = beatmap_path;
     self.hit_window_150 = calc_hit_window_150(self.beatmap.overall_difficulty);
     self.hit_window_300 = calc_hit_window_300(self.beatmap.overall_difficulty);
   }
@@ -84,10 +79,6 @@ impl TaikoPlayer {
 
   pub fn beatmap(&self) -> &Beatmap {
     return &self.beatmap;
-  }
-
-  pub fn beatmap_path(&self) -> &PathBuf {
-    return &self.beatmap_path;
   }
 
   pub fn has_ended(&self, time: Time, audio: &GameAudio) -> bool {

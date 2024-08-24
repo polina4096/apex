@@ -1,4 +1,4 @@
-use std::{fs::File, io::BufReader, path::Path};
+use std::{fs::File, io::BufReader};
 
 use glam::{vec2, Vec2};
 use jiff::Timestamp;
@@ -172,12 +172,9 @@ impl GameplayScreen {
     }
   }
 
-  pub fn play(&mut self, beatmap_path: &Path, graphics: &Graphics, audio: &mut GameAudio) {
-    let data = std::fs::read_to_string(beatmap_path).unwrap();
-    let beatmap = Beatmap::parse(data);
-
+  pub fn play(&mut self, beatmap: Beatmap, graphics: &Graphics, audio: &mut GameAudio) {
     let config = audio.device().default_output_config().unwrap();
-    let audio_path = beatmap_path.parent().unwrap().join(&beatmap.audio);
+    let audio_path = beatmap.file_path.parent().unwrap().join(&beatmap.audio_path);
     let file = BufReader::new(File::open(audio_path).unwrap());
     let source = Decoder::new(file).unwrap();
 
@@ -192,7 +189,7 @@ impl GameplayScreen {
 
     self.hit_result_display.reset(graphics, &mut self.sprite_renderer);
     self.taiko_renderer.load_beatmap(&graphics.device, beatmap.clone());
-    self.taiko_player.play(beatmap, beatmap_path.to_owned());
+    self.taiko_player.play(beatmap);
     std::mem::take(&mut self.score_processor);
 
     audio.set_position(Time::zero() - audio.lead_in);
@@ -222,9 +219,9 @@ impl GameplayScreen {
 
     if self.taiko_player.has_ended(time, audio) {
       // Finish the play if beatmap is over.
-      let path = self.taiko_player.beatmap_path().clone();
+      let beatmap_hash = self.taiko_player.beatmap().hash();
       let score = self.score_processor.export(Timestamp::now(), settings.profile.user.username().clone());
-      self.event_bus.send(ClientEvent::ShowResultScreen { path, score });
+      self.event_bus.send(ClientEvent::ShowResultScreen { beatmap_hash, score });
     }
 
     self.hit_result_display.prepare(&core.graphics, &mut self.sprite_renderer);

@@ -9,14 +9,14 @@ use log::warn;
 
 use apex_framework::time::time::Time;
 
+use super::beatmap::{Beatmap, BeatmapHash};
+
 #[derive(Debug, Default, Clone)]
 pub struct BeatmapInfo {
   pub title: String,
   pub artist: String,
   pub creator: String,
   pub variant: String,
-  pub bg_path: PathBuf,
-  pub audio_path: PathBuf,
   pub preview_time: u64,
 
   pub difficulty: f64,
@@ -26,18 +26,25 @@ pub struct BeatmapInfo {
 
   pub hp_drain: f32,
   pub overall_difficulty: f32,
+
+  pub file_path: PathBuf,
+  pub audio_path: PathBuf,
+  pub bg_path: PathBuf,
 }
 
-impl<T: AsRef<str>> From<T> for BeatmapInfo {
-  fn from(data: T) -> Self {
+impl BeatmapInfo {
+  pub fn from_path(path: impl AsRef<Path>) -> Self {
+    let data = std::fs::read_to_string(path.as_ref()).unwrap();
+    return Self::parse(data, path.as_ref().to_owned());
+  }
+
+  pub fn parse<T: AsRef<str>>(data: T, file_path: PathBuf) -> Self {
     let data = data.as_ref();
     let mut beatmap_info = Self {
       title: String::new(),
       artist: String::new(),
       creator: String::new(),
       variant: String::new(),
-      bg_path: PathBuf::new(),
-      audio_path: PathBuf::new(),
       preview_time: 0,
 
       difficulty: 0.0,
@@ -47,6 +54,10 @@ impl<T: AsRef<str>> From<T> for BeatmapInfo {
 
       hp_drain: 0.0,
       overall_difficulty: 0.0,
+
+      file_path,
+      audio_path: PathBuf::new(),
+      bg_path: PathBuf::new(),
     };
 
     let r_beatmap = rosu_pp::Beatmap::from_str(data).unwrap();
@@ -124,7 +135,7 @@ impl<T: AsRef<str>> From<T> for BeatmapInfo {
 }
 
 pub struct BeatmapCache {
-  cache: IndexMap<PathBuf, BeatmapInfo, ahash::RandomState>,
+  cache: IndexMap<BeatmapHash, BeatmapInfo, ahash::RandomState>,
   last_update: Instant,
 }
 
@@ -182,30 +193,31 @@ impl BeatmapCache {
         continue;
       };
 
-      let path = entry.path();
+      let entry_path = entry.path();
 
-      if path.is_file() {
-        if let Some(extension) = path.extension() {
+      if entry_path.is_file() {
+        if let Some(extension) = entry_path.extension() {
           if extension == "osu" {
-            let data = std::fs::read_to_string(&path).unwrap();
-            let beatmap_info = BeatmapInfo::from(&data);
-            self.cache.insert(path, beatmap_info);
+            let data = std::fs::read_to_string(&entry_path).unwrap();
+            let beatmap = Beatmap::parse(&data, path.to_owned());
+            let beatmap_info = BeatmapInfo::parse(&data, entry_path.to_owned());
+            self.cache.insert(beatmap.hash(), beatmap_info);
           }
         }
       }
     }
   }
 
-  pub fn get(&self, path: &Path) -> Option<&BeatmapInfo> {
-    return self.cache.get(path);
+  pub fn get(&self, hash: BeatmapHash) -> Option<&BeatmapInfo> {
+    return self.cache.get(&hash);
   }
 
-  pub fn get_index(&self, idx: usize) -> Option<(&PathBuf, &BeatmapInfo)> {
-    return self.cache.get_index(idx);
+  pub fn get_index(&self, idx: usize) -> Option<(BeatmapHash, &BeatmapInfo)> {
+    return self.cache.get_index(idx).map(|(hash, beatmap_info)| (*hash, beatmap_info));
   }
 
-  pub fn iter(&self) -> impl Iterator<Item = (&PathBuf, &BeatmapInfo)> {
-    return self.cache.iter();
+  pub fn iter(&self) -> impl Iterator<Item = (BeatmapHash, &BeatmapInfo)> {
+    return self.cache.iter().map(|(hash, beatmap_info)| (*hash, beatmap_info));
   }
 
   pub fn last_update(&self) -> Instant {

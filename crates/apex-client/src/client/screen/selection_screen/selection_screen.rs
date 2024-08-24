@@ -1,9 +1,7 @@
-use std::path::PathBuf;
-
 use crate::client::{
   client::Client,
   event::ClientEvent,
-  gameplay::{beatmap_cache::BeatmapCache, beatmap_selector::BeatmapSelector},
+  gameplay::{beatmap::BeatmapHash, beatmap_cache::BeatmapCache, beatmap_selector::BeatmapSelector},
   score::score_cache::ScoreCache,
   settings::Settings,
   ui::beatmap_selection::BeatmapSelectionView,
@@ -48,8 +46,8 @@ impl SelectionScreen {
     self.beatmap_selection.scroll_to_selected();
   }
 
-  pub fn update_scores(&mut self, score_cache: &mut ScoreCache, path: &PathBuf) {
-    self.beatmap_selection.update_scores(score_cache, path);
+  pub fn update_scores(&mut self, score_cache: &mut ScoreCache, beatmap_hash: BeatmapHash) {
+    self.beatmap_selection.update_scores(score_cache, beatmap_hash);
   }
 
   pub fn beatmap_selector(&self) -> &BeatmapSelector {

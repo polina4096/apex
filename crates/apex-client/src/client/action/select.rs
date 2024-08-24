@@ -12,12 +12,12 @@ impl Action<Client> for Select {
     match client.game_state {
       GameState::Selection => {
         let selected_idx = client.selection_screen.beatmap_selector().selected();
-        #[rustfmt::skip] let Some((path, _)) = client.beatmap_cache.get_index(selected_idx) else {
+        #[rustfmt::skip] let Some((hash, _)) = client.beatmap_cache.get_index(selected_idx) else {
           log::error!("Failed to select beatmap, no beatmap with cache idx `{}` found.", selected_idx);
           return true;
          };
 
-        client.event_bus.send(ClientEvent::PickBeatmap { path: path.clone() });
+        client.event_bus.send(ClientEvent::PickBeatmap { beatmap_hash: hash });
 
         return true;
       }

@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use action_bar::ActionBar;
 use apex_framework::{
   core::Core,
@@ -17,7 +15,11 @@ use tap::Tap;
 use crate::client::{
   client::Client,
   event::ClientEvent,
-  gameplay::{beatmap::Beatmap, beatmap_cache::BeatmapCache, beatmap_selector::BeatmapSelector},
+  gameplay::{
+    beatmap::{Beatmap, BeatmapHash},
+    beatmap_cache::BeatmapCache,
+    beatmap_selector::BeatmapSelector,
+  },
   score::score_cache::{ScoreCache, ScoreId},
   settings::Settings,
 };
@@ -32,7 +34,7 @@ pub mod beatmap_scores;
 pub mod beatmap_stats;
 
 pub struct BeatmapSelectionView {
-  prev_beatmap: PathBuf,
+  prev_beatmap: BeatmapHash,
   score_ids: Vec<ScoreId>,
 
   beatmap_bg: BackgroundComponent,
@@ -52,13 +54,13 @@ impl BeatmapSelectionView {
     settings: &Settings,
   ) -> Self {
     let mut beatmap_cards = vec![];
-    for (path, info) in beatmap_cache.iter() {
-      let card = BeatmapCard::new(path, info);
+    for (_, info) in beatmap_cache.iter() {
+      let card = BeatmapCard::new(info);
       beatmap_cards.push(card);
     }
 
     return Self {
-      prev_beatmap: PathBuf::new(),
+      prev_beatmap: BeatmapHash::default(),
       score_ids: Vec::new(),
 
       beatmap_bg: BackgroundComponent::new(""),
@@ -157,24 +159,25 @@ impl BeatmapSelectionView {
     }
 
     let selected = selector.selected();
-    let Some((path, info)) = beatmap_cache.get_index(selected) else {
+    let Some((beatmap_hash, info)) = beatmap_cache.get_index(selected) else {
       // TODO: Show error message no beatmaps found
       return;
     };
 
-    if self.prev_beatmap != *path {
-      self.prev_beatmap = path.clone();
+    if self.prev_beatmap != beatmap_hash {
+      self.prev_beatmap = beatmap_hash;
 
-      let bg_path = path.parent().unwrap().join(&info.bg_path);
+      let base_path = info.file_path.parent().unwrap();
+      let bg_path = base_path.join(&info.bg_path);
       let bg = format!("file://{}", bg_path.to_str().unwrap());
       self.beatmap_bg = BackgroundComponent::new(bg);
 
-      let data = std::fs::read_to_string(path).unwrap();
-      let beatmap = Beatmap::parse(data);
+      let data = std::fs::read_to_string(&info.file_path).unwrap();
+      let beatmap = Beatmap::parse(data, base_path.to_owned());
 
       self.beatmap_preview.change_beatmap(&core.graphics, core.egui.renderer_mut(), &beatmap);
 
-      self.update_scores(score_cache, path);
+      self.update_scores(score_cache, beatmap_hash);
     }
 
     let (egui_ctx, egui_renderer) = core.egui.ctx_renderer_mut();
@@ -194,7 +197,7 @@ impl BeatmapSelectionView {
                   ui.add_space(8.0);
                   self.beatmap_preview.prepare(ui, clock, egui_renderer);
                   ui.add_space(8.0);
-                  self.beatmap_scores.prepare(ui, score_cache, &self.score_ids, path);
+                  self.beatmap_scores.prepare(ui, &self.score_ids, score_cache, beatmap_hash);
                 });
             });
 
@@ -210,9 +213,9 @@ impl BeatmapSelectionView {
     });
   }
 
-  pub fn update_scores(&mut self, score_cache: &mut ScoreCache, path: &PathBuf) {
+  pub fn update_scores(&mut self, score_cache: &mut ScoreCache, beatmap: BeatmapHash) {
     self.score_ids.clear();
-    if let Some(score_ids) = score_cache.beatmap_scores(path) {
+    if let Some(score_ids) = score_cache.beatmap_scores(beatmap) {
       self.score_ids.extend(score_ids.iter());
     }
   }

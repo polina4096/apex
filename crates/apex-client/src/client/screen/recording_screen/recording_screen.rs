@@ -24,9 +24,9 @@ impl RecordingScreen {
   }
 
   pub fn prepare(&mut self, core: &Core<Client>, beatmap_idx: usize, beatmap_cache: &BeatmapCache) {
-    if let Some(path) = beatmap_cache.get_index(beatmap_idx).map(|x| x.0) {
-      if self.beatmap_path != *path {
-        self.beatmap_path = path.clone();
+    if let Some((_, info)) = beatmap_cache.get_index(beatmap_idx) {
+      if self.beatmap_path != info.file_path {
+        self.beatmap_path = info.file_path.clone();
       }
     }
 

@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use apex_framework::{core::Core, time::time::Time};
 use egui::ImageSource;
 use jiff::fmt::strtime;
@@ -14,7 +12,6 @@ use crate::client::{
   score::{
     judgement_processor::{check_hit, Judgement},
     score::Score,
-    score_cache::{ScoreCache, ScoreId},
   },
 };
 
@@ -24,63 +21,58 @@ pub struct PlayResultsView {
   background: BackgroundComponent,
   beatmap_stats: BeatmapStats,
   beatmap_info: BeatmapInfo,
-  score_id: ScoreId,
+  score: Score,
   hits: Vec<(Time, Time, Judgement)>,
 }
 
 impl PlayResultsView {
-  pub fn new(
-    source: impl Into<ImageSource<'static>>,
-    beatmap: &Path,
-    beatmap_info: BeatmapInfo,
-    score_id: ScoreId,
-    score_cache: &ScoreCache,
-  ) -> Self {
+  pub fn new(source: impl Into<ImageSource<'static>>, beatmap: Beatmap, score: Score) -> Self {
     let image = source.into();
     let background = BackgroundComponent::new(image.clone());
     let beatmap_stats = BeatmapStats::new();
 
-    let score = score_cache.score_details(score_id);
     let mut hits = Vec::with_capacity(score.hits.len());
-    if let Ok(data) = std::fs::read_to_string(beatmap) {
-      let beatmap = Beatmap::parse(data);
+    let mut current_circle = 0;
+    for (hit_time, hit_input) in score.hits.iter().copied() {
+      let hit_window_300 = calc_hit_window_300(beatmap.overall_difficulty);
+      let hit_window_150 = calc_hit_window_150(beatmap.overall_difficulty);
 
-      let mut current_circle = 0;
-      for (hit_time, hit_input) in score.hits.iter().copied() {
-        let hit_window_300 = calc_hit_window_300(beatmap.overall_difficulty);
-        let hit_window_150 = calc_hit_window_150(beatmap.overall_difficulty);
+      while let Some(hit_object) = beatmap.hit_objects.get(current_circle) {
+        let hit_window_end_time = hit_object.time + hit_window_150;
 
-        while let Some(hit_object) = beatmap.hit_objects.get(current_circle) {
-          let hit_window_end_time = hit_object.time + hit_window_150;
+        if hit_window_end_time >= hit_time {
+          if let Some(result) = check_hit(hit_time, hit_object, hit_input, hit_window_150, hit_window_300) {
+            hits.push((hit_time, result.hit_delta, result.judgement));
 
-          if hit_window_end_time >= hit_time {
-            if let Some(result) = check_hit(hit_time, hit_object, hit_input, hit_window_150, hit_window_300) {
-              hits.push((hit_time, result.hit_delta, result.judgement));
-
-              current_circle += 1;
-              break;
-            }
+            current_circle += 1;
+            break;
           }
-
-          // Unhit hit object which can not be hit anymore counts as a miss.
-          hits.push((hit_time, hit_object.time - hit_time, Judgement::Miss));
-
-          current_circle += 1;
         }
+
+        // Unhit hit object which can not be hit anymore counts as a miss.
+        hits.push((hit_time, hit_object.time - hit_time, Judgement::Miss));
+
+        current_circle += 1;
       }
     }
+
+    // TODO: bad, please fix
+    let beatmap_info = if beatmap.file_path.exists() {
+      BeatmapInfo::from_path(beatmap.file_path)
+    } else {
+      BeatmapInfo::default()
+    };
 
     return Self {
       background,
       beatmap_stats,
       beatmap_info,
-      score_id,
+      score,
       hits,
     };
   }
 
-  pub fn prepare(&mut self, core: &Core<Client>, score_cache: &ScoreCache) {
-    let score = score_cache.score_details(self.score_id);
+  pub fn prepare(&mut self, core: &Core<Client>) {
     egui::CentralPanel::default().frame(egui::Frame::none()).show(core.egui.ctx(), |ui| {
       self.background.prepare(ui);
       egui::Frame::none().show(ui, |ui| {
@@ -125,7 +117,7 @@ impl PlayResultsView {
 
                                   ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                                     ui.add(egui::Label::new(
-                                      egui::RichText::new(format!("{}", score.score_points())) //
+                                      egui::RichText::new(format!("{}", self.score.score_points())) //
                                         .size(16.0),
                                     ));
                                   });
@@ -135,13 +127,13 @@ impl PlayResultsView {
                                 ui.separator();
                                 ui.add_space(8.0);
 
-                                self.render_results_grid(ui, score);
+                                self.render_results_grid(ui);
                                 height -= ui.cursor().min.y;
                               });
                             });
 
                             strip.cell(|ui| {
-                              self.render_general_info(ui, height.abs(), score);
+                              self.render_general_info(ui, height.abs(), &self.score);
                             });
                           });
                       });
@@ -294,7 +286,7 @@ impl PlayResultsView {
       });
   }
 
-  fn render_results_grid(&mut self, ui: &mut egui::Ui, score: &Score) {
+  fn render_results_grid(&mut self, ui: &mut egui::Ui) {
     egui::Grid::new("results_grid") //
       .num_columns(2)
       .spacing([40.0, 4.0])
@@ -309,7 +301,7 @@ impl PlayResultsView {
           ));
 
           ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            ui.add(egui::Label::new(egui::RichText::new(format!("{}x", score.result_300s())).size(16.0).strong()));
+            ui.add(egui::Label::new(egui::RichText::new(format!("{}x", self.score.result_300s())).size(16.0).strong()));
           });
 
           ui.end_row();
@@ -324,7 +316,7 @@ impl PlayResultsView {
           ));
 
           ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            ui.add(egui::Label::new(egui::RichText::new(format!("{}x", score.result_150s())).size(16.0).strong()));
+            ui.add(egui::Label::new(egui::RichText::new(format!("{}x", self.score.result_150s())).size(16.0).strong()));
           });
 
           ui.end_row();
@@ -339,7 +331,9 @@ impl PlayResultsView {
           ));
 
           ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            ui.add(egui::Label::new(egui::RichText::new(format!("{}x", score.result_misses())).size(16.0).strong()));
+            ui.add(egui::Label::new(
+              egui::RichText::new(format!("{}x", self.score.result_misses())).size(16.0).strong(),
+            ));
           });
 
           ui.end_row();

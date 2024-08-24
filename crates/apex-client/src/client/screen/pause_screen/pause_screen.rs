@@ -129,8 +129,8 @@ impl PauseScreen {
             let delay_adjusted_position = delay_adjusted_position.max(Time::zero());
 
             let selected = selection_screen.beatmap_selector().selected();
-            if let Some((path, beatmap)) = beatmap_cache.get_index(selected) {
-              Client::play_beatmap_audio_unchecked(audio, path, beatmap);
+            if let Some((_, beatmap)) = beatmap_cache.get_index(selected) {
+              Client::play_beatmap_audio_unchecked(audio, &beatmap.file_path, beatmap);
               audio.set_position(delay_adjusted_position);
             };
           });

@@ -42,8 +42,8 @@ impl BeatmapList {
       self.last_update = Instant::now();
       self.beatmap_cards.clear();
 
-      for (path, info) in beatmap_cache.iter() {
-        let card = BeatmapCard::new(path, info);
+      for (_, info) in beatmap_cache.iter() {
+        let card = BeatmapCard::new(info);
         self.beatmap_cards.push(card);
       }
     }
@@ -143,7 +143,7 @@ impl BeatmapList {
                     self.event_bus.send(ClientEvent::SelectBeatmap);
 
                     if is_selected && !clicked_secondary {
-                      self.event_bus.send(ClientEvent::PickBeatmap { path: path.clone() });
+                      self.event_bus.send(ClientEvent::PickBeatmap { beatmap_hash: path.clone() });
                     }
                   }
                 });

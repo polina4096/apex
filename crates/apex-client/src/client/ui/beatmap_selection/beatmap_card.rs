@@ -1,9 +1,11 @@
-use std::path::Path;
-
 use apex_framework::event::EventBus;
 use egui::Widget;
 
-use crate::client::{event::ClientEvent, gameplay::beatmap_cache::BeatmapInfo, ui::card_component::CardComponent};
+use crate::client::{
+  event::ClientEvent,
+  gameplay::{beatmap::BeatmapHash, beatmap_cache::BeatmapInfo},
+  ui::card_component::CardComponent,
+};
 
 pub struct BeatmapCard {
   card: CardComponent,
@@ -14,8 +16,8 @@ pub struct BeatmapCard {
 }
 
 impl BeatmapCard {
-  pub fn new(path: &Path, info: &BeatmapInfo) -> Self {
-    let bg = path.parent().unwrap().join(&info.bg_path);
+  pub fn new(info: &BeatmapInfo) -> Self {
+    let bg = info.file_path.parent().unwrap().join(&info.bg_path);
     let bg = format!("file://{}", bg.to_str().unwrap());
 
     return Self {
@@ -31,7 +33,7 @@ impl BeatmapCard {
     &mut self,
     ui: &mut egui::Ui,
     selected: bool,
-    path: &Path,
+    beatmap_hash: BeatmapHash,
     bus: &EventBus<ClientEvent>,
   ) -> egui::Response {
     self.card.selected = selected;
@@ -74,8 +76,7 @@ impl BeatmapCard {
 
       let text = egui::RichText::new("Play").size(FONT_SIZE);
       if ui.button(text).clicked() {
-        let path = path.to_owned();
-        bus.send(ClientEvent::PickBeatmap { path });
+        bus.send(ClientEvent::PickBeatmap { beatmap_hash });
 
         ui.close_menu();
       }
