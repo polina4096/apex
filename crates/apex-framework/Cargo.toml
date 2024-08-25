@@ -44,14 +44,14 @@ pollster = { version = "0.3.0", features = ["macro"] }
 intbits = "0.2.0"
 bytemuck = "1.17.0"
 toml = "0.8.19"
-serde = { version = "1.0.208", features = ["derive"] }
+serde = { version = "1.0.209", features = ["derive"] }
 image = { version = "0.25.2", features = ["jpeg", "png"] }
 zip = "2.2.0"
 
 # Maths, Time
 glam = { version = "0.29.0", features = ["bytemuck", "serde"] }
 num-traits = "0.2.19"
-jiff = "0.1.8"
+jiff = "0.1.10"
 instant = "0.1.12"
 
 # Data Structures

@@ -124,11 +124,11 @@ impl BeatmapList {
 
               for orig_idx in selector.matched().skip(if min_row == 0 { min_row } else { min_row - 1 }).take(max_row) {
                 let card = &mut self.beatmap_cards[orig_idx];
-                let (path, _) = beatmap_cache.get_index(orig_idx).unwrap();
+                let (beatmap_hash, _) = beatmap_cache.get_index(orig_idx).unwrap();
 
                 ui.push_id(orig_idx, |ui| {
                   let is_selected = orig_idx == selected_idx;
-                  let response = card.prepare(ui, is_selected, path, &self.event_bus);
+                  let response = card.prepare(ui, is_selected, beatmap_hash, &self.event_bus);
                   let sense = response.interact(egui::Sense::click());
 
                   let clicked_secondary = sense.clicked_by(egui::PointerButton::Secondary);
@@ -143,7 +143,7 @@ impl BeatmapList {
                     self.event_bus.send(ClientEvent::SelectBeatmap);
 
                     if is_selected && !clicked_secondary {
-                      self.event_bus.send(ClientEvent::PickBeatmap { beatmap_hash: path.clone() });
+                      self.event_bus.send(ClientEvent::PickBeatmap { beatmap_hash });
                     }
                   }
                 });

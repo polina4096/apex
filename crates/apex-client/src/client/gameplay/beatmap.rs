@@ -52,9 +52,9 @@ pub struct BreakPoint {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct BeatmapHash(blake3::Hash);
 
-impl ToString for BeatmapHash {
-  fn to_string(&self) -> String {
-    return format!("{}", self.0);
+impl std::fmt::Display for BeatmapHash {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    return write!(f, "{}", self.0);
   }
 }
 
