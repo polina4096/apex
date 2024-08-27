@@ -54,16 +54,16 @@ impl GraphicsGeneralSettingsSubgroupProxy for ClientSettingsProxy<'_, '_> {
 
   fn update_present_mode(&mut self, value: &PresentModeOptions) {
     self.config.present_mode = (*value).into();
-    self.proxy.send_event(CoreEvent::ReconfigureSurface).unwrap();
+    self.event_bus.dispatch(CoreEvent::ReconfigureSurface);
   }
 
   fn update_rendering_backend(&mut self, _value: &RenderingBackend) {
-    self.proxy.send_event(CoreEvent::RecreateGraphicsContext).unwrap();
+    self.event_bus.dispatch(CoreEvent::RecreateGraphicsContext);
   }
 
   fn update_max_frame_latency(&mut self, value: &usize) {
     self.config.desired_maximum_frame_latency = *value as u32;
-    self.proxy.send_event(CoreEvent::ReconfigureSurface).unwrap();
+    self.event_bus.dispatch(CoreEvent::ReconfigureSurface);
   }
 
   fn update_macos_stutter_fix(&mut self, value: &bool) {

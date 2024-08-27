@@ -210,7 +210,7 @@ impl App for Client {
     }
 
     let mut proxy = ClientSettingsProxy {
-      proxy: &core.proxy,
+      event_bus: &core.event_bus,
 
       frame_limiter: &mut core.frame_limiter,
       frame_sync: &mut core.frame_sync,

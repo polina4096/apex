@@ -1,4 +1,4 @@
-use std::{num::NonZero, sync::atomic::AtomicBool};
+use std::sync::atomic::AtomicBool;
 
 use tap::Tap as _;
 use triomphe::Arc;
@@ -8,7 +8,10 @@ use winit::{
   window::Window,
 };
 
-use crate::graphics::presentation::{frame_limiter::FrameLimiter, frame_sync::FrameSync};
+use crate::{
+  event::EventBus,
+  graphics::presentation::{frame_limiter::FrameLimiter, frame_sync::FrameSync},
+};
 
 use super::{
   app::App,
@@ -17,7 +20,7 @@ use super::{
 };
 
 pub struct Core<A: App> {
-  pub proxy: EventLoopProxy<CoreEvent<A::Event>>,
+  pub event_bus: EventBus<A::Event>,
   pub window: Arc<Window>,
   pub frame_limiter: FrameLimiter,
   pub frame_sync: FrameSync,
@@ -33,6 +36,8 @@ impl<A: App> Core<A> {
     app_focus: Arc<AtomicBool>,
     graphics: Graphics,
   ) -> Self {
+    let event_bus = EventBus::new(proxy);
+
     let egui = Egui::new(event_loop, &graphics).tap(|egui| {
       egui.ctx().tap_deref(|ctx| {
         ctx.set_visuals(egui::Visuals::dark().tap_mut(|visuals| {
@@ -49,11 +54,11 @@ impl<A: App> Core<A> {
       });
     });
 
-    let frame_limiter = FrameLimiter::new(Some(NonZero::new(60).unwrap()), app_focus.clone());
+    let frame_limiter = FrameLimiter::new(Some(nz::u16!(60)), app_focus.clone());
     let frame_sync = FrameSync::new(app_focus.clone());
 
     return Self {
-      proxy,
+      event_bus,
       window,
       frame_limiter,
       frame_sync,
@@ -106,6 +111,6 @@ impl<A: App> Core<A> {
   }
 
   pub fn exit(&self) {
-    self.proxy.send_event(CoreEvent::Exit).unwrap();
+    self.event_bus.dispatch(CoreEvent::Exit);
   }
 }

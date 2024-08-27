@@ -13,20 +13,21 @@ workspace = true
 apex-framework = { path = "../apex-framework" }
 
 # OS
-atty = "0.2.14"
 mimalloc = { version = "0.1.43", optional = true }
 
-# Logging
+# Logging, Error Handling
 log = "0.4.22"
-pretty_env_logger = "0.5.0"
+simplelog = "0.12.2"
 color-eyre = "0.6.3"
 
 # Utility
 paste = "1.0.15"
 macro_rules_attribute = "0.2.0"
 smart-default = "0.7.1"
+thiserror = "1.0.63"
 cfg-if = "1.0.0"
 tap = "1.0.1"
+nz = "0.4.1"
 
 # Graphics
 wgpu = "22.1.0"

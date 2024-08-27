@@ -1,11 +1,10 @@
 use apex_framework::{
-  event::CoreEvent,
+  event::EventBus,
   graphics::{
     framebuffer::framebuffer::Framebuffer,
     presentation::{frame_limiter::FrameLimiter, frame_sync::FrameSync},
   },
 };
-use winit::event_loop::EventLoopProxy;
 
 use crate::client::{
   audio::game_audio::GameAudio, event::ClientEvent, screen::gameplay_screen::gameplay_screen::GameplayScreen,
@@ -17,7 +16,7 @@ use super::{
 };
 
 pub struct ClientSettingsProxy<'a, 'window> {
-  pub proxy: &'a EventLoopProxy<CoreEvent<ClientEvent>>,
+  pub event_bus: &'a EventBus<ClientEvent>,
 
   pub frame_limiter: &'a mut FrameLimiter,
   pub frame_sync: &'a mut FrameSync,

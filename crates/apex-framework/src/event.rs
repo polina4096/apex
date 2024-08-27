@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use winit::event_loop::EventLoopProxy;
+use winit::event_loop::{EventLoopClosed, EventLoopProxy};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum CoreEvent<T> {
@@ -27,6 +27,12 @@ impl<T: Debug> EventBus<T> {
   }
 
   pub fn send(&self, event: T) {
-    self.proxy.send_event(CoreEvent::User(event)).unwrap();
+    self.dispatch(CoreEvent::User(event));
+  }
+
+  pub fn dispatch(&self, event: CoreEvent<T>) {
+    if let Err(EventLoopClosed(event)) = self.proxy.send_event(event) {
+      log::error!("Failed to send {:?} through EventLoopProxy.", event);
+    }
   }
 }
