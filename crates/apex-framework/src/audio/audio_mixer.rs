@@ -119,7 +119,7 @@ pub struct AudioController {
 
 impl AudioController {
   pub fn play_sound(&self, sound: impl Source<Item = f32> + Send + Sync + 'static) {
-    self.tx.send(AudioMixerEvent::PlaySound(Box::new(sound))).unwrap();
+    self.tx.send(AudioMixerEvent::PlaySound(Box::new(sound))).expect("audio engine recv closed");
   }
 
   pub fn play_audio(&self, source: impl Source<Item = f32> + Send + Sync + 'static) {
@@ -127,14 +127,14 @@ impl AudioController {
   }
 
   pub fn set_master_volume(&self, volume: f32) {
-    self.tx.send(AudioMixerEvent::SetMasterVolume(volume)).unwrap();
+    self.tx.send(AudioMixerEvent::SetMasterVolume(volume)).expect("audio engine recv closed");
   }
 
   pub fn set_audio_volume(&self, volume: f32) {
-    self.tx.send(AudioMixerEvent::SetAudioVolume(volume)).unwrap();
+    self.tx.send(AudioMixerEvent::SetAudioVolume(volume)).expect("audio engine recv closed");
   }
 
   pub fn set_sound_volume(&self, volume: f32) {
-    self.tx.send(AudioMixerEvent::SetSoundVolume(volume)).unwrap();
+    self.tx.send(AudioMixerEvent::SetSoundVolume(volume)).expect("audio engine recv closed");
   }
 }

@@ -1,7 +1,24 @@
 use std::sync::atomic::AtomicBool;
 
+use display_link::{PauseError, ResumeError};
+use thiserror::Error;
 use triomphe::Arc;
 use winit::window::Window;
+
+#[derive(Error, Debug)]
+pub enum ExternalSyncError {
+  #[error("no active window for FrameSync was set")]
+  WindowUnset,
+
+  #[error("failed to initialize display link")]
+  DisplayLinkInitFailed,
+
+  #[error("failed to resume display link")]
+  DisplayLinkResumeFailed(#[from] ResumeError),
+
+  #[error("failed to pause display link")]
+  DisplayLinkPauseFailed(#[from] PauseError),
+}
 
 pub struct FrameSync {
   #[allow(dead_code)]
@@ -39,7 +56,7 @@ impl FrameSync {
   }
 
   #[allow(clippy::result_unit_err)]
-  pub fn enable_external_sync(&mut self) -> Result<(), ()> {
+  pub fn enable_external_sync(&mut self) -> Result<(), ExternalSyncError> {
     #[cfg(target_os = "macos")]
     {
       use std::sync::atomic::Ordering;
@@ -47,13 +64,13 @@ impl FrameSync {
 
       // Setup CVDisplayLink
       let Some(window) = self.current_window.clone() else {
-        return Err(());
+        return Err(ExternalSyncError::WindowUnset);
       };
 
       let app_focus = self.app_focus.clone();
 
       // This will be called on every vsync.
-      let mut display_link = display_link::DisplayLink::new(move |_ts| {
+      let Some(mut display_link) = display_link::DisplayLink::new(move |_ts| {
         if macos_stutter_fix {
           // Make sure to request redraws only when the window is visible to prevent massive stutters :D
           if app_focus.load(Ordering::Relaxed) && window.is_visible().unwrap_or(false) {
@@ -62,11 +79,12 @@ impl FrameSync {
         } else {
           window.request_redraw();
         }
-      })
-      .unwrap();
+      }) else {
+        return Err(ExternalSyncError::DisplayLinkInitFailed);
+      };
 
       // Start the CVDisplayLink
-      display_link.resume().unwrap();
+      display_link.resume()?;
 
       // CVDisplayLink must live as long it's used, otherwise nothing will happen.
       self.display_link = Some(display_link);
@@ -75,13 +93,15 @@ impl FrameSync {
     return Ok(());
   }
 
-  pub fn disable_external_sync(&mut self) {
+  pub fn disable_external_sync(&mut self) -> Result<(), ExternalSyncError> {
     #[cfg(target_os = "macos")]
     {
       // Stop the CVDisplayLink
       if let Some(mut display_link) = self.display_link.take() {
-        display_link.pause().unwrap();
+        display_link.pause()?;
       }
     }
+
+    return Ok(());
   }
 }

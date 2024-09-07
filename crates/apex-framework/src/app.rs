@@ -70,7 +70,13 @@ impl<A: App> ApplicationHandler<CoreEvent<A::Event>> for ApexFrameworkApplicatio
     let window_attrs = A::window_attrs() //
       .with_inner_size(LogicalSize::new(1200, 800));
 
-    let window = Arc::new(event_loop.create_window(window_attrs).unwrap());
+    let window = match event_loop.create_window(window_attrs) {
+      Ok(x) => Arc::new(x),
+      Err(e) => {
+        log::error!("Failed to create window: {:?}", e);
+        return;
+      }
+    };
 
     // Workaround for the first frame not being rendered on some platforms
     window.request_redraw();

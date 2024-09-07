@@ -1,12 +1,20 @@
 use log::error;
 use rodio::{Device, OutputStream, OutputStreamHandle, Sink, Source};
+use thiserror::Error;
 
 use crate::time::{
   clock::{AbstractClock, Clock},
   time::Time,
 };
 
-use super::OutputStreamExt as _;
+#[derive(Debug, Error)]
+pub enum AudioEngineError {
+  #[error("Failed to acquire output stream")]
+  StreamError(#[from] rodio::StreamError),
+
+  #[error("Failed to create audio sink")]
+  PlayError(#[from] rodio::PlayError),
+}
 
 pub struct AudioEngine {
   #[allow(unused)]
@@ -21,28 +29,29 @@ pub struct AudioEngine {
 }
 
 impl AudioEngine {
-  pub fn new() -> Self {
-    let (device, (stream, stream_handle)) = OutputStream::try_default_device().unwrap();
-    let sink = Sink::try_new(&stream_handle).unwrap();
+  pub fn try_new(device: rodio::Device) -> Result<Self, AudioEngineError> {
+    let (stream, stream_handle) = OutputStream::try_from_device(&device)?;
+    let sink = Sink::try_new(&stream_handle)?;
     let clock = Clock::new();
 
-    return Self {
+    return Ok(Self {
       stream,
       stream_handle,
       device,
       sink,
       clock,
-    };
+    });
   }
 
-  pub fn with_source<S>(source: S) -> Self
+  pub fn try_with_source<S>(device: rodio::Device, source: S) -> Result<Self, AudioEngineError>
   where
     S: Source<Item = f32> + Send + 'static,
   {
-    let mut engine = Self::new();
+    let mut engine = Self::try_new(device)?;
+
     engine.set_source(source);
 
-    return engine;
+    return Ok(engine);
   }
 
   pub fn set_source<S>(&mut self, source: S)

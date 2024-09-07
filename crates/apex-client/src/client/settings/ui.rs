@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 
 use egui::Widget as _;
+use rodio::{cpal::traits::HostTrait, DeviceTrait};
 use tap::Pipe as _;
 
 use apex_framework::{
@@ -8,7 +9,10 @@ use apex_framework::{
   graphics::color::Color,
 };
 
-use crate::client::graphics::{FrameLimiterOptions, PresentModeOptions, RenderingBackend, WgpuBackend};
+use crate::client::{
+  audio::AudioOutput,
+  graphics::{FrameLimiterOptions, PresentModeOptions, RenderingBackend, WgpuBackend},
+};
 
 macro_rules! make_numeric_ui {
   ( $($ty:ty)+ ) => {
@@ -95,11 +99,11 @@ pub fn ui_bool(ui: &mut egui::Ui, value: &bool, name: &'static str) -> Option<bo
 }
 
 pub fn ui_string(ui: &mut egui::Ui, value: &String, name: &'static str, opts: StringOpts) -> Option<String> {
-  let mut new_value = None;
-
   thread_local! {
     static BUFFER: RefCell<String> = const { RefCell::new(String::new()) };
   }
+
+  let mut new_value = None;
 
   let mut do_ui = |ui: &mut egui::Ui| {
     BUFFER.with_borrow_mut(|x| {
@@ -250,4 +254,61 @@ pub fn ui_present_mode_options(
   ui.add_space(2.0);
 
   return new_value;
+}
+
+pub fn ui_audio_output(ui: &mut egui::Ui, value: &AudioOutput, name: &'static str) -> Option<AudioOutput> {
+  thread_local! {
+    static DEVICES: RefCell<Vec<String>> = const { RefCell::new(Vec::new()) };
+  }
+
+  let mut refresh = false;
+
+  let value = DEVICES.with_borrow_mut(|devices| {
+    let mut new_value = None;
+
+    let mut selected = value.as_str();
+    let combo_box = egui::ComboBox::new("audio_output", name)
+      .selected_text(value.as_str_pretty())
+      .width(ui.available_width() - 192.0)
+      .show_ui(ui, |ui| {
+        ui.style_mut().visuals.selection.stroke = egui::Stroke::new(1.5, egui::Color32::from_gray(255));
+
+        if devices.is_empty() {
+          ui.selectable_value(&mut selected, "", "No Devices");
+          return;
+        }
+
+        if ui.selectable_value(&mut selected, "", "Default").changed() {
+          new_value = Some(selected);
+          return;
+        }
+
+        if devices.iter().any(|device| {
+          return ui.selectable_value(&mut selected, device, device).changed();
+        }) {
+          new_value = Some(selected);
+        }
+      });
+
+    if combo_box.response.clicked() {
+      refresh = true;
+    }
+
+    ui.add_space(2.0);
+
+    return new_value.map(AudioOutput::new);
+  });
+
+  if refresh {
+    match rodio::cpal::default_host().output_devices() {
+      Ok(new_devices) => DEVICES.set(new_devices.map(|x| x.name().unwrap_or_default()).collect()),
+
+      Err(e) => {
+        DEVICES.with_borrow_mut(|x| x.clear());
+        log::error!("Failed to get audio devices: {:?}", e);
+      }
+    }
+  }
+
+  return value;
 }

@@ -39,7 +39,7 @@ impl FrameLimiter {
 
     if let Some(mut fps) = self.target_fps {
       if !self.app_focus.load(Ordering::Relaxed) || !window.is_visible().unwrap_or(false) {
-        fps = NonZero::new(30).unwrap(); // fps when not focused
+        fps = nz::u16!(30); // fps when not focused
       }
 
       let now = Instant::now();

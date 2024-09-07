@@ -4,7 +4,9 @@ use crate::client::{
   settings::{proxy::ClientSettingsProxy, SettingsProxy},
 };
 
-use apex_framework::{event::CoreEvent, SettingsGroup, SettingsSubgroup};
+use apex_framework::{
+  event::CoreEvent, graphics::presentation::frame_sync::ExternalSyncError, SettingsGroup, SettingsSubgroup,
+};
 use macro_rules_attribute::derive;
 use serde::{Deserialize, Serialize};
 use smart_default::SmartDefault;
@@ -68,7 +70,14 @@ impl GraphicsGeneralSettingsSubgroupProxy for ClientSettingsProxy<'_, '_> {
 
   fn update_macos_stutter_fix(&mut self, value: &bool) {
     self.frame_sync.set_macos_stutter_fix(*value);
-    self.frame_sync.disable_external_sync();
-    self.frame_sync.enable_external_sync().unwrap();
+
+    if let Err(e) = (|| {
+      self.frame_sync.disable_external_sync()?;
+      self.frame_sync.enable_external_sync()?;
+
+      Ok::<(), ExternalSyncError>(())
+    })() {
+      log::error!("Failed to toggle macos stutter fix: {:?}", e);
+    }
   }
 }

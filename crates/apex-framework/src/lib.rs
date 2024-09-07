@@ -8,3 +8,4 @@ pub mod event;
 pub mod graphics;
 pub mod input;
 pub mod time;
+pub mod util;

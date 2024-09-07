@@ -449,8 +449,12 @@ impl Client {
       settings.audio.volume.effects_volume(),
     );
 
+    let device = settings.audio.output.audio_output_ref().device().unwrap();
     let (audio_mixer, audio_controller) = audio::mixer(Empty::new(), m, a, s);
-    let audio_engine = AudioEngine::new().tap_mut(|x| x.set_source(audio_mixer));
+    let audio_engine = AudioEngine::try_new(device)
+      .expect("Failed to initialize audio engine")
+      .tap_mut(|x| x.set_source(audio_mixer));
+
     let mut audio = GameAudio::new(audio_engine, audio_controller)
       .with_lead_in(Time::from_ms(settings.gameplay.audio.lead_in() as f64))
       .with_lead_out(Time::from_ms(settings.gameplay.audio.lead_out() as f64));
@@ -582,7 +586,9 @@ pub fn reconfigure_frame_sync(
 ) {
   match options {
     FrameLimiterOptions::Custom(fps) => {
-      frame_sync.disable_external_sync();
+      if let Err(e) = frame_sync.disable_external_sync() {
+        log::error!("Failed to disable external frame sync: {:?}", e);
+      }
 
       frame_limiter.set_enabled(true);
       frame_limiter.set_target_fps(Some(NonZero::new(fps as u16).unwrap()));
@@ -595,7 +601,9 @@ pub fn reconfigure_frame_sync(
     }
 
     FrameLimiterOptions::Unlimited => {
-      frame_sync.disable_external_sync();
+      if let Err(e) = frame_sync.disable_external_sync() {
+        log::error!("Failed to disable external frame sync: {:?}", e);
+      }
 
       frame_limiter.set_enabled(true);
       frame_limiter.set_target_fps(None);

@@ -46,7 +46,13 @@ where
     assert!(sample_rate != 0);
 
     let data = data.into();
-    let duration_ns = 1_000_000_000u64.checked_mul(data.len() as u64).unwrap() / sample_rate as u64 / channels as u64;
+
+    let duration_ns = 1_000_000_000u64 //
+      .checked_mul(data.len() as u64)
+      .expect("length overflow")
+      / sample_rate as u64
+      / channels as u64;
+
     let duration = Duration::new(duration_ns / 1_000_000_000, (duration_ns % 1_000_000_000) as u32);
 
     return ArcSamplesBuffer {

@@ -7,13 +7,13 @@ use apex_framework::{
   },
   time::{clock::AbstractClock, time::Time},
 };
-use rodio::{source::UniformSourceIterator, Decoder, Device, DeviceTrait as _, Source, SupportedStreamConfig};
+use rodio::{source::UniformSourceIterator, Decoder, Device, DeviceTrait as _, Source};
 
 /// Audio wrapper which allows for leading and trailing additional delays, or other gameplay-specific things.
 pub struct GameAudio {
   audio_engine: AudioEngine,
   audio_controller: AudioController,
-  config: SupportedStreamConfig,
+  config: rodio::SupportedStreamConfig,
 
   /// Delay before the first hit object.
   pub lead_in: Time,

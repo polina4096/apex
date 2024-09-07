@@ -1,7 +1,3 @@
-#![feature(map_many_mut)]
-#![feature(adt_const_params)]
-#![allow(incomplete_features)]
-
 use apex_framework::{app::ApexFrameworkApplication, event::CoreEvent};
 use client::{client::Client, event::ClientEvent};
 
@@ -18,7 +14,7 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 pub fn create_event_loop() -> EventLoop<CoreEvent<ClientEvent>> {
   return EventLoop::<CoreEvent<ClientEvent>>::with_user_event()
     .build()
-    .expect("Failed to create event loop")
+    .expect("failed to create event loop")
     .tap_mut(|el| {
       el.set_control_flow(ControlFlow::Poll);
     });

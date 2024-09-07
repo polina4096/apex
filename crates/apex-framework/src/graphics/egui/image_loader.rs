@@ -24,7 +24,7 @@ pub struct BackgroundImageLoader {
 }
 
 impl BackgroundImageLoader {
-  pub const ID: &'static str = egui::generate_loader_id!(ImageCrateLoader);
+  pub const ID: &'static str = egui::generate_loader_id!(BackgroundImageLoader);
 
   pub fn new(ctx: egui::Context) -> Self {
     let (tx, rx) = std::sync::mpsc::channel::<String>();
@@ -124,7 +124,7 @@ impl ImageLoader for BackgroundImageLoader {
     }
 
     self.cache.insert(uri.to_owned(), ImageState::Pending { size: None });
-    self.sender.send(uri.to_owned()).unwrap();
+    self.sender.send(uri.to_owned()).expect("Failed to send uri to background image loader");
     return Ok(ImagePoll::Pending { size: None });
   }
 

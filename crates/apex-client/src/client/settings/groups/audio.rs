@@ -1,4 +1,7 @@
-use crate::client::settings::{proxy::ClientSettingsProxy, SettingsProxy};
+use crate::client::{
+  audio::AudioOutput,
+  settings::{proxy::ClientSettingsProxy, SettingsProxy},
+};
 
 use apex_framework::{SettingsGroup, SettingsSubgroup};
 use macro_rules_attribute::derive;
@@ -10,8 +13,19 @@ pub use super::super::ui as settings_ui;
 #[derive(SettingsGroup!, SmartDefault, Deserialize, Serialize, Debug, Clone)]
 #[serde(default)]
 pub struct AudioSettingsGroup {
+  #[custom(ui(name = "Output"))]
+  pub output: AudioOutputSettingsSubgroup,
+
   #[custom(ui(name = "Volume"))]
   pub volume: AudioVolumeSettingsSubgroup,
+}
+
+#[derive(SettingsSubgroup!, SmartDefault, Deserialize, Serialize, Debug, Clone)]
+#[serde(default)]
+pub struct AudioOutputSettingsSubgroup {
+  /// Audio output
+  #[custom(ui(name = "Audio Output"))]
+  audio_output: AudioOutput,
 }
 
 #[derive(SettingsSubgroup!, SmartDefault, Deserialize, Serialize, Debug, Clone)]
@@ -32,6 +46,8 @@ pub struct AudioVolumeSettingsSubgroup {
   #[custom(ui(name = "Effects Volume", range = 0.0 ..= 1.0, percentage = true, inline = true))]
   effects_volume: f32,
 }
+
+impl AudioOutputSettingsSubgroupProxy for ClientSettingsProxy<'_, '_> {}
 
 impl AudioVolumeSettingsSubgroupProxy for ClientSettingsProxy<'_, '_> {
   fn update_master_volume(&mut self, value: &f32) {

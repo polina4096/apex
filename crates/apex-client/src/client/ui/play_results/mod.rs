@@ -398,8 +398,8 @@ impl PlayResultsView {
                 ui.label(format!("Played by {}", score.username()));
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Max), |ui| {
-                  let str = strtime::format("%H:%M:%S@%Y-%m-%d", score.date()).unwrap();
-                  let (a, b) = str.split_once("@").unwrap();
+                  let str = strtime::format("%H:%M:%S@%Y-%m-%d", score.date()).expect("failed to format date");
+                  let (a, b) = str.split_once("@").expect("invalid date format");
                   ui.label(format!("{}  ∙  {}", a, b));
                 });
               });

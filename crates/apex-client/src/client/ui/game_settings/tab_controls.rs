@@ -2,7 +2,10 @@ use std::fmt::Write as _;
 
 use egui::Widget as _;
 
-use apex_framework::input::{keybinds::KeyCombination, Input};
+use apex_framework::{
+  input::{keybinds::KeyCombination, Input},
+  util::ResultExt,
+};
 
 use crate::client::action::ClientAction;
 
@@ -44,7 +47,7 @@ impl GameSettingsView {
 
           strip.cell(|ui| {
             self.buffer.clear();
-            write!(&mut self.buffer, "{}", comb).unwrap();
+            write!(&mut self.buffer, "{}", comb).catch();
             ui.centered_and_justified(|ui| {
               let text;
 
