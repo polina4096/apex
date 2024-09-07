@@ -23,10 +23,10 @@ nz = "0.4.1"
 # Graphics
 wgpu = "22.1.0"
 winit = { version = "0.30.5", features = ["serde"] }
-egui-wgpu = { git = "https://github.com/emilk/egui.git", rev = "9a1e358" }
-egui-winit = { git = "https://github.com/emilk/egui.git", rev = "9a1e358", default-features = false }
-egui_extras = { git = "https://github.com/emilk/egui.git", rev = "9a1e358", features = ["file"] }
-egui = { git = "https://github.com/emilk/egui.git", rev = "9a1e358", features = ["rayon"]}
+egui-wgpu = { git = "https://github.com/emilk/egui.git", rev = "ba80038" }
+egui-winit = { git = "https://github.com/emilk/egui.git", rev = "ba80038", default-features = false }
+egui_extras = { git = "https://github.com/emilk/egui.git", rev = "ba80038", features = ["serde", "file" ], default-features = false  }
+egui = { git = "https://github.com/emilk/egui.git", rev = "ba80038", features = ["rayon"]}
 guillotiere = "0.6.2"
 
 # Audio
@@ -40,9 +40,9 @@ pollster = { version = "0.3.0", features = ["macro"] }
 
 # Data Manipulation
 intbits = "0.2.0"
-bytemuck = "1.17.0"
+bytemuck = "1.18.0"
 toml = "0.8.19"
-serde = { version = "1.0.209", features = ["derive"] }
+serde = { version = "1.0.210", features = ["derive"] }
 image = { version = "0.25.2", features = ["jpeg", "png"] }
 zip = "2.2.0"
 

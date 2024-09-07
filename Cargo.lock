@@ -469,9 +469,9 @@ checksum = "79296716171880943b8470b5f8d03aa55eb2e645a4874bdbb28adb49162e012c"
 
 [[package]]
 name = "bytemuck"
-version = "1.17.0"
+version = "1.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6fd4c6dcc3b0aea2f5c0b4b82c2b15fe39ddbc76041a310848f4706edf76bb31"
+checksum = "94bbb0ad554ad961ddc5da507a12a29b14e4ae5bda06b19f575a3e6079d2e2ae"
 dependencies = [
  "bytemuck_derive",
 ]
@@ -951,9 +951,9 @@ dependencies = [
 
 [[package]]
 name = "dashmap"
-version = "6.0.1"
+version = "6.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "804c8821570c3f8b70230c2ba75ffa5c0f9a4189b9a432b6656c536712acae28"
+checksum = "5041cc499144891f3790297212f32a74fb938e5136a14943f338ef9e0ae276cf"
 dependencies = [
  "cfg-if",
  "crossbeam-utils",
@@ -1071,7 +1071,7 @@ dependencies = [
 [[package]]
 name = "ecolor"
 version = "0.28.1"
-source = "git+https://github.com/emilk/egui.git?rev=9a1e358#9a1e358a144b5d2af9d03a80257c34883f57cf0b"
+source = "git+https://github.com/emilk/egui.git?rev=ba80038#ba80038f3dc33762ff7f18c2fffdd3632611ae72"
 dependencies = [
  "bytemuck",
  "emath",
@@ -1081,7 +1081,7 @@ dependencies = [
 [[package]]
 name = "egui"
 version = "0.28.1"
-source = "git+https://github.com/emilk/egui.git?rev=9a1e358#9a1e358a144b5d2af9d03a80257c34883f57cf0b"
+source = "git+https://github.com/emilk/egui.git?rev=ba80038#ba80038f3dc33762ff7f18c2fffdd3632611ae72"
 dependencies = [
  "accesskit",
  "ahash",
@@ -1095,7 +1095,7 @@ dependencies = [
 [[package]]
 name = "egui-wgpu"
 version = "0.28.1"
-source = "git+https://github.com/emilk/egui.git?rev=9a1e358#9a1e358a144b5d2af9d03a80257c34883f57cf0b"
+source = "git+https://github.com/emilk/egui.git?rev=ba80038#ba80038f3dc33762ff7f18c2fffdd3632611ae72"
 dependencies = [
  "ahash",
  "bytemuck",
@@ -1112,7 +1112,7 @@ dependencies = [
 [[package]]
 name = "egui-winit"
 version = "0.28.1"
-source = "git+https://github.com/emilk/egui.git?rev=9a1e358#9a1e358a144b5d2af9d03a80257c34883f57cf0b"
+source = "git+https://github.com/emilk/egui.git?rev=ba80038#ba80038f3dc33762ff7f18c2fffdd3632611ae72"
 dependencies = [
  "ahash",
  "egui",
@@ -1126,7 +1126,7 @@ dependencies = [
 [[package]]
 name = "egui_extras"
 version = "0.28.1"
-source = "git+https://github.com/emilk/egui.git?rev=9a1e358#9a1e358a144b5d2af9d03a80257c34883f57cf0b"
+source = "git+https://github.com/emilk/egui.git?rev=ba80038#ba80038f3dc33762ff7f18c2fffdd3632611ae72"
 dependencies = [
  "ahash",
  "egui",
@@ -1145,7 +1145,7 @@ checksum = "60b1af1c220855b6ceac025d3f6ecdd2b7c4894bfe9cd9bda4fbb4bc7c0d4cf0"
 [[package]]
 name = "emath"
 version = "0.28.1"
-source = "git+https://github.com/emilk/egui.git?rev=9a1e358#9a1e358a144b5d2af9d03a80257c34883f57cf0b"
+source = "git+https://github.com/emilk/egui.git?rev=ba80038#ba80038f3dc33762ff7f18c2fffdd3632611ae72"
 dependencies = [
  "bytemuck",
  "serde",
@@ -1195,7 +1195,7 @@ dependencies = [
 [[package]]
 name = "epaint"
 version = "0.28.1"
-source = "git+https://github.com/emilk/egui.git?rev=9a1e358#9a1e358a144b5d2af9d03a80257c34883f57cf0b"
+source = "git+https://github.com/emilk/egui.git?rev=ba80038#ba80038f3dc33762ff7f18c2fffdd3632611ae72"
 dependencies = [
  "ab_glyph",
  "ahash",
@@ -1213,7 +1213,7 @@ dependencies = [
 [[package]]
 name = "epaint_default_fonts"
 version = "0.28.1"
-source = "git+https://github.com/emilk/egui.git?rev=9a1e358#9a1e358a144b5d2af9d03a80257c34883f57cf0b"
+source = "git+https://github.com/emilk/egui.git?rev=ba80038#ba80038f3dc33762ff7f18c2fffdd3632611ae72"
 
 [[package]]
 name = "equivalent"
@@ -1680,9 +1680,9 @@ checksum = "ce23b50ad8242c51a442f3ff322d56b02f08852c77e4c0b4d3fd684abc89c683"
 
 [[package]]
 name = "indexmap"
-version = "2.4.0"
+version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93ead53efc7ea8ed3cfb0c79fc8023fbb782a5432b52830b6518941cebe6505c"
+checksum = "68b900aa2f7301e21c36462b170ee99994de34dff39a4a6a528e80e7376d07e5"
 dependencies = [
  "equivalent",
  "hashbrown",
@@ -1752,9 +1752,9 @@ checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
 
 [[package]]
 name = "jiff"
-version = "0.1.10"
+version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ef8bc400f8312944a9f879db116fed372c4f0859af672eba2a80f79c767dd19"
+checksum = "8a45489186a6123c128fdf6016183fcfab7113e1820eb813127e036e287233fb"
 dependencies = [
  "jiff-tzdb-platform",
  "windows-sys 0.52.0",
@@ -1762,15 +1762,15 @@ dependencies = [
 
 [[package]]
 name = "jiff-tzdb"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "05fac328b3df1c0f18a3c2ab6cb7e06e4e549f366017d796e3e66b6d6889abe6"
+checksum = "91335e575850c5c4c673b9bd467b0e025f164ca59d0564f69d0c2ee0ffad4653"
 
 [[package]]
 name = "jiff-tzdb-platform"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8da387d5feaf355954c2c122c194d6df9c57d865125a67984bb453db5336940"
+checksum = "9835f0060a626fe59f160437bc725491a6af23133ea906500027d1bd2f8f4329"
 dependencies = [
  "jiff-tzdb",
 ]
@@ -3128,18 +3128,18 @@ dependencies = [
 
 [[package]]
 name = "serde"
-version = "1.0.209"
+version = "1.0.210"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99fce0ffe7310761ca6bf9faf5115afbc19688edd00171d81b1bb1b116c63e09"
+checksum = "c8e3592472072e6e22e0a54d5904d9febf8508f65fb8552499a1abc7d1078c3a"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.209"
+version = "1.0.210"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5831b979fd7b5439637af1752d535ff49f4860c0f341d1baeb6faf0f4242170"
+checksum = "243902eda00fad750862fc144cea25caca5e20d615af0a81bee94ca738f1df1f"
 dependencies = [
  "proc-macro2",
  "quote",

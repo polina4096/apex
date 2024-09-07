@@ -110,7 +110,7 @@ impl BeatmapList {
 
             let rect = egui::Rect::from_x_y_ranges(ui.max_rect().x_range(), y_min - 54.0 ..= y_max);
 
-            ui.allocate_ui_at_rect(rect, |ui| {
+            ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rect), |ui| {
               ui.skip_ahead_auto_ids(min_row);
 
               if min_row == 0 {

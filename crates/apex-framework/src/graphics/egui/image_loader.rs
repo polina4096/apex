@@ -37,12 +37,14 @@ impl BackgroundImageLoader {
         while let Ok(uri) = rx.recv() {
           loop {
             match ctx.try_load_bytes(&uri) {
+              #[expect(unused)]
               Ok(BytesPoll::Ready { bytes, mime, .. }) => {
                 // (2 and 3)
-                if mime.as_deref().is_some_and(is_unsupported_mime) || image::guess_format(&bytes).is_err() {
-                  // Err(LoadError::NotSupported);
-                  continue;
-                }
+                // TODO: fix this, stopped working with commit ba80038 of egui for some reason
+                // if mime.as_deref().is_some_and(is_unsupported_mime) || image::guess_format(&bytes).is_err() {
+                //   // Err(LoadError::NotSupported);
+                //   continue;
+                // }
 
                 log::trace!("Started loading {uri:?}");
                 let result = match image::load_from_memory(&bytes) {
@@ -92,6 +94,7 @@ fn is_supported_uri(uri: &str) -> bool {
     .any(|x| *x == ext);
 }
 
+#[expect(unused)]
 fn is_unsupported_mime(mime: &str) -> bool {
   return !ImageFormat::all()
     .filter(ImageFormat::reading_enabled)
