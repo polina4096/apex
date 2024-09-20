@@ -40,9 +40,12 @@ impl<A: App> Core<A> {
 
     let egui = Egui::new(event_loop, &graphics).tap(|egui| {
       egui.ctx().tap_deref(|ctx| {
-        ctx.set_visuals(egui::Visuals::dark().tap_mut(|visuals| {
-          visuals.window_highlight_topmost = false;
-        }));
+        ctx.set_visuals_of(
+          egui::Theme::Dark,
+          egui::Visuals::dark().tap_mut(|visuals| {
+            visuals.window_highlight_topmost = false;
+          }),
+        );
 
         ctx.options_mut(|options| {
           options.zoom_with_keyboard = false;

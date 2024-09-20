@@ -80,11 +80,11 @@ impl Egui {
 
   pub fn begin_frame(&mut self, window: &Window) {
     let new_input = self.winit_state.take_egui_input(window);
-    self.ctx.begin_frame(new_input);
+    self.ctx.begin_pass(new_input);
   }
 
   pub fn end_frame(&mut self, window: &Window, graphics: &Graphics, encoder: &mut wgpu::CommandEncoder) {
-    let egui_output = self.ctx.end_frame();
+    let egui_output = self.ctx.end_pass();
 
     // Handle platform interactions
     self.winit_state.handle_platform_output(window, egui_output.platform_output);

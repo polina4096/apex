@@ -24,24 +24,18 @@ color-eyre = "0.6.3"
 paste = "1.0.15"
 macro_rules_attribute = "0.2.0"
 smart-default = "0.7.1"
-thiserror = "1.0.63"
-cfg-if = "1.0.0"
 tap = "1.0.1"
-nz = "0.4.1"
 
 # Graphics
 wgpu = "22.1.0"
 winit = { version = "0.30.5", features = ["serde"] }
-egui-wgpu = { git = "https://github.com/emilk/egui.git", rev = "ba80038" }
-egui-winit = { git = "https://github.com/emilk/egui.git", rev = "ba80038", default-features = false }
-egui_extras = { git = "https://github.com/emilk/egui.git", rev = "ba80038", features = ["serde", "file"], default-features = false }
-egui = { git = "https://github.com/emilk/egui.git", rev = "ba80038", features = ["rayon"]}
+egui-wgpu = { git = "https://github.com/emilk/egui.git", rev = "06f7094" }
+egui-winit = { git = "https://github.com/emilk/egui.git", rev = "06f7094", default-features = false }
+egui_extras = { git = "https://github.com/emilk/egui.git", rev = "06f7094", features = ["serde", "file"], default-features = false }
+egui = { git = "https://github.com/emilk/egui.git", rev = "06f7094", features = ["rayon"]}
 
 # Audio
 rodio = "0.19.0"
-
-# Threading
-parking_lot = "0.12.3"
 
 # Async
 pollster = { version = "0.3.0", features = ["macro"] }
@@ -61,9 +55,7 @@ instant = "0.1.12"
 
 # Data Structures
 ahash = "0.8.11"
-nohash-hasher = "0.2.0"
 blake3 = "1.5.4"
-dashmap = "6.1.0"
 indexmap = "2.5.0"
 triomphe = "0.1.13"
 

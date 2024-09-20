@@ -5,6 +5,9 @@ use thiserror::Error;
 use triomphe::Arc;
 use winit::window::Window;
 
+#[derive(Debug, Error)]
+pub enum DummyError {}
+
 #[derive(Error, Debug)]
 pub enum ExternalSyncError {
   #[error("no active window for FrameSync was set")]
@@ -13,11 +16,21 @@ pub enum ExternalSyncError {
   #[error("failed to initialize display link")]
   DisplayLinkInitFailed,
 
+  #[cfg(target_os = "macos")]
   #[error("failed to resume display link")]
   DisplayLinkResumeFailed(#[from] ResumeError),
 
+  #[cfg(not(target_os = "macos"))]
+  #[error("failed to resume display link")]
+  DisplayLinkResumeFailed(#[from] DummyError),
+
+  #[cfg(target_os = "macos")]
   #[error("failed to pause display link")]
   DisplayLinkPauseFailed(#[from] PauseError),
+
+  #[cfg(not(target_os = "macos"))]
+  #[error("failed to pause display link")]
+  DisplayLinkPauseFailed(#[from] DummyError),
 }
 
 pub struct FrameSync {

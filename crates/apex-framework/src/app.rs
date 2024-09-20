@@ -78,14 +78,14 @@ impl<A: App> ApplicationHandler<CoreEvent<A::Event>> for ApexFrameworkApplicatio
       }
     };
 
-    // Workaround for the first frame not being rendered on some platforms
-    window.request_redraw();
-
     // Initialize the client and core
     let (client, core) = A::create(event_loop, window.clone(), self.app_focus.clone(), self.proxy.clone());
 
     self.client = Some(client);
     self.core = Some(core);
+
+    // Workaround for the first frame not being rendered on some platforms
+    window.request_redraw();
   }
 
   fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {

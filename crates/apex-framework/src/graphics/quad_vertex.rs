@@ -1,11 +1,10 @@
 use glam::{vec2, vec3, Vec2, Vec3};
 
-#[rustfmt::skip]
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct QuadVertex {
-  position : Vec3,
-  uv       : Vec2,
+  position: Vec3,
+  uv: Vec2,
 }
 
 impl QuadVertex {

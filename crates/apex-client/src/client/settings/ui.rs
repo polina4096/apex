@@ -33,7 +33,7 @@ macro_rules! make_numeric_ui {
             egui::Slider::new(&mut value, opts.range)
               .step_by(opts.step)
               .trailing_fill(true)
-              .clamp_to_range(opts.clamp)
+              .clamping(if opts.clamp { egui::SliderClamping::Always } else { egui::SliderClamping::Never })
               .pipe(|slider| {
                 let slider = if let Some(decimals) = opts.precision {
                   slider.max_decimals(decimals)
@@ -54,7 +54,7 @@ macro_rules! make_numeric_ui {
             egui::DragValue::new(&mut value)
               .speed(if opts.step == 0.0 { 1.0 } else { opts.step })
               .range(opts.range)
-              .clamp_to_range(opts.clamp)
+              .clamp_existing_to_range(opts.clamp)
               .max_decimals_opt(opts.precision)
               .ui(ui)
           };

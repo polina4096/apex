@@ -134,9 +134,9 @@ impl RecordingPanelView {
 
             ui.label("Preset");
             ui.horizontal(|ui| {
-              egui::ComboBox::from_id_source("encoding_preset").selected_text(cfg.preset.to_string()).show_ui(
-                ui,
-                |ui| {
+              egui::ComboBox::from_id_salt("encoding_preset")
+                .selected_text(cfg.preset.to_string())
+                .show_ui(ui, |ui| {
                   ui.selectable_value(&mut cfg.preset, EncodingPreset::Ultrafast, "ultrafast");
                   ui.selectable_value(&mut cfg.preset, EncodingPreset::Superfast, "superfast");
                   ui.selectable_value(&mut cfg.preset, EncodingPreset::Veryfast, "veryfast");
@@ -146,10 +146,13 @@ impl RecordingPanelView {
                   ui.selectable_value(&mut cfg.preset, EncodingPreset::Slow, "slow");
                   ui.selectable_value(&mut cfg.preset, EncodingPreset::Slower, "slower");
                   ui.selectable_value(&mut cfg.preset, EncodingPreset::Veryslow, "veryslow");
-                },
-              );
+                });
 
-              ui.add(egui::Slider::new(&mut cfg.crf_bitrate, 0 ..= 51).text("CRF").clamp_to_range(true));
+              ui.add(
+                egui::Slider::new(&mut cfg.crf_bitrate, 0 ..= 51) //
+                  .text("CRF")
+                  .clamping(egui::SliderClamping::Always),
+              );
             });
 
             ui.end_row();
