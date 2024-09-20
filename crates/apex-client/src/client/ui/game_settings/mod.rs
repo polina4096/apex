@@ -58,11 +58,12 @@ impl GameSettingsView {
     }
 
     let width = 512.0;
-    let offset = ctx.animate_value_with_time(
+    let offset = ctx.animate_bool_with_time_and_easing(
       egui::Id::new("settings_expand_anim"),
-      if !self.is_open { width } else { 0.0 },
+      !self.is_open,
       0.125,
-    );
+      egui::emath::easing::quadratic_out,
+    ) * width;
 
     if width <= 0.0 {
       return;
