@@ -1,12 +1,19 @@
 use std::sync::atomic::AtomicBool;
 
-use display_link::{PauseError, ResumeError};
 use thiserror::Error;
 use triomphe::Arc;
 use winit::window::Window;
 
+#[cfg(target_os = "macos")]
+use display_link::{PauseError, ResumeError};
+
+#[cfg(not(target_os = "macos"))]
 #[derive(Debug, Error)]
-pub enum DummyError {}
+pub enum ResumeError {}
+
+#[cfg(not(target_os = "macos"))]
+#[derive(Debug, Error)]
+pub enum PauseError {}
 
 #[derive(Error, Debug)]
 pub enum ExternalSyncError {
@@ -16,21 +23,11 @@ pub enum ExternalSyncError {
   #[error("failed to initialize display link")]
   DisplayLinkInitFailed,
 
-  #[cfg(target_os = "macos")]
   #[error("failed to resume display link")]
   DisplayLinkResumeFailed(#[from] ResumeError),
 
-  #[cfg(not(target_os = "macos"))]
-  #[error("failed to resume display link")]
-  DisplayLinkResumeFailed(#[from] DummyError),
-
-  #[cfg(target_os = "macos")]
   #[error("failed to pause display link")]
   DisplayLinkPauseFailed(#[from] PauseError),
-
-  #[cfg(not(target_os = "macos"))]
-  #[error("failed to pause display link")]
-  DisplayLinkPauseFailed(#[from] DummyError),
 }
 
 pub struct FrameSync {
