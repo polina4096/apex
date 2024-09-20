@@ -4,7 +4,7 @@ on:
   push:
     branches: [master]
   pull_request:
-    branches: [master]  
+    branches: [master]
 
 jobs:
   build:
@@ -45,7 +45,7 @@ jobs:
         run: |
           cp -r assets target/${{ matrix.target }}/release
       - name: Upload
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
