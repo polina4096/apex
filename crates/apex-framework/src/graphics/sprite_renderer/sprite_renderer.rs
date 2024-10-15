@@ -55,7 +55,7 @@ impl SpriteRenderer {
     #[rustfmt::skip]
     let scene = Self::create_scene(device, width, height, scale_factor);
 
-    let dim = device.limits().max_texture_dimension_2d;
+    let dim = 4096; // TODO: figure out how to get the max texture size properly
     let atlas_allocator = AtlasAllocator::new(guillotiere::size2(dim as i32, dim as i32));
     let atlas_texture = Texture::dummy(device, queue);
     let atlas_image = DynamicImage::new_rgba8(dim, dim);
