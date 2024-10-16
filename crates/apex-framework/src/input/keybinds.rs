@@ -52,7 +52,7 @@ impl<T> Keybinds<T> {
     if old_key != new_key {
       #[allow(clippy::collapsible_else_if)]
       if self.binds.contains_key(&new_key) {
-        if let Some([a, b]) = self.binds.get_many_mut([&new_key, &old_key]) {
+        if let [Some(a), Some(b)] = self.binds.get_many_mut([&new_key, &old_key]) {
           std::mem::swap(a, b);
           return;
         }
